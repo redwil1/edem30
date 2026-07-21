@@ -33,6 +33,61 @@ export async function hasReviewed(
   return rows.length > 0;
 }
 
+export type UserReview = {
+  id: number;
+  rating: number;
+  comment: string | null;
+  createdAt: string;
+  tripId: number;
+  tripRoute: string;
+  authorId: number;
+  authorName: string;
+  authorAvatarUrl: string | null;
+  authorAvatarPreset: string | null;
+};
+
+type UserReviewRow = {
+  id: number;
+  rating: number;
+  comment: string | null;
+  created_at: string;
+  trip_id: number;
+  from_city: string;
+  to_city: string;
+  author_id: number;
+  author_name: string;
+  author_avatar_url: string | null;
+  author_avatar_preset: string | null;
+};
+
+export async function listUserReviews(userId: number): Promise<UserReview[]> {
+  const rows = await sql<UserReviewRow[]>`
+    SELECT reviews.id as id, reviews.rating as rating, reviews.comment as comment,
+           reviews.created_at as created_at, reviews.trip_id as trip_id,
+           trips.from_city as from_city, trips.to_city as to_city,
+           users.id as author_id, users.name as author_name,
+           users.avatar_url as author_avatar_url, users.avatar_preset as author_avatar_preset
+    FROM reviews
+    JOIN users ON users.id = reviews.reviewer_id
+    JOIN trips ON trips.id = reviews.trip_id
+    WHERE reviews.reviewee_id = ${userId}
+    ORDER BY reviews.id DESC
+  `;
+
+  return rows.map((r) => ({
+    id: r.id,
+    rating: r.rating,
+    comment: r.comment,
+    createdAt: r.created_at,
+    tripId: r.trip_id,
+    tripRoute: `${r.from_city} → ${r.to_city}`,
+    authorId: r.author_id,
+    authorName: r.author_name,
+    authorAvatarUrl: r.author_avatar_url,
+    authorAvatarPreset: r.author_avatar_preset,
+  }));
+}
+
 export type CreateReviewInput = {
   tripId: number;
   reviewerId: number;

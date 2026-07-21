@@ -120,3 +120,23 @@ export async function getCurrentUser(): Promise<SafeUser | null> {
 export async function setUserRole(userId: number, role: UserRole) {
   await sql`UPDATE users SET role = ${role} WHERE id = ${userId}`;
 }
+
+export type PublicUser = {
+  id: number;
+  name: string;
+  role: UserRole;
+  avatarUrl: string | null;
+  avatarPreset: string | null;
+  gender: string | null;
+  createdAt: string;
+};
+
+export async function getPublicUserById(id: number): Promise<PublicUser | null> {
+  const rows = await sql<PublicUser[]>`
+    SELECT id, name, role, avatar_url as "avatarUrl", avatar_preset as "avatarPreset",
+           gender, created_at as "createdAt"
+    FROM users WHERE id = ${id}
+  `;
+
+  return rows[0] ?? null;
+}

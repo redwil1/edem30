@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { Star } from "lucide-react";
 
 import { Trip } from "@/types/trips";
@@ -41,24 +42,48 @@ export default function TripInfoCard({ trip, joined }: Props) {
       </div>
 
       <div className="flex items-center justify-between mt-5 pt-5 border-t border-white/5">
-        <div className="flex items-center gap-3">
-          <Avatar
-            name={trip.driver}
-            size={40}
-            avatarUrl={trip.driverAvatarUrl}
-            avatarPreset={trip.driverAvatarPreset}
-          />
+        {trip.driverId ? (
+          <Link
+            href={`/profile/${trip.driverId}`}
+            className="flex items-center gap-3 hover:opacity-80 transition"
+          >
+            <Avatar
+              name={trip.driver}
+              size={40}
+              avatarUrl={trip.driverAvatarUrl}
+              avatarPreset={trip.driverAvatarPreset}
+            />
 
-          <div>
-            <div className="font-medium text-sm">{trip.driver}</div>
+            <div>
+              <div className="font-medium text-sm">{trip.driver}</div>
 
-            <div className="text-xs text-yellow-400 flex items-center gap-1">
-              <Star size={11} className="fill-yellow-400" />
-              {formatRating(trip.rating)}{" "}
-              <span className="text-gray-500">({trip.tripsCount} отзывов)</span>
+              <div className="text-xs text-yellow-400 flex items-center gap-1">
+                <Star size={11} className="fill-yellow-400" />
+                {formatRating(trip.rating)}{" "}
+                <span className="text-gray-500">({trip.tripsCount} отзывов)</span>
+              </div>
+            </div>
+          </Link>
+        ) : (
+          <div className="flex items-center gap-3">
+            <Avatar
+              name={trip.driver}
+              size={40}
+              avatarUrl={trip.driverAvatarUrl}
+              avatarPreset={trip.driverAvatarPreset}
+            />
+
+            <div>
+              <div className="font-medium text-sm">{trip.driver}</div>
+
+              <div className="text-xs text-yellow-400 flex items-center gap-1">
+                <Star size={11} className="fill-yellow-400" />
+                {formatRating(trip.rating)}{" "}
+                <span className="text-gray-500">({trip.tripsCount} отзывов)</span>
+              </div>
             </div>
           </div>
-        </div>
+        )}
 
         <span className="bg-violet-600/15 text-violet-300 text-xs font-medium px-2.5 py-1 rounded-full whitespace-nowrap">
           {formatSeats(trip.seats)}

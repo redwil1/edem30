@@ -45,6 +45,7 @@ function toTrip(row: TripRow): Trip {
     seats: Math.max(row.total_seats - takenSeats, 0),
     transport: row.transport,
     driver: row.driver_name,
+    driverId: row.owner_id,
     rating: row.owner_rating ? Math.round(row.owner_rating * 10) / 10 : 0,
     tripsCount: row.owner_reviews_count ? Number(row.owner_reviews_count) : 0,
     verified: !!row.verified,

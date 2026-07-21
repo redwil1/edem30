@@ -19,6 +19,8 @@ export interface Trip {
 
   driver: string;
 
+  driverId: number | null;
+
   rating: number;
 
   verified: boolean;
