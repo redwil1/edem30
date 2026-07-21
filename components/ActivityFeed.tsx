@@ -108,7 +108,7 @@ export default function ActivityFeed() {
         <>
           <div className="text-sm font-bold text-gray-300 mb-3">Последние действия</div>
 
-          <div className="space-y-3">
+          <div className="space-y-3 max-h-[260px] overflow-y-auto pr-1">
             <AnimatePresence initial={false}>
               {data.recent.map((item, i) => {
                 const Icon = KIND_ICON[item.kind];

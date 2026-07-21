@@ -67,8 +67,6 @@ export default function SchedulePanel({ trips }: Props) {
 
       {tab === "schedule" ? (
         <div>
-          <ActivityFeed />
-
           {trips.length === 0 && (
             <div className="py-16 text-center text-gray-500 text-sm">
               Рейсов пока нет. Будьте первым, кто их предложит.
@@ -147,6 +145,10 @@ export default function SchedulePanel({ trips }: Props) {
           <button className="w-full mt-4 py-3 rounded-xl border border-white/10 text-sm text-gray-300 hover:bg-white/5 transition flex items-center justify-center gap-1">
             Смотреть все рейсы →
           </button>
+
+          <div className="mt-5">
+            <ActivityFeed />
+          </div>
         </div>
       ) : (
         <div className="py-16 text-center text-gray-500 text-sm">
