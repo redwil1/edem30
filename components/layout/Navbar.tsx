@@ -7,6 +7,7 @@ import { Menu, X, User, LogOut, Car, Users } from "lucide-react";
 
 import { useAuth } from "@/components/auth/AuthProvider";
 import Avatar from "@/components/trip/Avatar";
+import ThemeToggle from "./ThemeToggle";
 
 const links = [
   { href: "/", text: "Главная" },
@@ -73,7 +74,9 @@ export default function Navbar() {
           })}
         </nav>
 
-        <div className="hidden lg:flex items-center">
+        <div className="hidden lg:flex items-center gap-3">
+          <ThemeToggle />
+
           {loading ? (
             <div className="w-24 h-10 rounded-xl bg-white/5 animate-pulse" />
           ) : user ? (
@@ -194,6 +197,11 @@ export default function Navbar() {
               );
             })}
           </nav>
+
+          <div className="flex items-center justify-between px-3 mt-3 pt-3 border-t border-white/5">
+            <span className="text-sm text-gray-400">Тема</span>
+            <ThemeToggle />
+          </div>
 
           <div className="mt-3 pt-3 border-t border-white/5">
             {user ? (
