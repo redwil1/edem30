@@ -3,7 +3,7 @@ import { PhoneCall, ShieldCheck, TriangleAlert } from "lucide-react";
 export default function SafetyCard() {
   return (
     <div className="bg-[#12121c] border border-white/5 rounded-3xl p-4 sm:p-6">
-      <div className="flex items-center gap-2 font-bold mb-3">
+      <div className="font-display flex items-center gap-2 font-bold mb-3">
         <ShieldCheck size={18} className="text-violet-400" />
         Ваша безопасность
       </div>

@@ -7,11 +7,11 @@ export default function Footer() {
       <div className="max-w-[1400px] mx-auto px-5 sm:px-6 lg:px-10 py-10 grid grid-cols-1 md:grid-cols-3 gap-8">
         <div>
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-violet-600 flex items-center justify-center font-bold">
+            <div className="font-display btn-gradient w-10 h-10 rounded-xl flex items-center justify-center font-bold">
               Е
             </div>
 
-            <div className="font-bold">
+            <div className="font-display font-bold">
               Едем<span className="text-violet-400">30</span>
             </div>
           </div>

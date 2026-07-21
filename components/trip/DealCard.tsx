@@ -88,9 +88,21 @@ export default function DealCard({ tripId, initialPrice, onFinalized }: Props) {
   const otherConfirmed = deal.isDriver ? deal.passengerConfirmed : deal.driverConfirmed;
   const priceMatches = deal.price !== null && Number(price) === deal.price;
 
+  const otherRoleLabel = deal.isDriver ? "пассажир" : "водитель";
+  const displayPrice = deal.price ?? initialPrice;
+
+  const priceLabel =
+    deal.price === null
+      ? "Стартовая цена пассажира"
+      : otherConfirmed && !myConfirmed
+      ? `Предлагает ${otherRoleLabel}`
+      : myConfirmed && !otherConfirmed
+      ? "Ваше предложение"
+      : "Цена поездки";
+
   return (
     <div className="bg-[#12121c] border border-violet-500/20 rounded-3xl p-4 sm:p-6">
-      <div className="flex items-center gap-2 font-bold mb-3">
+      <div className="font-display flex items-center gap-2 font-bold mb-3">
         <Handshake size={18} className="text-violet-400" />
         Договоритесь о цене в чате
       </div>
@@ -99,6 +111,13 @@ export default function DealCard({ tripId, initialPrice, onFinalized }: Props) {
         Обсудите поездку в чате, затем оба подтвердите цену — только после
         этого можно будет начать поездку.
       </p>
+
+      <div className="bg-[#1c1c2b] rounded-2xl p-4 mb-4">
+        <div className="text-xs text-gray-400 mb-1">{priceLabel}</div>
+        <div className="font-display text-2xl font-bold text-violet-300 tabular-nums">
+          {formatPrice(displayPrice)}
+        </div>
+      </div>
 
       <div className="space-y-2 text-sm mb-4">
         <div className="flex items-center justify-between">
@@ -135,10 +154,12 @@ export default function DealCard({ tripId, initialPrice, onFinalized }: Props) {
           <button
             onClick={submit}
             disabled={submitting}
-            className="bg-violet-600 hover:bg-violet-700 disabled:opacity-60 transition rounded-xl px-5 py-3 text-sm font-bold whitespace-nowrap flex items-center gap-2"
+            className="btn-gradient disabled:opacity-60 transition rounded-xl px-5 py-3 text-sm font-bold whitespace-nowrap flex items-center gap-2"
           >
             {submitting && <Loader2 size={14} className="animate-spin" />}
-            {priceMatches && !myConfirmed ? "Договорились" : "Предложить"}
+            {priceMatches && !myConfirmed
+              ? `Принять ${formatPrice(deal.price ?? 0)}`
+              : "Предложить"}
           </button>
         </div>
       )}

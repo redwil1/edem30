@@ -189,7 +189,7 @@ export default function PassengerTaxiOrder({ initialFrom, initialTo }: Props = {
       onSubmit={submit}
       className="bg-[#12121c] border border-white/5 rounded-3xl p-5 sm:p-6 space-y-3"
     >
-      <div className="flex items-center gap-2 font-bold text-lg mb-2">
+      <div className="font-display flex items-center gap-2 font-bold text-lg mb-2">
         <Car size={18} className="text-violet-400" />
         Заказ такси
       </div>
@@ -224,7 +224,7 @@ export default function PassengerTaxiOrder({ initialFrom, initialTo }: Props = {
       <button
         type="submit"
         disabled={submitting}
-        className="w-full bg-violet-600 hover:bg-violet-700 disabled:opacity-60 transition rounded-2xl py-4 font-bold"
+        className="btn-gradient w-full disabled:opacity-60 transition rounded-2xl py-4 font-bold"
       >
         {submitting ? "Оформляем..." : "Найти такси"}
       </button>

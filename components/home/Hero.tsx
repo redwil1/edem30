@@ -16,26 +16,11 @@ export default function Hero({ city, onCityChange }: Props) {
       <div className="absolute -top-40 right-0 w-[600px] h-[600px] bg-violet-600/20 rounded-full blur-[120px] pointer-events-none" />
 
       <div className="max-w-[1400px] mx-auto px-5 sm:px-6 lg:px-10 pt-8 sm:pt-10 lg:pt-14 pb-8 lg:pb-10 relative">
-        {/* Oversized background car — decorative, sits behind the content and never captures clicks */}
-        <div className="hidden lg:block absolute right-[-120px] top-1/2 -translate-y-1/2 w-[1250px] pointer-events-none select-none z-0">
-          <div className="absolute inset-0 m-auto w-[700px] h-[700px] bg-violet-600/25 rounded-full blur-[160px]" />
-
-          <Image
-            src="/hero-car.png"
-            alt=""
-            width={1452}
-            height={720}
-            priority
-            sizes="1250px"
-            className="relative w-full h-auto"
-          />
-        </div>
-
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 items-center">
+        <div className="grid grid-cols-1 lg:grid-cols-[1fr_1.25fr] gap-10 items-center">
           <div className="relative z-10">
             <CitySwitch city={city} onChange={onCityChange} />
 
-            <h1 className="text-4xl sm:text-5xl font-bold leading-tight mt-4">
+            <h1 className="font-display text-4xl sm:text-5xl font-bold leading-tight mt-4">
               Едем по городу
               <br />
               <span className="text-violet-400">и межгороду</span>
@@ -60,7 +45,7 @@ export default function Hero({ city, onCityChange }: Props) {
                 </div>
 
                 <div className="flex-1 text-left min-w-0">
-                  <div className="font-bold text-sm sm:text-base leading-snug">
+                  <div className="font-display font-bold text-sm sm:text-base leading-snug">
                     Межгород
                   </div>
 
@@ -86,7 +71,7 @@ export default function Hero({ city, onCityChange }: Props) {
                 </div>
 
                 <div className="flex-1 text-left min-w-0">
-                  <div className="font-bold text-sm sm:text-base leading-snug">
+                  <div className="font-display font-bold text-sm sm:text-base leading-snug">
                     Такси по городу
                   </div>
 
@@ -105,7 +90,16 @@ export default function Hero({ city, onCityChange }: Props) {
             </div>
           </div>
 
-          <div className="hidden lg:block" />
+          <div className="hidden lg:block relative h-[290px] rounded-[22px] overflow-hidden border border-white/5 bg-[#0b0816]">
+            <Image
+              src="/hero-car-city.png"
+              alt="Машина Едем30 на фоне города"
+              fill
+              priority
+              sizes="(min-width: 1024px) 45vw, 0px"
+              className="object-cover object-[center_40%]"
+            />
+          </div>
         </div>
       </div>
     </section>

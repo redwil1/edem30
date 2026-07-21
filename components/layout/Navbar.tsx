@@ -39,12 +39,12 @@ export default function Navbar() {
     <header className="sticky top-0 z-30 border-b border-white/5 bg-[#0b0b13]/90 backdrop-blur">
       <div className="max-w-[1400px] mx-auto px-5 lg:px-10 h-20 flex items-center justify-between">
         <Link href="/" className="flex items-center gap-3 shrink-0">
-          <div className="w-11 h-11 rounded-xl bg-violet-600 flex items-center justify-center font-bold text-lg shrink-0">
+          <div className="font-display btn-gradient w-11 h-11 rounded-xl flex items-center justify-center font-bold text-lg shrink-0">
             Е
           </div>
 
           <div>
-            <div className="font-bold text-lg leading-tight">
+            <div className="font-display font-bold text-lg leading-tight">
               Едем<span className="text-violet-400">30</span>
             </div>
 
@@ -159,7 +159,7 @@ export default function Navbar() {
           ) : (
             <Link
               href="/login"
-              className="flex items-center gap-2 rounded-xl bg-violet-600 hover:bg-violet-700 px-5 py-2.5 text-sm font-medium transition"
+              className="btn-gradient flex items-center gap-2 rounded-xl px-5 py-2.5 text-sm font-medium transition"
             >
               Войти
             </Link>
@@ -253,7 +253,7 @@ export default function Navbar() {
                   <Link
                     href="/eadmin30"
                     onClick={() => setMobileOpen(false)}
-                    className="block text-center rounded-xl bg-violet-600 py-3 text-sm font-medium mt-3"
+                    className="btn-gradient block text-center rounded-xl py-3 text-sm font-medium mt-3"
                   >
                     Админ-панель
                   </Link>
@@ -263,7 +263,7 @@ export default function Navbar() {
               <Link
                 href="/login"
                 onClick={() => setMobileOpen(false)}
-                className="block text-center rounded-xl bg-violet-600 py-3 text-sm font-medium"
+                className="btn-gradient block text-center rounded-xl py-3 text-sm font-medium"
               >
                 Войти
               </Link>

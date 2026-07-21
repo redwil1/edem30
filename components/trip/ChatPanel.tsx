@@ -124,7 +124,7 @@ export default function ChatPanel({ tripId }: Props) {
     <div className="bg-[#12121c] border border-white/5 rounded-3xl p-4 sm:p-6 flex flex-col h-full">
       <div className="mb-5 flex items-start justify-between gap-3">
         <div>
-          <div className="font-bold text-lg">Чат поездки</div>
+          <div className="font-display font-bold text-lg">Чат поездки</div>
 
           <div className="text-sm text-gray-500 mt-0.5">
             Обсудите детали поездки с попутчиками и водителем
@@ -162,7 +162,7 @@ export default function ChatPanel({ tripId }: Props) {
                   <RoleBadge isDriver={m.isDriver} />
                 </div>
 
-                <div className="bg-violet-600 rounded-2xl rounded-tr-sm px-4 py-2.5 text-sm break-words">
+                <div className="bubble-gradient rounded-2xl rounded-tr-sm px-4 py-2.5 text-sm break-words">
                   {m.text}
                 </div>
 
@@ -217,7 +217,7 @@ export default function ChatPanel({ tripId }: Props) {
 
             <button
               onClick={send}
-              className="bg-violet-600 hover:bg-violet-700 transition w-9 h-9 rounded-xl flex items-center justify-center shrink-0"
+              className="btn-gradient transition w-9 h-9 rounded-xl flex items-center justify-center shrink-0"
             >
               <Send size={16} />
             </button>

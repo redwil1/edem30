@@ -69,7 +69,7 @@ export default function ReviewBanner({
 
   return (
     <div className="bg-[#12121c] border border-white/5 rounded-3xl p-4 sm:p-6">
-      <div className="font-bold">{title}</div>
+      <div className="font-display font-bold">{title}</div>
 
       <div className="text-sm text-gray-500 mt-1">{subtitle}</div>
 
@@ -109,7 +109,7 @@ export default function ReviewBanner({
       <button
         onClick={submit}
         disabled={submitting}
-        className="bg-violet-600 hover:bg-violet-700 disabled:opacity-60 transition rounded-xl px-6 py-3 font-bold mt-4"
+        className="btn-gradient disabled:opacity-60 transition rounded-xl px-6 py-3 font-bold mt-4"
       >
         {submitting ? "Отправляем..." : "Оставить отзыв"}
       </button>

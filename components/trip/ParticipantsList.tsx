@@ -8,7 +8,7 @@ type Props = {
 export default function ParticipantsList({ participants }: Props) {
   return (
     <div className="bg-[#12121c] border border-white/5 rounded-3xl p-4 sm:p-6">
-      <div className="font-bold mb-4">
+      <div className="font-display font-bold mb-4">
         Участники поездки ({participants.length})
       </div>
 

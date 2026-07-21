@@ -20,7 +20,7 @@ export default function SchedulePanel({ trips }: Props) {
       className="bg-[#12121c] border border-white/5 rounded-3xl p-4 sm:p-6 scroll-mt-24"
     >
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-5">
-        <div className="flex items-center gap-2 font-bold text-lg">
+        <div className="font-display flex items-center gap-2 font-bold text-lg">
           <Calendar size={18} className="text-violet-400 shrink-0" />
           Межгород
         </div>
@@ -68,7 +68,7 @@ export default function SchedulePanel({ trips }: Props) {
             >
               <div>
                 <div className="text-sm leading-none">
-                  <span className="font-bold">{trip.time}</span>{" "}
+                  <span className="font-display font-bold">{trip.time}</span>{" "}
                   <span className="text-violet-400">{formatDate(trip.date)}</span>
                 </div>
 

@@ -14,7 +14,7 @@ export default function TripInfoCard({ trip, joined }: Props) {
   return (
     <div className="bg-[#12121c] border border-white/5 rounded-3xl p-4 sm:p-6">
       <div className="text-sm leading-none">
-        <span className="font-bold text-lg">{trip.time}</span>{" "}
+        <span className="font-display font-bold text-lg">{trip.time}</span>{" "}
         <span className="text-violet-400">{formatDate(trip.date)}</span>
       </div>
 
@@ -27,7 +27,7 @@ export default function TripInfoCard({ trip, joined }: Props) {
       </div>
 
       <div className="mt-4 leading-none">
-        <span className="text-violet-400 font-bold text-xl">
+        <span className="font-display text-violet-400 font-bold text-xl">
           {formatPrice(trip.price)}
         </span>{" "}
         <span className="text-gray-500 text-sm">с места</span>

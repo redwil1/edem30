@@ -7,7 +7,7 @@ import { formatPrice } from "@/lib/utils";
 export default function PopularDirectionsCard() {
   return (
     <div className="bg-[#12121c] border border-white/5 rounded-3xl p-4 sm:p-6">
-      <div className="font-bold text-lg mb-4">Популярные направления</div>
+      <div className="font-display font-bold text-lg mb-4">Популярные направления</div>
 
       <div className="space-y-1">
         {popularDirections.map((route) => (

@@ -75,7 +75,7 @@ export default function JoinButton({ tripId, joined }: Props) {
       <button
         onClick={join}
         disabled={loading}
-        className="w-full bg-violet-600 hover:bg-violet-700 disabled:opacity-60 transition rounded-xl py-3 text-sm font-bold"
+        className="btn-gradient w-full disabled:opacity-60 transition rounded-xl py-3 text-sm font-bold"
       >
         {loading
           ? "Секунду..."

@@ -8,8 +8,8 @@
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --font-sans: var(--font-manrope);
+  --font-mono: var(--font-manrope);
 }
 
 @media (prefers-color-scheme: dark) {
@@ -26,12 +26,89 @@ html {
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: var(--font-geist-sans), Arial, Helvetica, sans-serif;
+  font-family: var(--font-manrope), Arial, Helvetica, sans-serif;
   line-height: 1.55;
 }
 
+.font-display {
+  font-family: var(--font-unbounded), var(--font-manrope), Arial, Helvetica, sans-serif;
+}
+
+.btn-gradient {
+  background: linear-gradient(135deg, #8b5cf6, #7c3aed);
+  box-shadow: 0 8px 22px rgb(139 92 246 / 0.4);
+}
+.btn-gradient:hover {
+  background: linear-gradient(135deg, #9866f7, #8b5cf6);
+}
+
+.avatar-gradient {
+  background: linear-gradient(135deg, #6d28d9, #312348);
+}
+
+.bubble-gradient {
+  background: linear-gradient(135deg, #7c3aed, #6d28d9);
+}
+
+.rounded-3xl {
+  border-radius: 20px !important;
+}
+
 /*
-  Режим "водитель": тот же тёмный стиль сайта, меняется только акцентный
+  Базовая палитра сайта (design_handoff_edem30): те же bracket-классы
+  Tailwind, которые уже используются в компонентах, перекрашиваются здесь
+  в новые hex-значения — без изменения JSX. Действует всегда (не под
+  атрибутом), т.к. это новая база по умолчанию, а не альтернативная тема.
+*/
+
+/* фон страницы */
+.bg-\[\#0b0b13\] { background-color: #0a0812 !important; }
+.bg-\[\#0b0b13\]\/90 { background-color: rgb(10 8 18 / 0.9) !important; }
+.bg-\[\#0b0b13\]\/95 { background-color: rgb(10 8 18 / 0.95) !important; }
+
+/* фон карточек/панелей */
+.bg-\[\#12121c\],
+.bg-\[\#171726\],
+.bg-\[\#14141f\] { background-color: #16121e !important; }
+.bg-\[\#171726\]\/95 { background-color: rgb(22 18 30 / 0.95) !important; }
+
+/* вложенный фон: вкладки, бейджи, второстепенные панели */
+.bg-\[\#171723\],
+.bg-\[\#202030\],
+.bg-\[\#242435\],
+.bg-\[\#151521\],
+.bg-\[\#0f0f18\] { background-color: #0f0b18 !important; }
+
+/* фон инпутов/вложенных интерактивных элементов */
+.bg-\[\#1c1c2b\],
+.bg-\[\#222233\] { background-color: #1b1626 !important; }
+
+/* hover-фон строк/кнопок */
+.bg-\[\#2a2a40\],
+.hover\:bg-\[\#2a2a40\]:hover { background-color: #241d33 !important; }
+
+/* текст */
+.text-white { color: #f3f1f8 !important; }
+.text-gray-300 { color: #e6def7 !important; }
+.text-gray-400,
+.text-gray-500 { color: #948ea6 !important; }
+.text-gray-600 { color: #7d7690 !important; }
+.placeholder\:text-gray-500::placeholder { color: #8a839c !important; }
+
+/* рамки на основе белого */
+.border-white\/5 { border-color: rgb(255 255 255 / 0.07) !important; }
+.border-white\/10 { border-color: rgb(255 255 255 / 0.12) !important; }
+
+/* фиолетовый акцент */
+.text-violet-200,
+.text-violet-300,
+.text-violet-400,
+.text-violet-500 { color: #a78bfa !important; }
+.hover\:text-violet-300:hover,
+.hover\:text-violet-400:hover { color: #c4b5fd !important; }
+
+/*
+  Режим "водитель": тот же стиль сайта, меняется только акцентный
   цвет (фиолетовый -> янтарный), когда на <html> стоит
   data-role-theme="driver". Фон и текст не трогаем.
 */
@@ -52,6 +129,19 @@ body {
 }
 [data-role-theme="driver"] .hover\:bg-violet-700:hover {
   background-color: #b45309 !important;
+}
+[data-role-theme="driver"] .btn-gradient {
+  background: linear-gradient(135deg, #f59e0b, #d97706) !important;
+  box-shadow: 0 8px 22px rgb(217 119 6 / 0.4) !important;
+}
+[data-role-theme="driver"] .btn-gradient:hover {
+  background: linear-gradient(135deg, #fbbf24, #f59e0b) !important;
+}
+[data-role-theme="driver"] .avatar-gradient {
+  background: linear-gradient(135deg, #b45309, #3a2a12) !important;
+}
+[data-role-theme="driver"] .bubble-gradient {
+  background: linear-gradient(135deg, #d97706, #b45309) !important;
 }
 
 [data-role-theme="driver"] .border-violet-500\/10 {
@@ -95,7 +185,7 @@ body {
 /*
   Светлая тема: тот же макет, инвертированные цвета фона/текста.
   Активируется атрибутом data-theme="light" на <html> (см. hooks/useTheme.ts).
-  По умолчанию (без атрибута) — обычная тёмная тема, ничего не меняется.
+  По умолчанию (без атрибута) — обычная тёмная тема (см. базовую палитру выше).
 */
 
 /* фоны: страница / карточки / вложенные элементы */

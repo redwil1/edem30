@@ -120,7 +120,7 @@ export default function TripStartCard({ tripId, tripDate, tripTime }: Props) {
 
     return (
       <div className="bg-[#12121c] border border-green-500/30 rounded-3xl p-4 sm:p-6">
-        <div className="flex items-center gap-2 font-bold mb-2 text-green-400">
+        <div className="font-display flex items-center gap-2 font-bold mb-2 text-green-400">
           <Flag size={18} />
           Поездка завершена
         </div>
@@ -145,12 +145,12 @@ export default function TripStartCard({ tripId, tripDate, tripTime }: Props) {
 
     return (
       <div className="bg-[#12121c] border border-violet-500/20 rounded-3xl p-4 sm:p-6">
-        <div className="flex items-center gap-2 font-bold mb-3">
+        <div className="font-display flex items-center gap-2 font-bold mb-3">
           <PlayCircle size={18} className="text-violet-400" />
           Поездка в пути
         </div>
 
-        <div className="text-2xl font-bold text-violet-300 mb-4 tabular-nums">
+        <div className="font-display text-2xl font-bold text-violet-300 mb-4 tabular-nums">
           {formatDuration(elapsedMs)}
         </div>
 
@@ -181,7 +181,7 @@ export default function TripStartCard({ tripId, tripDate, tripTime }: Props) {
         <button
           onClick={confirmComplete}
           disabled={confirming || myCompleted}
-          className="w-full mt-4 flex items-center justify-center gap-2 bg-violet-600 hover:bg-violet-700 disabled:opacity-60 transition rounded-xl py-3 text-sm font-bold"
+          className="btn-gradient w-full mt-4 flex items-center justify-center gap-2 disabled:opacity-60 transition rounded-xl py-3 text-sm font-bold"
         >
           {confirming ? (
             <Loader2 size={15} className="animate-spin" />
@@ -203,7 +203,7 @@ export default function TripStartCard({ tripId, tripDate, tripTime }: Props) {
 
   return (
     <div className="bg-[#12121c] border border-white/5 rounded-3xl p-4 sm:p-6">
-      <div className="flex items-center gap-2 font-bold mb-3">
+      <div className="font-display flex items-center gap-2 font-bold mb-3">
         <PlayCircle size={18} className="text-violet-400" />
         Начало поездки
       </div>
@@ -241,7 +241,7 @@ export default function TripStartCard({ tripId, tripDate, tripTime }: Props) {
         <button
           onClick={confirmStart}
           disabled={confirming || myConfirmed}
-          className="w-full mt-4 flex items-center justify-center gap-2 bg-violet-600 hover:bg-violet-700 disabled:opacity-60 transition rounded-xl py-3 text-sm font-bold"
+          className="btn-gradient w-full mt-4 flex items-center justify-center gap-2 disabled:opacity-60 transition rounded-xl py-3 text-sm font-bold"
         >
           {confirming ? (
             <Loader2 size={15} className="animate-spin" />
