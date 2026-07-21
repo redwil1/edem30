@@ -1,11 +1,32 @@
-export default function CategorySwitch() {
+import { TripType } from "@/types/trips";
+
+type Props = {
+  value: TripType;
+  onChange: (value: TripType) => void;
+};
+
+export default function CategorySwitch({ value, onChange }: Props) {
   return (
     <div className="flex bg-[#171723] rounded-2xl p-1 mb-6">
-      <button className="flex-1 bg-violet-600 rounded-xl py-3 font-medium">
+      <button
+        type="button"
+        onClick={() => onChange("intercity")}
+        className={`flex-1 rounded-xl py-3 font-medium transition ${
+          value === "intercity" ? "bg-violet-600" : "text-gray-300"
+        }`}
+      >
         🚐 Межгород
       </button>
 
-      <button className="flex-1 py-3 text-gray-300">🚖 Такси</button>
+      <button
+        type="button"
+        onClick={() => onChange("city")}
+        className={`flex-1 rounded-xl py-3 font-medium transition ${
+          value === "city" ? "bg-violet-600" : "text-gray-300"
+        }`}
+      >
+        🚖 Такси
+      </button>
     </div>
   );
 }

@@ -36,6 +36,12 @@ yarn-error.log*
 # vercel
 .vercel
 
+# sqlite database
+/data/app.db
+/data/app.db-journal
+/data/app.db-wal
+/data/app.db-shm
+
 # typescript
 *.tsbuildinfo
 next-env.d.ts

@@ -1,0 +1,31 @@
+export type TripType = "city" | "intercity";
+
+export interface Trip {
+  id: number;
+
+  type: TripType;
+
+  from: string;
+
+  to: string;
+
+  date: string;
+
+  time: string;
+
+  price: number;
+
+  seats: number;
+
+  driver: string;
+
+  rating: number;
+
+  verified: boolean;
+
+  tripsCount: number;
+
+  transport: string;
+
+  totalSeats: number;
+}

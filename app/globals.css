@@ -19,8 +19,75 @@
   }
 }
 
+html {
+  font-size: 17px;
+}
+
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-geist-sans), Arial, Helvetica, sans-serif;
+  line-height: 1.55;
+}
+
+/*
+  Режим "водитель": тот же тёмный стиль сайта, меняется только акцентный
+  цвет (фиолетовый -> янтарный), когда на <html> стоит
+  data-role-theme="driver". Фон и текст не трогаем.
+*/
+[data-role-theme="driver"] .bg-violet-600 {
+  background-color: #d97706 !important;
+}
+[data-role-theme="driver"] .bg-violet-600\/15 {
+  background-color: rgb(217 119 6 / 0.15) !important;
+}
+[data-role-theme="driver"] .bg-violet-600\/20 {
+  background-color: rgb(217 119 6 / 0.2) !important;
+}
+[data-role-theme="driver"] .bg-violet-600\/30 {
+  background-color: rgb(217 119 6 / 0.3) !important;
+}
+[data-role-theme="driver"] .hover\:bg-violet-600:hover {
+  background-color: #d97706 !important;
+}
+[data-role-theme="driver"] .hover\:bg-violet-700:hover {
+  background-color: #b45309 !important;
+}
+
+[data-role-theme="driver"] .border-violet-500\/10 {
+  border-color: rgb(245 158 11 / 0.1) !important;
+}
+[data-role-theme="driver"] .border-violet-500\/20 {
+  border-color: rgb(245 158 11 / 0.2) !important;
+}
+[data-role-theme="driver"] .border-violet-500\/30 {
+  border-color: rgb(245 158 11 / 0.3) !important;
+}
+[data-role-theme="driver"] .hover\:border-violet-500:hover {
+  border-color: #f59e0b !important;
+}
+[data-role-theme="driver"] .focus\:border-violet-500:focus {
+  border-color: #f59e0b !important;
+}
+
+[data-role-theme="driver"] .text-violet-200 {
+  color: #fde68a !important;
+}
+[data-role-theme="driver"] .text-violet-300 {
+  color: #fcd34d !important;
+}
+[data-role-theme="driver"] .text-violet-400 {
+  color: #fbbf24 !important;
+}
+[data-role-theme="driver"] .text-violet-500 {
+  color: #f59e0b !important;
+}
+[data-role-theme="driver"] .hover\:text-violet-300:hover {
+  color: #fcd34d !important;
+}
+[data-role-theme="driver"] .hover\:text-violet-400:hover {
+  color: #fbbf24 !important;
+}
+[data-role-theme="driver"] .fill-violet-400 {
+  fill: #fbbf24 !important;
 }
