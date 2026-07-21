@@ -1,3 +1,4 @@
+import Image from "next/image";
 import Link from "next/link";
 import { Bus, Car, ChevronRight } from "lucide-react";
 
@@ -89,60 +90,20 @@ export default function Hero({ city, onCityChange }: Props) {
             </div>
           </div>
 
-          <div className="hidden lg:flex justify-center items-center">
-            <CarIllustration />
+          <div className="hidden lg:flex justify-center items-center relative">
+            <div className="absolute w-[420px] h-[420px] bg-violet-600/30 rounded-full blur-[100px] pointer-events-none" />
+
+            <Image
+              src="/hero-car.png"
+              alt=""
+              width={500}
+              height={248}
+              priority
+              className="relative w-full max-w-[500px] h-auto drop-shadow-[0_20px_60px_rgba(124,58,237,0.45)]"
+            />
           </div>
         </div>
       </div>
     </section>
-  );
-}
-
-function CarIllustration() {
-  return (
-    <svg
-      viewBox="0 0 520 300"
-      className="w-full max-w-xl drop-shadow-[0_0_60px_rgba(124,58,237,0.35)]"
-      fill="none"
-    >
-      <ellipse cx="260" cy="255" rx="190" ry="18" fill="#7c3aed" opacity="0.15" />
-
-      <path
-        d="M60 190 C60 150 90 120 140 112 L175 80 C190 66 210 58 232 58 L318 58 C342 58 364 68 380 86 L404 112 C440 118 468 140 470 172 L470 200 C470 210 462 218 452 218 L82 218 C70 218 60 210 60 198 Z"
-        fill="#101018"
-        stroke="#7c3aed"
-        strokeOpacity="0.5"
-        strokeWidth="2"
-      />
-
-      <path
-        d="M182 108 L205 82 C214 72 227 66 240 66 L305 66 C320 66 334 72 344 83 L366 108 Z"
-        fill="#1c1c2b"
-        stroke="#a78bfa"
-        strokeOpacity="0.6"
-        strokeWidth="1.5"
-      />
-
-      <line
-        x1="264"
-        y1="66"
-        x2="264"
-        y2="108"
-        stroke="#a78bfa"
-        strokeOpacity="0.4"
-      />
-
-      <rect x="70" y="184" width="120" height="6" rx="3" fill="#7c3aed" opacity="0.6" />
-      <rect x="330" y="184" width="120" height="6" rx="3" fill="#7c3aed" opacity="0.6" />
-
-      <circle cx="150" cy="218" r="34" fill="#0b0b13" stroke="#3f3f52" strokeWidth="10" />
-      <circle cx="150" cy="218" r="12" fill="#3f3f52" />
-
-      <circle cx="390" cy="218" r="34" fill="#0b0b13" stroke="#3f3f52" strokeWidth="10" />
-      <circle cx="390" cy="218" r="12" fill="#3f3f52" />
-
-      <rect x="60" y="150" width="26" height="10" rx="5" fill="#c4b5fd" opacity="0.9" />
-      <rect x="434" y="150" width="26" height="10" rx="5" fill="#ef4444" opacity="0.8" />
-    </svg>
   );
 }
