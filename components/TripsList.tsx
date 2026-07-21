@@ -2,6 +2,7 @@ import Link from "next/link";
 
 import { formatDate, formatPrice, formatRating, formatSeats } from "@/lib/utils";
 import { Trip } from "../types/trips";
+import TripBadges from "@/components/TripBadges";
 
 type Props = {
   trips: Trip[];
@@ -32,6 +33,10 @@ export default function TripsList({ trips, emptyText }: Props) {
                   <div className="text-gray-400 mt-2">📅 {formatDate(trip.date)}</div>
 
                   <div className="text-gray-400">🕒 {trip.time}</div>
+
+                  <div className="mt-3">
+                    <TripBadges trip={trip} />
+                  </div>
                 </div>
 
                 <div className="text-right">

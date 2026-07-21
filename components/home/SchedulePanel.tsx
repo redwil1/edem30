@@ -7,6 +7,8 @@ import { Calendar, MessageCircle, Star } from "lucide-react";
 
 import { formatDate, formatPrice, formatRating, formatSeats } from "@/lib/utils";
 import { Trip } from "@/types/trips";
+import ActivityFeed from "@/components/ActivityFeed";
+import TripBadges from "@/components/TripBadges";
 
 type Props = {
   trips: Trip[];
@@ -65,6 +67,8 @@ export default function SchedulePanel({ trips }: Props) {
 
       {tab === "schedule" ? (
         <div>
+          <ActivityFeed />
+
           {trips.length === 0 && (
             <div className="py-16 text-center text-gray-500 text-sm">
               Рейсов пока нет. Будьте первым, кто их предложит.
@@ -89,6 +93,10 @@ export default function SchedulePanel({ trips }: Props) {
 
                 <div className="text-gray-500 text-sm mt-1 leading-none">
                   {trip.transport} · {trip.totalSeats} мест
+                </div>
+
+                <div className="mt-2.5">
+                  <TripBadges trip={trip} />
                 </div>
               </div>
 

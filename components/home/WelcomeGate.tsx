@@ -5,6 +5,8 @@ import Link from "next/link";
 import { Bus, Car, Star } from "lucide-react";
 
 import AddressInput from "@/components/taxi/AddressInput";
+import LiveStats from "@/components/LiveStats";
+import TripBadges from "@/components/TripBadges";
 import { formatDate, formatPrice, formatRating, formatSeats } from "@/lib/utils";
 import { Trip } from "@/types/trips";
 import CitySwitch from "./CitySwitch";
@@ -80,6 +82,8 @@ export default function WelcomeGate({ trips, city, onCityChange }: Props) {
         </button>
       </div>
 
+      <LiveStats />
+
       <div className="bg-[#12121c] border border-white/5 rounded-3xl p-4 sm:p-6 mt-6">
         {mode === "intercity" ? (
           <>
@@ -118,6 +122,10 @@ export default function WelcomeGate({ trips, city, onCityChange }: Props) {
                           <span className="truncate">
                             {formatRating(trip.rating)} · {trip.driver}
                           </span>
+                        </div>
+
+                        <div className="mt-2">
+                          <TripBadges trip={trip} />
                         </div>
                       </div>
 

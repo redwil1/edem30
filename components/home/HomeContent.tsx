@@ -6,6 +6,7 @@ import { Loader2, ShieldCheck } from "lucide-react";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { useSelectedCity } from "@/hooks/useSelectedCity";
 import { Trip } from "@/types/trips";
+import LiveStats from "@/components/LiveStats";
 import DriverHome from "./DriverHome";
 import Hero from "./Hero";
 import SchedulePanel from "./SchedulePanel";
@@ -71,6 +72,10 @@ export default function HomeContent({ trips }: Props) {
   return (
     <>
       <Hero city={city} onCityChange={setCity} />
+
+      <div className="max-w-[1400px] mx-auto px-5 sm:px-6 lg:px-10">
+        <LiveStats />
+      </div>
 
       <div className="max-w-[1400px] mx-auto px-5 sm:px-6 lg:px-10 grid grid-cols-1 lg:grid-cols-3 gap-6 pb-10">
         <div className="lg:col-span-2">
