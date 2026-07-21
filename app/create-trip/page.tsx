@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { ChevronDown, MapPin } from "lucide-react";
 
 import { useAuth } from "@/components/auth/AuthProvider";
+import Navbar from "@/components/layout/Navbar";
 import CategorySwitch from "@/components/CategorySwitch";
 import CityModal from "@/components/CityModal";
 import CarModelInput from "@/components/CarModelInput";
@@ -123,6 +124,8 @@ export default function CreateTripPage() {
   if (!loading && !user) {
     return (
       <main className="min-h-screen bg-[#0b0b13] text-white">
+        <Navbar />
+
         <div className="max-w-md mx-auto px-5 py-8">
           <Link href="/" className="text-violet-400 inline-block mb-8">
             ← Назад
@@ -148,6 +151,8 @@ export default function CreateTripPage() {
   if (!loading && user && user.role !== "driver") {
     return (
       <main className="min-h-screen bg-[#0b0b13] text-white">
+        <Navbar />
+
         <div className="max-w-md mx-auto px-5 py-8">
           <Link href="/" className="text-violet-400 inline-block mb-8">
             ← Назад
@@ -179,6 +184,8 @@ export default function CreateTripPage() {
 
   return (
     <main className="min-h-screen bg-[#0b0b13] text-white">
+      <Navbar />
+
       <div className="max-w-md mx-auto px-5 py-8">
         <Link href="/" className="text-violet-400 inline-block mb-8">
           ← Назад

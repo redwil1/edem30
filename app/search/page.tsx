@@ -1,5 +1,7 @@
 import Link from "next/link";
 
+import Navbar from "@/components/layout/Navbar";
+import Footer from "@/components/layout/Footer";
 import TripSearch from "@/components/TripSearch";
 import { getCurrentUser } from "@/lib/auth";
 import { listTrips } from "@/lib/trips";
@@ -13,8 +15,10 @@ export default async function SearchPage() {
   ]);
 
   return (
-    <main className="min-h-screen bg-[#0b0b13] text-white">
-      <div className="max-w-md mx-auto px-5 py-8">
+    <main className="min-h-screen bg-[#0b0b13] text-white flex flex-col">
+      <Navbar />
+
+      <div className="max-w-md mx-auto px-5 py-8 flex-1 w-full">
         <div className="flex items-center justify-between gap-3 mb-6">
           <h1 className="text-3xl font-bold">Поиск поездок</h1>
 
@@ -30,6 +34,8 @@ export default async function SearchPage() {
 
         <TripSearch trips={trips} emptyText="Межгородних поездок пока нет" />
       </div>
+
+      <Footer />
     </main>
   );
 }
