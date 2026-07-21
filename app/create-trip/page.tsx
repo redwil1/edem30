@@ -3,12 +3,15 @@
 import { FormEvent, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { ChevronDown, MapPin } from "lucide-react";
 
 import { useAuth } from "@/components/auth/AuthProvider";
 import CategorySwitch from "@/components/CategorySwitch";
+import CityModal from "@/components/CityModal";
 import AddressInput from "@/components/taxi/AddressInput";
-import { cities } from "@/lib/cities";
 import { TripType } from "@/types/trips";
+
+type CityField = "from" | "to" | null;
 
 const TRANSPORT_CATEGORIES = [
   { value: "sedan", label: "🚗 Легковой автомобиль" },
@@ -37,6 +40,7 @@ export default function CreateTripPage() {
   const [error, setError] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [becomingDriver, setBecomingDriver] = useState(false);
+  const [cityModalField, setCityModalField] = useState<CityField>(null);
 
   async function submit(e: FormEvent) {
     e.preventDefault();
@@ -172,26 +176,38 @@ export default function CreateTripPage() {
 
           {type === "intercity" ? (
             <>
-              <datalist id="cities-list">
-                {cities.map((city) => (
-                  <option key={city} value={city} />
-                ))}
-              </datalist>
+              <button
+                type="button"
+                onClick={() => setCityModalField("from")}
+                className="w-full flex items-center gap-2 bg-[#171726] rounded-2xl p-4 text-left"
+              >
+                <MapPin size={18} className="text-gray-500 shrink-0" />
+                <span className={`flex-1 min-w-0 truncate ${from ? "" : "text-gray-500"}`}>
+                  {from || "Откуда"}
+                </span>
+                <ChevronDown size={18} className="text-gray-500 shrink-0" />
+              </button>
 
-              <input
-                list="cities-list"
-                value={from}
-                onChange={(e) => setFrom(e.target.value)}
-                placeholder="📍 Откуда"
-                className="w-full bg-[#171726] rounded-2xl p-4 outline-none"
-              />
+              <button
+                type="button"
+                onClick={() => setCityModalField("to")}
+                className="w-full flex items-center gap-2 bg-[#171726] rounded-2xl p-4 text-left"
+              >
+                <MapPin size={18} className="text-gray-500 shrink-0" />
+                <span className={`flex-1 min-w-0 truncate ${to ? "" : "text-gray-500"}`}>
+                  {to || "Куда"}
+                </span>
+                <ChevronDown size={18} className="text-gray-500 shrink-0" />
+              </button>
 
-              <input
-                list="cities-list"
-                value={to}
-                onChange={(e) => setTo(e.target.value)}
-                placeholder="🏙 Куда"
-                className="w-full bg-[#171726] rounded-2xl p-4 outline-none"
+              <CityModal
+                open={cityModalField !== null}
+                onClose={() => setCityModalField(null)}
+                onSelect={(city) => {
+                  if (cityModalField === "from") setFrom(city);
+                  if (cityModalField === "to") setTo(city);
+                }}
+                title={cityModalField === "from" ? "Откуда вы едете?" : "Куда вы едете?"}
               />
             </>
           ) : (

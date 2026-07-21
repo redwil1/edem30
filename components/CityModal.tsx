@@ -9,9 +9,10 @@ type Props = {
   open: boolean;
   onClose: () => void;
   onSelect: (city: string) => void;
+  title?: string;
 };
 
-export default function CityModal({ open, onClose, onSelect }: Props) {
+export default function CityModal({ open, onClose, onSelect, title }: Props) {
   const [query, setQuery] = useState("");
 
   if (!open) return null;
@@ -24,7 +25,7 @@ export default function CityModal({ open, onClose, onSelect }: Props) {
     <div className="fixed inset-0 bg-black/70 flex items-end sm:items-center justify-center z-50">
       <div className="bg-[#171726] w-full max-w-md rounded-t-3xl sm:rounded-3xl p-6 max-h-[80vh] flex flex-col">
         <div className="flex items-center justify-between mb-5">
-          <h2 className="text-2xl font-bold">Выберите город</h2>
+          <h2 className="text-2xl font-bold">{title ?? "Выберите город"}</h2>
 
           <button
             onClick={onClose}
