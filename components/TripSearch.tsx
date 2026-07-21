@@ -25,7 +25,7 @@ export default function TripSearch({ trips, emptyText }: Props) {
   return (
     <>
       <div className="bg-[#171726] rounded-3xl p-5 border border-violet-500/20">
-        <div className="flex items-center gap-2 bg-[#222233] rounded-xl p-4 mb-4">
+        <div className="flex items-center gap-2 bg-[#222233] border border-white/10 focus-within:border-violet-500 rounded-xl p-4 mb-4 transition">
           <button
             type="button"
             onClick={() => setCityModalField("from")}
@@ -50,7 +50,7 @@ export default function TripSearch({ trips, emptyText }: Props) {
           )}
         </div>
 
-        <div className="flex items-center gap-2 bg-[#222233] rounded-xl p-4 mb-5">
+        <div className="flex items-center gap-2 bg-[#222233] border border-white/10 focus-within:border-violet-500 rounded-xl p-4 mb-5 transition">
           <button
             type="button"
             onClick={() => setCityModalField("to")}

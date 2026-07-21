@@ -179,7 +179,7 @@ export default function CreateTripPage() {
               <button
                 type="button"
                 onClick={() => setCityModalField("from")}
-                className="w-full flex items-center gap-2 bg-[#171726] rounded-2xl p-4 text-left"
+                className="w-full flex items-center gap-2 bg-[#171726] border border-white/10 hover:border-violet-500/50 rounded-2xl p-4 text-left transition"
               >
                 <MapPin size={18} className="text-gray-500 shrink-0" />
                 <span className={`flex-1 min-w-0 truncate ${from ? "" : "text-gray-500"}`}>
@@ -191,7 +191,7 @@ export default function CreateTripPage() {
               <button
                 type="button"
                 onClick={() => setCityModalField("to")}
-                className="w-full flex items-center gap-2 bg-[#171726] rounded-2xl p-4 text-left"
+                className="w-full flex items-center gap-2 bg-[#171726] border border-white/10 hover:border-violet-500/50 rounded-2xl p-4 text-left transition"
               >
                 <MapPin size={18} className="text-gray-500 shrink-0" />
                 <span className={`flex-1 min-w-0 truncate ${to ? "" : "text-gray-500"}`}>
@@ -222,14 +222,14 @@ export default function CreateTripPage() {
             min={today()}
             value={date}
             onChange={(e) => setDate(e.target.value)}
-            className="w-full bg-[#171726] rounded-2xl p-4 outline-none"
+            className="w-full bg-[#171726] border border-white/10 focus:border-violet-500 rounded-2xl p-4 outline-none transition"
           />
 
           <input
             type="time"
             value={time}
             onChange={(e) => setTime(e.target.value)}
-            className="w-full bg-[#171726] rounded-2xl p-4 outline-none"
+            className="w-full bg-[#171726] border border-white/10 focus:border-violet-500 rounded-2xl p-4 outline-none transition"
           />
 
           <input
@@ -239,7 +239,7 @@ export default function CreateTripPage() {
             value={price}
             onChange={(e) => setPrice(e.target.value)}
             placeholder="💰 Цена за место, ₽"
-            className="w-full bg-[#171726] rounded-2xl p-4 outline-none"
+            className="w-full bg-[#171726] border border-white/10 focus:border-violet-500 rounded-2xl p-4 outline-none transition"
           />
 
           <input
@@ -249,13 +249,13 @@ export default function CreateTripPage() {
             value={totalSeats}
             onChange={(e) => setTotalSeats(e.target.value)}
             placeholder="💺 Свободных мест"
-            className="w-full bg-[#171726] rounded-2xl p-4 outline-none"
+            className="w-full bg-[#171726] border border-white/10 focus:border-violet-500 rounded-2xl p-4 outline-none transition"
           />
 
           <select
             value={transportCategory}
             onChange={(e) => setTransportCategory(e.target.value)}
-            className="w-full bg-[#171726] rounded-2xl p-4 outline-none"
+            className="w-full bg-[#171726] border border-white/10 focus:border-violet-500 rounded-2xl p-4 outline-none transition"
           >
             <option value="">🚘 Тип транспорта</option>
             {TRANSPORT_CATEGORIES.map((c) => (

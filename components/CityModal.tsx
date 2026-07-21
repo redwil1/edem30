@@ -36,7 +36,7 @@ export default function CityModal({ open, onClose, onSelect, title }: Props) {
           </button>
         </div>
 
-        <div className="flex items-center gap-2 bg-[#222233] rounded-xl px-4 py-3 mb-4 shrink-0">
+        <div className="flex items-center gap-2 bg-[#222233] border border-white/10 focus-within:border-violet-500 rounded-xl px-4 py-3 mb-4 shrink-0 transition">
           <Search size={16} className="text-gray-500 shrink-0" />
 
           <input

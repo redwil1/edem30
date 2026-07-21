@@ -13,7 +13,8 @@ type Props = {
 const HOUSE_MARKER = ", д. ";
 const HOUSE_NUMBERS = Array.from({ length: 150 }, (_, i) => String(i + 1));
 
-const DEFAULT_INPUT_CLASSNAME = "w-full bg-[#171726] rounded-2xl p-4 outline-none";
+const DEFAULT_INPUT_CLASSNAME =
+  "w-full bg-[#171726] border border-white/10 focus:border-violet-500 rounded-2xl p-4 outline-none transition";
 
 export default function AddressInput({
   value,

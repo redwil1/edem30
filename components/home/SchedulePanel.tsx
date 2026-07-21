@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { Calendar, MessageCircle, Star } from "lucide-react";
 
 import { formatDate, formatPrice, formatRating, formatSeats } from "@/lib/utils";
@@ -12,7 +13,17 @@ type Props = {
 };
 
 export default function SchedulePanel({ trips }: Props) {
+  const router = useRouter();
   const [tab, setTab] = useState<"schedule" | "chat">("schedule");
+
+  function openChat() {
+    if (trips.length > 0) {
+      router.push(`/trip/${trips[0].id}`);
+      return;
+    }
+
+    setTab("chat");
+  }
 
   return (
     <div
@@ -38,7 +49,7 @@ export default function SchedulePanel({ trips }: Props) {
           </button>
 
           <button
-            onClick={() => setTab("chat")}
+            onClick={openChat}
             className={`flex-1 sm:flex-none px-3 sm:px-4 py-2 rounded-lg font-medium transition flex items-center justify-center gap-1.5 whitespace-nowrap ${
               tab === "chat"
                 ? "bg-violet-600 text-white"

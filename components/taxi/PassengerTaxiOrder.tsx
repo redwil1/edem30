@@ -204,13 +204,13 @@ export default function PassengerTaxiOrder({ initialFrom, initialTo }: Props = {
         value={price}
         onChange={(e) => setPrice(e.target.value)}
         placeholder="💰 Сколько готовы заплатить, ₽"
-        className="w-full bg-[#171726] rounded-2xl p-4 outline-none"
+        className="w-full bg-[#171726] border border-white/10 focus:border-violet-500 rounded-2xl p-4 outline-none transition"
       />
 
       <select
         value={seats}
         onChange={(e) => setSeats(e.target.value)}
-        className="w-full bg-[#171726] rounded-2xl p-4 outline-none"
+        className="w-full bg-[#171726] border border-white/10 focus:border-violet-500 rounded-2xl p-4 outline-none transition"
       >
         {[1, 2, 3, 4].map((n) => (
           <option key={n} value={n}>
