@@ -15,19 +15,22 @@ export type AdminStats = {
   usersCount: number;
   tripsCount: number;
   reviewsCount: number;
+  newReportsCount: number;
 };
 
 export async function getAdminStats(): Promise<AdminStats> {
-  const [users, trips, reviews] = await Promise.all([
+  const [users, trips, reviews, reports] = await Promise.all([
     sql<{ c: string }[]>`SELECT COUNT(*) as c FROM users`,
     sql<{ c: string }[]>`SELECT COUNT(*) as c FROM trips`,
     sql<{ c: string }[]>`SELECT COUNT(*) as c FROM reviews`,
+    sql<{ c: string }[]>`SELECT COUNT(*) as c FROM trip_reports WHERE status = 'new'`,
   ]);
 
   return {
     usersCount: Number(users[0].c),
     tripsCount: Number(trips[0].c),
     reviewsCount: Number(reviews[0].c),
+    newReportsCount: Number(reports[0].c),
   };
 }
 
@@ -230,6 +233,66 @@ export async function listAdminReviews(minRating?: number): Promise<AdminReview[
 
 export async function deleteAdminReview(reviewId: number): Promise<boolean> {
   const result = await sql`DELETE FROM reviews WHERE id = ${reviewId}`;
+
+  return result.count > 0;
+}
+
+export type AdminReportStatus = "new" | "resolved";
+
+export type AdminReport = {
+  id: number;
+  category: string;
+  description: string | null;
+  status: AdminReportStatus;
+  reporterName: string;
+  tripId: number;
+  tripRoute: string;
+  createdAt: string;
+};
+
+type AdminReportRow = {
+  id: number;
+  category: string;
+  description: string | null;
+  status: AdminReportStatus;
+  reporter_name: string;
+  trip_id: number;
+  from_city: string;
+  to_city: string;
+  created_at: string;
+};
+
+export async function listAdminReports(
+  status?: AdminReportStatus
+): Promise<AdminReport[]> {
+  const rows = await sql<AdminReportRow[]>`
+    SELECT trip_reports.id as id, trip_reports.category as category,
+           trip_reports.description as description, trip_reports.status as status,
+           trip_reports.created_at as created_at, users.name as reporter_name,
+           trips.id as trip_id, trips.from_city as from_city, trips.to_city as to_city
+    FROM trip_reports
+    JOIN users ON users.id = trip_reports.reporter_id
+    JOIN trips ON trips.id = trip_reports.trip_id
+    ${status ? sql`WHERE trip_reports.status = ${status}` : sql``}
+    ORDER BY trip_reports.id DESC
+  `;
+
+  return rows.map((r) => ({
+    id: r.id,
+    category: r.category,
+    description: r.description,
+    status: r.status,
+    reporterName: r.reporter_name,
+    tripId: r.trip_id,
+    tripRoute: `${r.from_city} → ${r.to_city}`,
+    createdAt: r.created_at,
+  }));
+}
+
+export async function resolveReport(reportId: number): Promise<boolean> {
+  const result = await sql`
+    UPDATE trip_reports SET status = 'resolved' WHERE id = ${reportId}
+  `;
 
   return result.count > 0;
 }

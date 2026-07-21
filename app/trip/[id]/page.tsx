@@ -148,7 +148,7 @@ export default async function TripPage({ params }: Props) {
             )}
 
             <ParticipantsList participants={displayParticipants} />
-            <SafetyCard />
+            <SafetyCard tripId={trip.id} />
           </div>
 
           <ChatPanel tripId={trip.id} />

@@ -1,6 +1,20 @@
+"use client";
+
+import { useState } from "react";
+import Link from "next/link";
 import { PhoneCall, ShieldCheck, TriangleAlert } from "lucide-react";
 
-export default function SafetyCard() {
+import { useAuth } from "@/components/auth/AuthProvider";
+import ReportModal from "./ReportModal";
+
+type Props = {
+  tripId: number;
+};
+
+export default function SafetyCard({ tripId }: Props) {
+  const { user } = useAuth();
+  const [reportOpen, setReportOpen] = useState(false);
+
   return (
     <div className="bg-[#12121c] border border-white/5 rounded-3xl p-4 sm:p-6">
       <div className="font-display flex items-center gap-2 font-bold mb-3">
@@ -34,9 +48,27 @@ export default function SafetyCard() {
         </p>
       </div>
 
-      <button className="text-sm text-violet-400 hover:text-violet-300 transition mt-4">
-        Пожаловаться на поездку
-      </button>
+      {user ? (
+        <button
+          onClick={() => setReportOpen(true)}
+          className="text-sm text-violet-400 hover:text-violet-300 transition mt-4"
+        >
+          Пожаловаться на поездку
+        </button>
+      ) : (
+        <Link
+          href={`/login?redirect=/trip/${tripId}`}
+          className="block text-sm text-violet-400 hover:text-violet-300 transition mt-4"
+        >
+          Войдите, чтобы пожаловаться на поездку
+        </Link>
+      )}
+
+      <ReportModal
+        tripId={tripId}
+        open={reportOpen}
+        onClose={() => setReportOpen(false)}
+      />
     </div>
   );
 }
