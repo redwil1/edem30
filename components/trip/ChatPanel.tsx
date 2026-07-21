@@ -247,7 +247,7 @@ export default function ChatPanel({ tripId }: Props) {
   }
 
   return (
-    <div className="bg-[#12121c] border border-white/5 rounded-3xl p-4 sm:p-6 flex flex-col h-full">
+    <div id="trip-chat" className="bg-[#12121c] border border-white/5 rounded-3xl p-4 sm:p-6 flex flex-col h-full">
       <div className="mb-5 flex items-start justify-between gap-3">
         <div>
           <div className="font-display font-bold text-lg">Чат поездки</div>

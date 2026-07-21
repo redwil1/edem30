@@ -3,11 +3,18 @@
 import { useEffect, useState } from "react";
 import { Check, Flag, Loader2, MapPin, PlayCircle } from "lucide-react";
 
+import ReviewModal from "./ReviewModal";
+
 type Participant = {
   userId: number;
   name: string;
   startConfirmed: boolean;
   completeConfirmed: boolean;
+};
+
+type ReviewPrompt = {
+  revieweeId: number;
+  revieweeName: string;
 };
 
 type Status = {
@@ -23,6 +30,7 @@ type Status = {
   myStartConfirmed: boolean;
   myCompleteConfirmed: boolean;
   participants: Participant[];
+  reviewPrompt: ReviewPrompt | null;
 };
 
 type Props = {
@@ -67,6 +75,7 @@ export default function TripStartCard({ tripId, tripDate, tripTime }: Props) {
   const [status, setStatus] = useState<Status | null>(null);
   const [confirming, setConfirming] = useState(false);
   const [now, setNow] = useState(() => Date.now());
+  const [reviewClosed, setReviewClosed] = useState(false);
 
   const scheduledMs = (() => {
     const parsed = new Date(`${tripDate}T${tripTime}:00`).getTime();
@@ -153,6 +162,16 @@ export default function TripStartCard({ tripId, tripDate, tripTime }: Props) {
           <p className="text-sm text-gray-400">
             Длительность: {formatDuration(durationMs)}
           </p>
+        )}
+
+        {status.reviewPrompt && !reviewClosed && (
+          <ReviewModal
+            tripId={tripId}
+            revieweeId={status.reviewPrompt.revieweeId}
+            revieweeName={status.reviewPrompt.revieweeName}
+            onClose={() => setReviewClosed(true)}
+            onSubmitted={() => setReviewClosed(true)}
+          />
         )}
       </div>
     );

@@ -65,6 +65,10 @@ export default function JoinButton({ tripId, joined }: Props) {
       }
 
       router.refresh();
+
+      document
+        .getElementById("trip-chat")
+        ?.scrollIntoView({ behavior: "smooth", block: "start" });
     } finally {
       setLoading(false);
     }

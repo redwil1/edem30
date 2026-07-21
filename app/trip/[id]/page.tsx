@@ -9,7 +9,6 @@ import {
   getTripOwnerId,
   isInstantTaxiTrip,
 } from "@/lib/trips";
-import { hasReviewed } from "@/lib/reviews";
 import Navbar from "@/components/layout/Navbar";
 import TripInfoCard from "@/components/trip/TripInfoCard";
 import TripFlowCards from "@/components/trip/TripFlowCards";
@@ -17,7 +16,6 @@ import CancelTripButton from "@/components/trip/CancelTripButton";
 import ParticipantsList from "@/components/trip/ParticipantsList";
 import SafetyCard from "@/components/trip/SafetyCard";
 import ChatPanel from "@/components/trip/ChatPanel";
-import ReviewBanner from "@/components/trip/ReviewBanner";
 import OwnerRoleHint from "@/components/trip/OwnerRoleHint";
 
 type Props = {
@@ -105,24 +103,6 @@ export default async function TripPage({ params }: Props) {
 
   const instantTaxi = await isInstantTaxiTrip(trip.id);
 
-  const soleParticipant =
-    participants.length === 1 ? participants[0] : null;
-
-  const canReviewAsPassenger =
-    !!user &&
-    joined &&
-    !isDriver &&
-    lifecycle.completed &&
-    !(await hasReviewed(trip.id, user.id));
-
-  const canReviewAsDriver =
-    !!user &&
-    isDriver &&
-    lifecycle.completed &&
-    !!soleParticipant &&
-    !soleParticipant.isYou &&
-    !(await hasReviewed(trip.id, user.id));
-
   return (
     <main className="min-h-screen bg-[#0b0b13] text-white pb-14">
       <Navbar />
@@ -168,23 +148,6 @@ export default async function TripPage({ params }: Props) {
 
           <ChatPanel tripId={trip.id} />
         </div>
-
-        {canReviewAsPassenger && (
-          <div className="mt-6">
-            <ReviewBanner tripId={trip.id} />
-          </div>
-        )}
-
-        {canReviewAsDriver && soleParticipant && (
-          <div className="mt-6">
-            <ReviewBanner
-              tripId={trip.id}
-              revieweeId={soleParticipant.id}
-              title={`Оцените пассажира ${soleParticipant.name}`}
-              subtitle="Ваша оценка помогает другим водителям"
-            />
-          </div>
-        )}
       </div>
     </main>
   );

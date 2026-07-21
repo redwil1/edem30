@@ -3,6 +3,7 @@ import "server-only";
 import type postgres from "postgres";
 
 import { sql } from "@/lib/db";
+import { hasReviewed } from "@/lib/reviews";
 import { Trip, TripType } from "@/types/trips";
 
 const NOW = `to_char(now() AT TIME ZONE 'utc', 'YYYY-MM-DD"T"HH24:MI:SS"Z"')`;
@@ -340,23 +341,36 @@ export async function getParticipantConfirmations(
   }));
 }
 
+export type ReviewPrompt = {
+  revieweeId: number;
+  revieweeName: string;
+};
+
 export type TripStartDetail = TripLifecycle & {
   isDriver: boolean;
   isPassenger: boolean;
   myStartConfirmed: boolean;
   myCompleteConfirmed: boolean;
   participants: ParticipantConfirmation[];
+  reviewPrompt: ReviewPrompt | null;
 };
 
 export async function getTripStartDetail(
   tripId: number,
   userId: number | null
 ): Promise<TripStartDetail> {
-  const [lifecycle, participants, ownerId] = await Promise.all([
+  const [lifecycle, participants, ownerRows] = await Promise.all([
     getTripLifecycle(tripId),
     getParticipantConfirmations(tripId),
-    getTripOwnerId(tripId),
+    sql<{ id: number; name: string }[]>`
+      SELECT trips.owner_id as id, users.name as name
+      FROM trips JOIN users ON users.id = trips.owner_id
+      WHERE trips.id = ${tripId}
+    `,
   ]);
+
+  const owner = ownerRows[0] ?? null;
+  const ownerId = owner?.id ?? null;
 
   const isDriver = userId !== null && ownerId === userId;
   const myParticipant =
@@ -371,6 +385,16 @@ export async function getTripStartDetail(
     ? lifecycle.driverCompleted
     : !!myParticipant?.completeConfirmed;
 
+  let reviewPrompt: ReviewPrompt | null = null;
+
+  if (lifecycle.completed && userId !== null && !(await hasReviewed(tripId, userId))) {
+    if (isDriver && participants.length === 1 && participants[0].userId !== userId) {
+      reviewPrompt = { revieweeId: participants[0].userId, revieweeName: participants[0].name };
+    } else if (isPassenger && owner && ownerId !== userId) {
+      reviewPrompt = { revieweeId: owner.id, revieweeName: owner.name };
+    }
+  }
+
   return {
     ...lifecycle,
     isDriver,
@@ -378,6 +402,7 @@ export async function getTripStartDetail(
     myStartConfirmed,
     myCompleteConfirmed,
     participants,
+    reviewPrompt,
   };
 }
 
