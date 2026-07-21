@@ -120,7 +120,11 @@ export default async function TripPage({ params }: Props) {
           <div className="flex flex-col gap-6">
             {isDriver && user?.role !== "driver" && <OwnerRoleHint />}
 
-            <TripInfoCard trip={trip} joined={joined} />
+            <TripInfoCard
+              trip={trip}
+              joined={joined}
+              hideJoin={isDriver || instantTaxi}
+            />
 
             {lifecycle.cancelled ? (
               <div className="bg-[#12121c] border border-red-500/20 rounded-3xl p-4 sm:p-6 text-red-400 font-bold">

@@ -9,9 +9,10 @@ import JoinButton from "./JoinButton";
 type Props = {
   trip: Trip;
   joined: boolean;
+  hideJoin?: boolean;
 };
 
-export default function TripInfoCard({ trip, joined }: Props) {
+export default function TripInfoCard({ trip, joined, hideJoin }: Props) {
   return (
     <div className="bg-[#12121c] border border-white/5 rounded-3xl p-4 sm:p-6">
       <div className="text-sm leading-none">
@@ -90,7 +91,7 @@ export default function TripInfoCard({ trip, joined }: Props) {
         </span>
       </div>
 
-      <JoinButton tripId={trip.id} joined={joined} />
+      {!hideJoin && <JoinButton tripId={trip.id} joined={joined} />}
     </div>
   );
 }
