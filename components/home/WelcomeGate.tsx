@@ -7,18 +7,21 @@ import { Bus, Car, Star } from "lucide-react";
 import AddressInput from "@/components/taxi/AddressInput";
 import { formatDate, formatPrice, formatSeats } from "@/lib/utils";
 import { Trip } from "@/types/trips";
+import CitySwitch from "./CitySwitch";
 
 type Mode = "intercity" | "city";
 
 type Props = {
   trips: Trip[];
+  city: string | null;
+  onCityChange: (city: string | null) => void;
 };
 
 function loginHref(redirectTo: string) {
   return `/login?${new URLSearchParams({ redirect: redirectTo })}`;
 }
 
-export default function WelcomeGate({ trips }: Props) {
+export default function WelcomeGate({ trips, city, onCityChange }: Props) {
   const [mode, setMode] = useState<Mode>("intercity");
   const [selectedId, setSelectedId] = useState<number | null>(null);
   const [from, setFrom] = useState("");
@@ -40,6 +43,10 @@ export default function WelcomeGate({ trips }: Props) {
 
   return (
     <section className="max-w-[720px] mx-auto px-5 sm:px-6 pt-10 sm:pt-16 pb-14">
+      <div className="flex justify-center mb-5">
+        <CitySwitch city={city} onChange={onCityChange} />
+      </div>
+
       <h1 className="text-3xl sm:text-4xl font-bold text-center leading-tight">
         Куда едем?
       </h1>
@@ -78,8 +85,9 @@ export default function WelcomeGate({ trips }: Props) {
           <>
             {trips.length === 0 ? (
               <div className="py-10 text-center text-gray-500 text-sm">
-                Активных поездок пока нет. Загляните чуть позже — или войдите,
-                чтобы разместить свою.
+                {city
+                  ? `Поездок через «${city}» пока нет. Попробуйте выбрать другой город.`
+                  : "Активных поездок пока нет. Загляните чуть позже — или войдите, чтобы разместить свою."}
               </div>
             ) : (
               <div className="space-y-3 max-h-[420px] overflow-y-auto pr-1">

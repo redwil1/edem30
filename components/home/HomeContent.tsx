@@ -3,6 +3,7 @@
 import { Loader2 } from "lucide-react";
 
 import { useAuth } from "@/components/auth/AuthProvider";
+import { useSelectedCity } from "@/hooks/useSelectedCity";
 import DriverOrdersFeed from "@/components/taxi/DriverOrdersFeed";
 import { Trip } from "@/types/trips";
 import Hero from "./Hero";
@@ -18,6 +19,11 @@ type Props = {
 
 export default function HomeContent({ trips }: Props) {
   const { user, loading } = useAuth();
+  const [city, setCity] = useSelectedCity();
+
+  const visibleTrips = city
+    ? trips.filter((trip) => trip.from === city || trip.to === city)
+    : trips;
 
   if (loading) {
     return (
@@ -28,7 +34,7 @@ export default function HomeContent({ trips }: Props) {
   }
 
   if (!user) {
-    return <WelcomeGate trips={trips} />;
+    return <WelcomeGate trips={visibleTrips} city={city} onCityChange={setCity} />;
   }
 
   if (user.role === "driver") {
@@ -41,11 +47,11 @@ export default function HomeContent({ trips }: Props) {
 
   return (
     <>
-      <Hero />
+      <Hero city={city} onCityChange={setCity} />
 
       <div className="max-w-[1400px] mx-auto px-5 sm:px-6 lg:px-10 grid grid-cols-1 lg:grid-cols-3 gap-6 pb-10">
         <div className="lg:col-span-2">
-          <SchedulePanel trips={trips} />
+          <SchedulePanel trips={visibleTrips} />
         </div>
 
         <div className="flex flex-col gap-6">

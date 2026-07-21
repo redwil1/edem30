@@ -2,8 +2,14 @@ import Link from "next/link";
 import { Bus, Car, ChevronRight } from "lucide-react";
 
 import RoleSwitch from "./RoleSwitch";
+import CitySwitch from "./CitySwitch";
 
-export default function Hero() {
+type Props = {
+  city: string | null;
+  onCityChange: (city: string | null) => void;
+};
+
+export default function Hero({ city, onCityChange }: Props) {
   return (
     <section className="relative overflow-hidden">
       <div className="absolute -top-40 right-0 w-[600px] h-[600px] bg-violet-600/20 rounded-full blur-[120px] pointer-events-none" />
@@ -11,7 +17,9 @@ export default function Hero() {
       <div className="max-w-[1400px] mx-auto px-5 sm:px-6 lg:px-10 pt-8 sm:pt-10 lg:pt-14 pb-8 lg:pb-10 relative">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 items-center">
           <div>
-            <h1 className="text-4xl sm:text-5xl font-bold leading-tight">
+            <CitySwitch city={city} onChange={onCityChange} />
+
+            <h1 className="text-4xl sm:text-5xl font-bold leading-tight mt-4">
               Едем по городу
               <br />
               <span className="text-violet-400">и межгороду</span>
