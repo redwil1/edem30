@@ -80,10 +80,10 @@ export default function Navbar() {
             <div className="relative">
               <button
                 onClick={() => setMenuOpen((v) => !v)}
-                className="flex items-center gap-2.5 rounded-xl border border-white/10 pl-2 pr-4 py-2 hover:bg-white/5 transition"
+                className="flex items-center gap-2.5 rounded-xl border border-white/10 pl-2 pr-4 py-2 hover:bg-white/5 transition max-w-[220px]"
               >
                 <Avatar name={user.name} size={32} tone="violet" />
-                <span className="text-sm font-medium">{user.name}</span>
+                <span className="text-sm font-medium truncate min-w-0">{user.name}</span>
               </button>
 
               {menuOpen && (
@@ -199,9 +199,9 @@ export default function Navbar() {
             {user ? (
               <div className="px-3">
                 <div className="flex items-center justify-between gap-3">
-                  <div className="flex items-center gap-2.5">
+                  <div className="flex items-center gap-2.5 min-w-0">
                     <Avatar name={user.name} size={32} tone="violet" />
-                    <span className="text-sm font-medium">{user.name}</span>
+                    <span className="text-sm font-medium truncate min-w-0">{user.name}</span>
                   </div>
 
                   <button
@@ -209,7 +209,7 @@ export default function Navbar() {
                       setMobileOpen(false);
                       handleLogout();
                     }}
-                    className="text-sm text-red-400"
+                    className="text-sm text-red-400 shrink-0"
                   >
                     Выйти
                   </button>

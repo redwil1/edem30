@@ -1,5 +1,5 @@
 export const popularDirections = [
-  { from: "Харабали", to: "Астрахань", price: 800 },
-  { from: "Харабали", to: "Волгоград", price: 1200 },
-  { from: "Харабали", to: "Краснодар", price: 2500 },
+  { from: "Харабали", to: "Астрахань", price: 600 },
+  { from: "Астрахань", to: "Харабали", price: 600 },
+  { from: "Тамбовка", to: "Астрахань", price: 600 },
 ];

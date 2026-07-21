@@ -46,7 +46,8 @@ export default function SchedulePanel({ trips }: Props) {
             }`}
           >
             <MessageCircle size={14} className="shrink-0" />
-            Чат попутчиков
+            <span className="sm:hidden">Чат</span>
+            <span className="hidden sm:inline">Чат попутчиков</span>
           </button>
         </div>
       </div>
