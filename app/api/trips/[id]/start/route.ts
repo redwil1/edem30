@@ -24,10 +24,10 @@ export async function GET(_req: Request, { params }: Props) {
   }
 
   const user = await getCurrentUser();
-  const status = getTripLifecycle(tripId);
+  const status = await getTripLifecycle(tripId);
 
-  const isDriver = !!user && getTripOwnerId(tripId) === user.id;
-  const isPassenger = !!user && isTripParticipant(tripId, user.id);
+  const isDriver = !!user && (await getTripOwnerId(tripId)) === user.id;
+  const isPassenger = !!user && (await isTripParticipant(tripId, user.id));
 
   return NextResponse.json(
     { ...status, isDriver, isPassenger },
@@ -56,7 +56,7 @@ export async function POST(req: NextRequest, { params }: Props) {
     return NextResponse.json({ error: "Некорректная поездка" }, { status: 400 });
   }
 
-  const result = confirmTripStart(tripId, user.id);
+  const result = await confirmTripStart(tripId, user.id);
 
   if (!result.ok) {
     if (result.reason === "not_found") {

@@ -33,7 +33,7 @@ export async function PATCH(req: NextRequest, { params }: Props) {
   const body = await req.json().catch(() => null);
   const role = typeof body?.role === "string" ? body.role : "";
 
-  const ok = setAdminUserRole(userId, role);
+  const ok = await setAdminUserRole(userId, role);
 
   if (!ok) {
     return NextResponse.json(

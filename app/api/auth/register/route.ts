@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 
-import { db } from "@/lib/db";
+import { sql } from "@/lib/db";
 import { hashPassword, createSession } from "@/lib/auth";
 import { normalizePhone } from "@/lib/phone";
 import { rateLimit } from "@/lib/rateLimit";
@@ -63,11 +63,9 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  const existing = db
-    .prepare("SELECT id FROM users WHERE phone = ?")
-    .get(phone);
+  const existing = await sql`SELECT id FROM users WHERE phone = ${phone}`;
 
-  if (existing) {
+  if (existing.length > 0) {
     return NextResponse.json(
       { error: "Пользователь с этим номером уже зарегистрирован" },
       { status: 409 }
@@ -76,13 +74,13 @@ export async function POST(req: NextRequest) {
 
   const passwordHash = await hashPassword(password);
 
-  const result = db
-    .prepare(
-      "INSERT INTO users (name, phone, password_hash) VALUES (?, ?, ?)"
-    )
-    .run(name, phone, passwordHash);
+  const inserted = await sql<{ id: number }[]>`
+    INSERT INTO users (name, phone, password_hash)
+    VALUES (${name}, ${phone}, ${passwordHash})
+    RETURNING id
+  `;
 
-  const userId = Number(result.lastInsertRowid);
+  const userId = inserted[0].id;
 
   await createSession(userId);
 

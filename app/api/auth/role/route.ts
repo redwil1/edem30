@@ -23,7 +23,7 @@ export async function POST(req: NextRequest) {
 
   const role = body?.role === "driver" ? "driver" : "passenger";
 
-  setUserRole(user.id, role);
+  await setUserRole(user.id, role);
 
   return NextResponse.json({ role });
 }

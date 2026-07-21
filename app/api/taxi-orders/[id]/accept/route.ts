@@ -41,7 +41,7 @@ export async function POST(req: NextRequest, { params }: Props) {
     return NextResponse.json({ error: "Некорректный заказ" }, { status: 400 });
   }
 
-  const result = acceptOrder(orderId, { id: user.id, name: user.name });
+  const result = await acceptOrder(orderId, { id: user.id, name: user.name });
 
   if (!result.ok) {
     if (result.reason === "self") {

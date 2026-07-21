@@ -31,7 +31,7 @@ export async function POST(req: NextRequest, { params }: Props) {
     return NextResponse.json({ error: "Некорректная поездка" }, { status: 400 });
   }
 
-  leaveTrip(tripId, user.id);
+  await leaveTrip(tripId, user.id);
 
   return NextResponse.json({ ok: true });
 }

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 
-import { db } from "@/lib/db";
+import { sql } from "@/lib/db";
 import { verifyPasswordTimingSafe, createSession } from "@/lib/auth";
 import { normalizePhone } from "@/lib/phone";
 import { rateLimit } from "@/lib/rateLimit";
@@ -39,9 +39,11 @@ export async function POST(req: NextRequest) {
 
   const phone = normalizePhone(phoneRaw);
 
-  const user = db
-    .prepare("SELECT id, name, phone, password_hash FROM users WHERE phone = ?")
-    .get(phone) as UserRow | undefined;
+  const rows = await sql<UserRow[]>`
+    SELECT id, name, phone, password_hash FROM users WHERE phone = ${phone}
+  `;
+
+  const user = rows[0];
 
   // Always run a bcrypt compare, even for an unknown phone, so responses
   // for "no such user" and "wrong password" take about the same time.

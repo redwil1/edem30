@@ -14,7 +14,7 @@ export async function GET(req: NextRequest) {
   const search = req.nextUrl.searchParams.get("search")?.trim() || undefined;
 
   return NextResponse.json(
-    { trips: listAdminTrips(search) },
+    { trips: await listAdminTrips(search) },
     { headers: { "Cache-Control": "no-store" } }
   );
 }

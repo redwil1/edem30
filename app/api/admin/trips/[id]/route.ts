@@ -54,7 +54,7 @@ export async function PATCH(req: NextRequest, { params }: Props) {
     input.date = body.date;
   }
 
-  const ok = updateAdminTrip(tripId, input);
+  const ok = await updateAdminTrip(tripId, input);
 
   if (!ok) {
     return NextResponse.json({ error: "Не удалось обновить поездку" }, { status: 400 });

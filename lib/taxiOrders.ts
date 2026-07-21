@@ -1,6 +1,6 @@
 import "server-only";
 
-import { db } from "@/lib/db";
+import { sql } from "@/lib/db";
 import { createTrip } from "@/lib/trips";
 
 export type TaxiOrderStatus = "open" | "accepted" | "cancelled";
@@ -31,22 +31,6 @@ type OrderRow = {
   created_at: string;
 };
 
-const SELECT_BASE = `
-  SELECT
-    taxi_orders.id as id,
-    taxi_orders.passenger_id as passenger_id,
-    users.name as passenger_name,
-    taxi_orders.from_address as from_address,
-    taxi_orders.to_address as to_address,
-    taxi_orders.price as price,
-    taxi_orders.seats as seats,
-    taxi_orders.status as status,
-    taxi_orders.trip_id as trip_id,
-    taxi_orders.created_at as created_at
-  FROM taxi_orders
-  JOIN users ON users.id = taxi_orders.passenger_id
-`;
-
 function toOrder(row: OrderRow): TaxiOrder {
   return {
     id: row.id,
@@ -69,51 +53,64 @@ export type CreateOrderInput = {
   seats: number;
 };
 
-export function createOrder(
+export async function createOrder(
   input: CreateOrderInput,
   passenger: { id: number }
-): number {
-  const result = db
-    .prepare(
-      `INSERT INTO taxi_orders (passenger_id, from_address, to_address, price, seats)
-       VALUES (@passengerId, @from, @to, @price, @seats)`
-    )
-    .run({
-      passengerId: passenger.id,
-      from: input.from,
-      to: input.to,
-      price: input.price,
-      seats: input.seats,
-    });
+): Promise<number> {
+  const rows = await sql<{ id: number }[]>`
+    INSERT INTO taxi_orders (passenger_id, from_address, to_address, price, seats)
+    VALUES (${passenger.id}, ${input.from}, ${input.to}, ${input.price}, ${input.seats})
+    RETURNING id
+  `;
 
-  return Number(result.lastInsertRowid);
+  return rows[0].id;
 }
 
-export function listOpenOrders(excludeUserId: number): TaxiOrder[] {
-  const rows = db
-    .prepare(
-      `${SELECT_BASE}
-       WHERE taxi_orders.status = 'open' AND taxi_orders.passenger_id != ?
-       ORDER BY taxi_orders.created_at DESC`
-    )
-    .all(excludeUserId) as OrderRow[];
+export async function listOpenOrders(excludeUserId: number): Promise<TaxiOrder[]> {
+  const rows = await sql<OrderRow[]>`
+    SELECT
+      taxi_orders.id as id,
+      taxi_orders.passenger_id as passenger_id,
+      users.name as passenger_name,
+      taxi_orders.from_address as from_address,
+      taxi_orders.to_address as to_address,
+      taxi_orders.price as price,
+      taxi_orders.seats as seats,
+      taxi_orders.status as status,
+      taxi_orders.trip_id as trip_id,
+      taxi_orders.created_at as created_at
+    FROM taxi_orders
+    JOIN users ON users.id = taxi_orders.passenger_id
+    WHERE taxi_orders.status = 'open' AND taxi_orders.passenger_id != ${excludeUserId}
+    ORDER BY taxi_orders.created_at DESC
+  `;
 
   return rows.map(toOrder);
 }
 
-export function getLatestOrderForPassenger(
+export async function getLatestOrderForPassenger(
   passengerId: number
-): TaxiOrder | undefined {
-  const row = db
-    .prepare(
-      `${SELECT_BASE}
-       WHERE taxi_orders.passenger_id = ? AND taxi_orders.status IN ('open', 'accepted')
-       ORDER BY taxi_orders.created_at DESC
-       LIMIT 1`
-    )
-    .get(passengerId) as OrderRow | undefined;
+): Promise<TaxiOrder | undefined> {
+  const rows = await sql<OrderRow[]>`
+    SELECT
+      taxi_orders.id as id,
+      taxi_orders.passenger_id as passenger_id,
+      users.name as passenger_name,
+      taxi_orders.from_address as from_address,
+      taxi_orders.to_address as to_address,
+      taxi_orders.price as price,
+      taxi_orders.seats as seats,
+      taxi_orders.status as status,
+      taxi_orders.trip_id as trip_id,
+      taxi_orders.created_at as created_at
+    FROM taxi_orders
+    JOIN users ON users.id = taxi_orders.passenger_id
+    WHERE taxi_orders.passenger_id = ${passengerId} AND taxi_orders.status IN ('open', 'accepted')
+    ORDER BY taxi_orders.created_at DESC
+    LIMIT 1
+  `;
 
-  return row ? toOrder(row) : undefined;
+  return rows[0] ? toOrder(rows[0]) : undefined;
 }
 
 function currentTimeHHMM(): string {
@@ -127,33 +124,36 @@ export type AcceptOrderResult =
   | { ok: true; tripId: number }
   | { ok: false; reason: "not_found" | "self" };
 
-export function acceptOrder(
+export async function acceptOrder(
   orderId: number,
   driver: { id: number; name: string }
-): AcceptOrderResult {
-  const tx = db.transaction((): AcceptOrderResult => {
-    const order = db
-      .prepare("SELECT * FROM taxi_orders WHERE id = ? AND status = 'open'")
-      .get(orderId) as
-      | {
-          id: number;
-          passenger_id: number;
-          from_address: string;
-          to_address: string;
-          price: number;
-          seats: number;
-        }
-      | undefined;
+): Promise<AcceptOrderResult> {
+  const orderRows = await sql<
+    {
+      id: number;
+      passenger_id: number;
+      from_address: string;
+      to_address: string;
+      price: number;
+      seats: number;
+    }[]
+  >`
+    SELECT id, passenger_id, from_address, to_address, price, seats
+    FROM taxi_orders WHERE id = ${orderId} AND status = 'open'
+  `;
 
-    if (!order) {
-      return { ok: false, reason: "not_found" };
-    }
+  const order = orderRows[0];
 
-    if (order.passenger_id === driver.id) {
-      return { ok: false, reason: "self" };
-    }
+  if (!order) {
+    return { ok: false, reason: "not_found" };
+  }
 
-    const tripId = createTrip(
+  if (order.passenger_id === driver.id) {
+    return { ok: false, reason: "self" };
+  }
+
+  const tripId = await sql.begin(async (tx) => {
+    const id = await createTrip(
       {
         type: "city",
         from: order.from_address,
@@ -163,30 +163,36 @@ export function acceptOrder(
         price: order.price,
         totalSeats: order.seats,
         transport: "Легковой автомобиль",
+        transportCategory: "sedan",
       },
-      driver
+      driver,
+      tx
     );
 
-    db.prepare(
-      "INSERT OR IGNORE INTO trip_participants (trip_id, user_id) VALUES (?, ?)"
-    ).run(tripId, order.passenger_id);
+    await tx`
+      INSERT INTO trip_participants (trip_id, user_id) VALUES (${id}, ${order.passenger_id})
+      ON CONFLICT (trip_id, user_id) DO NOTHING
+    `;
 
-    db.prepare(
-      "UPDATE taxi_orders SET status = 'accepted', driver_id = ?, trip_id = ? WHERE id = ?"
-    ).run(driver.id, tripId, orderId);
+    await tx`
+      UPDATE taxi_orders SET status = 'accepted', driver_id = ${driver.id}, trip_id = ${id}
+      WHERE id = ${orderId}
+    `;
 
-    return { ok: true, tripId };
+    return id;
   });
 
-  return tx();
+  return { ok: true, tripId };
 }
 
-export function cancelOrder(orderId: number, passengerId: number): boolean {
-  const result = db
-    .prepare(
-      "UPDATE taxi_orders SET status = 'cancelled' WHERE id = ? AND passenger_id = ? AND status = 'open'"
-    )
-    .run(orderId, passengerId);
+export async function cancelOrder(
+  orderId: number,
+  passengerId: number
+): Promise<boolean> {
+  const result = await sql`
+    UPDATE taxi_orders SET status = 'cancelled'
+    WHERE id = ${orderId} AND passenger_id = ${passengerId} AND status = 'open'
+  `;
 
-  return result.changes > 0;
+  return result.count > 0;
 }

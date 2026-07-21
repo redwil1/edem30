@@ -11,7 +11,7 @@ export async function GET() {
     return NextResponse.json({ error: "Доступ запрещён" }, { status: 403 });
   }
 
-  return NextResponse.json(getAdminStats(), {
+  return NextResponse.json(await getAdminStats(), {
     headers: { "Cache-Control": "no-store" },
   });
 }

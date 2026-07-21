@@ -20,10 +20,6 @@ type Props = {
   tripId: number;
 };
 
-function parseSqliteDate(value: string) {
-  return new Date(value.replace(" ", "T") + "Z");
-}
-
 function formatDuration(ms: number) {
   const totalSeconds = Math.max(0, Math.floor(ms / 1000));
   const minutes = Math.floor(totalSeconds / 60);
@@ -94,8 +90,8 @@ export default function TripStartCard({ tripId }: Props) {
   if (status.completed) {
     const durationMs =
       status.startedAt && status.completedAt
-        ? parseSqliteDate(status.completedAt).getTime() -
-          parseSqliteDate(status.startedAt).getTime()
+        ? new Date(status.completedAt).getTime() -
+          new Date(status.startedAt).getTime()
         : null;
 
     return (
@@ -120,7 +116,7 @@ export default function TripStartCard({ tripId }: Props) {
       : status.passengerCompleted;
 
     const elapsedMs = status.startedAt
-      ? now - parseSqliteDate(status.startedAt).getTime()
+      ? now - new Date(status.startedAt).getTime()
       : 0;
 
     return (

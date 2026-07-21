@@ -1,10 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 
-import { db } from "@/lib/db";
+import { sql } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
 import { checkChatMessage } from "@/lib/moderation";
 import { rateLimit } from "@/lib/rateLimit";
 import { isTrustedOrigin } from "@/lib/security";
+import { isTripParticipant } from "@/lib/trips";
 
 export const runtime = "nodejs";
 
@@ -20,16 +21,6 @@ type MessageRow = {
   created_at: string;
 };
 
-function isParticipant(tripId: number, userId: number) {
-  const row = db
-    .prepare(
-      "SELECT 1 FROM trip_participants WHERE trip_id = ? AND user_id = ?"
-    )
-    .get(tripId, userId);
-
-  return !!row;
-}
-
 export async function GET(_req: Request, { params }: Props) {
   const { id } = await params;
   const tripId = Number(id);
@@ -40,17 +31,15 @@ export async function GET(_req: Request, { params }: Props) {
 
   const user = await getCurrentUser();
 
-  const rows = db
-    .prepare(
-      `SELECT chat_messages.id as id, chat_messages.user_id as user_id,
-              users.name as name, chat_messages.text as text,
-              chat_messages.created_at as created_at
-       FROM chat_messages
-       JOIN users ON users.id = chat_messages.user_id
-       WHERE chat_messages.trip_id = ?
-       ORDER BY chat_messages.created_at ASC`
-    )
-    .all(tripId) as MessageRow[];
+  const rows = await sql<MessageRow[]>`
+    SELECT chat_messages.id as id, chat_messages.user_id as user_id,
+           users.name as name, chat_messages.text as text,
+           chat_messages.created_at as created_at
+    FROM chat_messages
+    JOIN users ON users.id = chat_messages.user_id
+    WHERE chat_messages.trip_id = ${tripId}
+    ORDER BY chat_messages.created_at ASC
+  `;
 
   return NextResponse.json(
     {
@@ -61,7 +50,7 @@ export async function GET(_req: Request, { params }: Props) {
         createdAt: r.created_at,
         isYou: user ? r.user_id === user.id : false,
       })),
-      canPost: user ? isParticipant(tripId, user.id) : false,
+      canPost: user ? await isTripParticipant(tripId, user.id) : false,
     },
     { headers: { "Cache-Control": "no-store" } }
   );
@@ -91,7 +80,7 @@ export async function POST(req: NextRequest, { params }: Props) {
     return NextResponse.json({ error: "Некорректная поездка" }, { status: 400 });
   }
 
-  if (!isParticipant(tripId, user.id)) {
+  if (!(await isTripParticipant(tripId, user.id))) {
     return NextResponse.json(
       { error: "Присоединитесь к поездке, чтобы писать в чат" },
       { status: 403 }
@@ -131,17 +120,16 @@ export async function POST(req: NextRequest, { params }: Props) {
     return NextResponse.json({ error: moderation.reason }, { status: 400 });
   }
 
-  const result = db
-    .prepare(
-      "INSERT INTO chat_messages (trip_id, user_id, text) VALUES (?, ?, ?)"
-    )
-    .run(tripId, user.id, text);
+  const inserted = await sql<{ id: number; created_at: string }[]>`
+    INSERT INTO chat_messages (trip_id, user_id, text) VALUES (${tripId}, ${user.id}, ${text})
+    RETURNING id, created_at
+  `;
 
   return NextResponse.json({
-    id: Number(result.lastInsertRowid),
+    id: inserted[0].id,
     authorName: user.name,
     text,
-    createdAt: new Date().toISOString(),
+    createdAt: inserted[0].created_at,
     isYou: true,
   });
 }

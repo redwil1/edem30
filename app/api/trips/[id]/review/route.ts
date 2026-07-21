@@ -42,14 +42,14 @@ export async function POST(req: NextRequest, { params }: Props) {
     return NextResponse.json({ error: "Некорректная поездка" }, { status: 400 });
   }
 
-  const ownerId = getTripOwnerId(tripId);
+  const ownerId = await getTripOwnerId(tripId);
 
   if (!ownerId) {
     return NextResponse.json({ error: "Поездка не найдена" }, { status: 404 });
   }
 
   const isDriver = ownerId === user.id;
-  const isPassenger = isTripParticipant(tripId, user.id);
+  const isPassenger = await isTripParticipant(tripId, user.id);
 
   if (!isDriver && !isPassenger) {
     return NextResponse.json(
@@ -58,7 +58,7 @@ export async function POST(req: NextRequest, { params }: Props) {
     );
   }
 
-  if (!getTripLifecycle(tripId).completed) {
+  if (!(await getTripLifecycle(tripId)).completed) {
     return NextResponse.json(
       { error: "Отзыв можно оставить только после завершения поездки" },
       { status: 409 }
@@ -72,7 +72,7 @@ export async function POST(req: NextRequest, { params }: Props) {
   if (isDriver) {
     const candidate = Number(body?.revieweeId);
 
-    if (!Number.isInteger(candidate) || !isTripParticipant(tripId, candidate)) {
+    if (!Number.isInteger(candidate) || !(await isTripParticipant(tripId, candidate))) {
       return NextResponse.json(
         { error: "Укажите пассажира для отзыва" },
         { status: 400 }
@@ -91,7 +91,7 @@ export async function POST(req: NextRequest, { params }: Props) {
     );
   }
 
-  if (hasReviewed(tripId, user.id)) {
+  if (await hasReviewed(tripId, user.id)) {
     return NextResponse.json(
       { error: "Вы уже оставили отзыв на эту поездку" },
       { status: 409 }
@@ -109,7 +109,7 @@ export async function POST(req: NextRequest, { params }: Props) {
     );
   }
 
-  const result = createReview({
+  const result = await createReview({
     tripId,
     reviewerId: user.id,
     revieweeId,

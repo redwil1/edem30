@@ -11,7 +11,7 @@ type Props = {
 };
 
 export default async function TaxiPage({ searchParams }: Props) {
-  const scheduledTrips = listTrips("city");
+  const scheduledTrips = await listTrips("city");
   const { from, to } = await searchParams;
 
   return (

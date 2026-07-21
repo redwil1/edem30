@@ -128,7 +128,7 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  const id = createTrip(
+  const id = await createTrip(
     { type, from, to, date, time, price, totalSeats, transport, transportCategory },
     { id: user.id, name: user.name }
   );

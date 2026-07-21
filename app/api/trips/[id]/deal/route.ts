@@ -25,10 +25,10 @@ export async function GET(_req: Request, { params }: Props) {
   }
 
   const user = await getCurrentUser();
-  const deal = getTripDeal(tripId);
+  const deal = await getTripDeal(tripId);
 
-  const isDriver = !!user && getTripOwnerId(tripId) === user.id;
-  const isPassenger = !!user && isTripParticipant(tripId, user.id);
+  const isDriver = !!user && (await getTripOwnerId(tripId)) === user.id;
+  const isPassenger = !!user && (await isTripParticipant(tripId, user.id));
 
   return NextResponse.json(
     { ...deal, isDriver, isPassenger },
@@ -70,7 +70,7 @@ export async function POST(req: NextRequest, { params }: Props) {
     return NextResponse.json({ error: "Укажите корректную цену" }, { status: 400 });
   }
 
-  const result = submitDeal(tripId, user.id, price);
+  const result = await submitDeal(tripId, user.id, price);
 
   if (!result.ok) {
     if (result.reason === "not_found") {

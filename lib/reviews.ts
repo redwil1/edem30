@@ -1,33 +1,36 @@
 import "server-only";
 
-import { db } from "@/lib/db";
+import { sql } from "@/lib/db";
 
 export type RatingStats = {
   average: number;
   count: number;
 };
 
-export function getUserRatingStats(userId: number): RatingStats {
-  const row = db
-    .prepare(
-      `SELECT AVG(rating) as average, COUNT(*) as count
-       FROM reviews
-       WHERE reviewee_id = ?`
-    )
-    .get(userId) as { average: number | null; count: number };
+export async function getUserRatingStats(userId: number): Promise<RatingStats> {
+  const rows = await sql<{ average: number | null; count: string }[]>`
+    SELECT AVG(rating) as average, COUNT(*) as count
+    FROM reviews
+    WHERE reviewee_id = ${userId}
+  `;
+
+  const row = rows[0];
 
   return {
     average: row.average ? Math.round(row.average * 10) / 10 : 0,
-    count: row.count,
+    count: Number(row.count),
   };
 }
 
-export function hasReviewed(tripId: number, reviewerId: number): boolean {
-  const row = db
-    .prepare("SELECT 1 FROM reviews WHERE trip_id = ? AND reviewer_id = ?")
-    .get(tripId, reviewerId);
+export async function hasReviewed(
+  tripId: number,
+  reviewerId: number
+): Promise<boolean> {
+  const rows = await sql`
+    SELECT 1 FROM reviews WHERE trip_id = ${tripId} AND reviewer_id = ${reviewerId}
+  `;
 
-  return !!row;
+  return rows.length > 0;
 }
 
 export type CreateReviewInput = {
@@ -42,18 +45,14 @@ export type CreateReviewResult =
   | { ok: true }
   | { ok: false; reason: "duplicate" };
 
-export function createReview(input: CreateReviewInput): CreateReviewResult {
+export async function createReview(
+  input: CreateReviewInput
+): Promise<CreateReviewResult> {
   try {
-    db.prepare(
-      `INSERT INTO reviews (trip_id, reviewer_id, reviewee_id, rating, comment)
-       VALUES (@tripId, @reviewerId, @revieweeId, @rating, @comment)`
-    ).run({
-      tripId: input.tripId,
-      reviewerId: input.reviewerId,
-      revieweeId: input.revieweeId,
-      rating: input.rating,
-      comment: input.comment ?? null,
-    });
+    await sql`
+      INSERT INTO reviews (trip_id, reviewer_id, reviewee_id, rating, comment)
+      VALUES (${input.tripId}, ${input.reviewerId}, ${input.revieweeId}, ${input.rating}, ${input.comment ?? null})
+    `;
 
     return { ok: true };
   } catch {

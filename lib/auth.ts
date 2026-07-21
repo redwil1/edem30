@@ -4,7 +4,7 @@ import { cookies } from "next/headers";
 import { SignJWT, jwtVerify } from "jose";
 import bcrypt from "bcryptjs";
 
-import { db } from "@/lib/db";
+import { sql } from "@/lib/db";
 
 const COOKIE_NAME = "edem30_session";
 const SESSION_TTL_SECONDS = 30 * 24 * 60 * 60;
@@ -105,13 +105,13 @@ export async function getCurrentUser(): Promise<SafeUser | null> {
 
   if (!payload) return null;
 
-  const row = db
-    .prepare("SELECT id, name, phone, role FROM users WHERE id = ?")
-    .get(payload.userId) as SafeUser | undefined;
+  const rows = await sql<SafeUser[]>`
+    SELECT id, name, phone, role FROM users WHERE id = ${payload.userId}
+  `;
 
-  return row ?? null;
+  return rows[0] ?? null;
 }
 
-export function setUserRole(userId: number, role: UserRole) {
-  db.prepare("UPDATE users SET role = ? WHERE id = ?").run(role, userId);
+export async function setUserRole(userId: number, role: UserRole) {
+  await sql`UPDATE users SET role = ${role} WHERE id = ${userId}`;
 }

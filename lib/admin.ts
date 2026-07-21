@@ -1,6 +1,6 @@
 import "server-only";
 
-import { db } from "@/lib/db";
+import { sql } from "@/lib/db";
 import { getCurrentUser, UserRole } from "@/lib/auth";
 
 export async function requireAdmin() {
@@ -17,20 +17,18 @@ export type AdminStats = {
   reviewsCount: number;
 };
 
-export function getAdminStats(): AdminStats {
-  const usersCount = (
-    db.prepare("SELECT COUNT(*) as c FROM users").get() as { c: number }
-  ).c;
+export async function getAdminStats(): Promise<AdminStats> {
+  const [users, trips, reviews] = await Promise.all([
+    sql<{ c: string }[]>`SELECT COUNT(*) as c FROM users`,
+    sql<{ c: string }[]>`SELECT COUNT(*) as c FROM trips`,
+    sql<{ c: string }[]>`SELECT COUNT(*) as c FROM reviews`,
+  ]);
 
-  const tripsCount = (
-    db.prepare("SELECT COUNT(*) as c FROM trips").get() as { c: number }
-  ).c;
-
-  const reviewsCount = (
-    db.prepare("SELECT COUNT(*) as c FROM reviews").get() as { c: number }
-  ).c;
-
-  return { usersCount, tripsCount, reviewsCount };
+  return {
+    usersCount: Number(users[0].c),
+    tripsCount: Number(trips[0].c),
+    reviewsCount: Number(reviews[0].c),
+  };
 }
 
 export type AdminUser = {
@@ -41,33 +39,42 @@ export type AdminUser = {
   createdAt: string;
 };
 
-export function listAdminUsers(search?: string): AdminUser[] {
-  const rows = search
-    ? (db
-        .prepare(
-          `SELECT id, name, phone, role, created_at as createdAt
-           FROM users WHERE name LIKE ? ORDER BY id DESC`
-        )
-        .all(`%${search}%`) as AdminUser[])
-    : (db
-        .prepare(
-          "SELECT id, name, phone, role, created_at as createdAt FROM users ORDER BY id DESC"
-        )
-        .all() as AdminUser[]);
+type AdminUserRow = {
+  id: number;
+  name: string;
+  phone: string;
+  role: UserRole;
+  createdat: string;
+};
 
-  return rows;
+export async function listAdminUsers(search?: string): Promise<AdminUser[]> {
+  const rows = await sql<AdminUserRow[]>`
+    SELECT id, name, phone, role, created_at as createdAt
+    FROM users
+    ${search ? sql`WHERE name ILIKE ${`%${search}%`}` : sql``}
+    ORDER BY id DESC
+  `;
+
+  return rows.map((r) => ({
+    id: r.id,
+    name: r.name,
+    phone: r.phone,
+    role: r.role,
+    createdAt: r.createdat,
+  }));
 }
 
 const ASSIGNABLE_ROLES: UserRole[] = ["passenger", "driver", "admin"];
 
-export function setAdminUserRole(userId: number, role: string): boolean {
+export async function setAdminUserRole(
+  userId: number,
+  role: string
+): Promise<boolean> {
   if (!ASSIGNABLE_ROLES.includes(role as UserRole)) return false;
 
-  const result = db
-    .prepare("UPDATE users SET role = ? WHERE id = ?")
-    .run(role, userId);
+  const result = await sql`UPDATE users SET role = ${role} WHERE id = ${userId}`;
 
-  return result.changes > 0;
+  return result.count > 0;
 }
 
 export type AdminTripStatus =
@@ -122,21 +129,19 @@ function toAdminTrip(row: AdminTripRow): AdminTrip {
   };
 }
 
-const ADMIN_TRIP_SELECT = `
-  SELECT id, from_city, to_city, trip_date, trip_time, price, driver_name,
-         cancelled_at, driver_confirmed_at, passenger_confirmed_at,
-         driver_completed_at, passenger_completed_at
-  FROM trips
-`;
-
-export function listAdminTrips(search?: string): AdminTrip[] {
-  const rows = search
-    ? (db
-        .prepare(
-          `${ADMIN_TRIP_SELECT} WHERE from_city LIKE ? OR to_city LIKE ? ORDER BY id DESC`
-        )
-        .all(`%${search}%`, `%${search}%`) as AdminTripRow[])
-    : (db.prepare(`${ADMIN_TRIP_SELECT} ORDER BY id DESC`).all() as AdminTripRow[]);
+export async function listAdminTrips(search?: string): Promise<AdminTrip[]> {
+  const rows = await sql<AdminTripRow[]>`
+    SELECT id, from_city, to_city, trip_date, trip_time, price, driver_name,
+           cancelled_at, driver_confirmed_at, passenger_confirmed_at,
+           driver_completed_at, passenger_completed_at
+    FROM trips
+    ${
+      search
+        ? sql`WHERE from_city ILIKE ${`%${search}%`} OR to_city ILIKE ${`%${search}%`}`
+        : sql``
+    }
+    ORDER BY id DESC
+  `;
 
   return rows.map(toAdminTrip);
 }
@@ -146,44 +151,40 @@ export type UpdateAdminTripInput = {
   date?: string;
 };
 
-export function updateAdminTrip(
+export async function updateAdminTrip(
   tripId: number,
   input: UpdateAdminTripInput
-): boolean {
+): Promise<boolean> {
   if (input.price === undefined && input.date === undefined) return false;
 
-  const sets: string[] = [];
-  const params: Record<string, unknown> = { id: tripId };
+  const patch: Record<string, unknown> = {};
 
-  if (input.price !== undefined) {
-    sets.push("price = @price");
-    params.price = input.price;
-  }
+  if (input.price !== undefined) patch.price = input.price;
+  if (input.date !== undefined) patch.trip_date = input.date;
 
-  if (input.date !== undefined) {
-    sets.push("trip_date = @date");
-    params.date = input.date;
-  }
+  const result = await sql`
+    UPDATE trips SET ${sql(patch)} WHERE id = ${tripId}
+  `;
 
-  const result = db
-    .prepare(`UPDATE trips SET ${sets.join(", ")} WHERE id = @id`)
-    .run(params);
-
-  return result.changes > 0;
+  return result.count > 0;
 }
 
-export function adminCancelTrip(tripId: number): boolean {
-  const result = db
-    .prepare(
-      "UPDATE trips SET cancelled_at = COALESCE(cancelled_at, datetime('now')) WHERE id = ?"
-    )
-    .run(tripId);
+export async function adminCancelTrip(tripId: number): Promise<boolean> {
+  const [tripResult] = await Promise.all([
+    sql`
+      UPDATE trips SET cancelled_at = COALESCE(
+        cancelled_at,
+        to_char(now() AT TIME ZONE 'utc', 'YYYY-MM-DD"T"HH24:MI:SS"Z"')
+      )
+      WHERE id = ${tripId}
+    `,
+    sql`
+      UPDATE taxi_orders SET status = 'cancelled'
+      WHERE trip_id = ${tripId} AND status != 'cancelled'
+    `,
+  ]);
 
-  db.prepare(
-    "UPDATE taxi_orders SET status = 'cancelled' WHERE trip_id = ? AND status != 'cancelled'"
-  ).run(tripId);
-
-  return result.changes > 0;
+  return tripResult.count > 0;
 }
 
 export type AdminReview = {
@@ -205,23 +206,17 @@ type AdminReviewRow = {
   to_city: string;
 };
 
-const ADMIN_REVIEW_SELECT = `
-  SELECT reviews.id as id, users.name as author_name, reviews.rating as rating,
-         reviews.comment as comment, reviews.trip_id as trip_id,
-         trips.from_city as from_city, trips.to_city as to_city
-  FROM reviews
-  JOIN users ON users.id = reviews.reviewer_id
-  JOIN trips ON trips.id = reviews.trip_id
-`;
-
-export function listAdminReviews(minRating?: number): AdminReview[] {
-  const rows = minRating
-    ? (db
-        .prepare(`${ADMIN_REVIEW_SELECT} WHERE reviews.rating >= ? ORDER BY reviews.id DESC`)
-        .all(minRating) as AdminReviewRow[])
-    : (db
-        .prepare(`${ADMIN_REVIEW_SELECT} ORDER BY reviews.id DESC`)
-        .all() as AdminReviewRow[]);
+export async function listAdminReviews(minRating?: number): Promise<AdminReview[]> {
+  const rows = await sql<AdminReviewRow[]>`
+    SELECT reviews.id as id, users.name as author_name, reviews.rating as rating,
+           reviews.comment as comment, reviews.trip_id as trip_id,
+           trips.from_city as from_city, trips.to_city as to_city
+    FROM reviews
+    JOIN users ON users.id = reviews.reviewer_id
+    JOIN trips ON trips.id = reviews.trip_id
+    ${minRating ? sql`WHERE reviews.rating >= ${minRating}` : sql``}
+    ORDER BY reviews.id DESC
+  `;
 
   return rows.map((r) => ({
     id: r.id,
@@ -233,8 +228,8 @@ export function listAdminReviews(minRating?: number): AdminReview[] {
   }));
 }
 
-export function deleteAdminReview(reviewId: number): boolean {
-  const result = db.prepare("DELETE FROM reviews WHERE id = ?").run(reviewId);
+export async function deleteAdminReview(reviewId: number): Promise<boolean> {
+  const result = await sql`DELETE FROM reviews WHERE id = ${reviewId}`;
 
-  return result.changes > 0;
+  return result.count > 0;
 }

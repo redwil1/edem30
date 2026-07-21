@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 
-import { db } from "@/lib/db";
+import { sql } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
 
 type Props = {
@@ -15,15 +15,13 @@ export async function GET(_req: Request, { params }: Props) {
     return NextResponse.json({ error: "Некорректная поездка" }, { status: 400 });
   }
 
-  const rows = db
-    .prepare(
-      `SELECT users.id as id, users.name as name
-       FROM trip_participants
-       JOIN users ON users.id = trip_participants.user_id
-       WHERE trip_participants.trip_id = ?
-       ORDER BY trip_participants.joined_at ASC`
-    )
-    .all(tripId) as { id: number; name: string }[];
+  const rows = await sql<{ id: number; name: string }[]>`
+    SELECT users.id as id, users.name as name
+    FROM trip_participants
+    JOIN users ON users.id = trip_participants.user_id
+    WHERE trip_participants.trip_id = ${tripId}
+    ORDER BY trip_participants.joined_at ASC
+  `;
 
   const user = await getCurrentUser();
 

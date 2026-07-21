@@ -30,7 +30,7 @@ export async function POST(req: NextRequest, { params }: Props) {
     return NextResponse.json({ error: "Некорректная поездка" }, { status: 400 });
   }
 
-  const ok = adminCancelTrip(tripId);
+  const ok = await adminCancelTrip(tripId);
 
   if (!ok) {
     return NextResponse.json({ error: "Поездка не найдена" }, { status: 404 });

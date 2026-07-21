@@ -1,8 +1,10 @@
 import TripSearch from "@/components/TripSearch";
 import { listTrips } from "@/lib/trips";
 
-export default function SearchPage() {
-  const trips = listTrips("intercity");
+export const dynamic = "force-dynamic";
+
+export default async function SearchPage() {
+  const trips = await listTrips("intercity");
 
   return (
     <main className="min-h-screen bg-[#0b0b13] text-white">

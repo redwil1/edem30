@@ -1,7 +1,11 @@
 import "server-only";
 
-import { db } from "@/lib/db";
+import type postgres from "postgres";
+
+import { sql } from "@/lib/db";
 import { Trip, TripType } from "@/types/trips";
+
+const NOW = `to_char(now() AT TIME ZONE 'utc', 'YYYY-MM-DD"T"HH24:MI:SS"Z"')`;
 
 type TripRow = {
   id: number;
@@ -16,32 +20,14 @@ type TripRow = {
   driver_name: string;
   owner_id: number | null;
   verified: number;
-  taken_seats: number;
+  taken_seats: string;
   owner_rating: number | null;
-  owner_reviews_count: number | null;
+  owner_reviews_count: string | null;
 };
 
-const SELECT_BASE = `
-  SELECT
-    trips.*,
-    (SELECT COUNT(*) FROM trip_participants WHERE trip_participants.trip_id = trips.id) as taken_seats,
-    (SELECT AVG(rating) FROM reviews WHERE reviews.reviewee_id = trips.owner_id) as owner_rating,
-    (SELECT COUNT(*) FROM reviews WHERE reviews.reviewee_id = trips.owner_id) as owner_reviews_count
-  FROM trips
-`;
-
-const ACTIVE_CLAUSE = `
-  trips.cancelled_at IS NULL
-  AND NOT (trips.driver_completed_at IS NOT NULL AND trips.passenger_completed_at IS NOT NULL)
-`;
-
-const LISTING_BASE = `
-  ${SELECT_BASE}
-  JOIN users ON users.id = trips.owner_id AND users.role = 'driver'
-  WHERE ${ACTIVE_CLAUSE}
-`;
-
 function toTrip(row: TripRow): Trip {
+  const takenSeats = Number(row.taken_seats);
+
   return {
     id: row.id,
     type: row.type,
@@ -51,65 +37,77 @@ function toTrip(row: TripRow): Trip {
     time: row.trip_time,
     price: row.price,
     totalSeats: row.total_seats,
-    seats: Math.max(row.total_seats - row.taken_seats, 0),
+    seats: Math.max(row.total_seats - takenSeats, 0),
     transport: row.transport,
     driver: row.driver_name,
     rating: row.owner_rating ? Math.round(row.owner_rating * 10) / 10 : 0,
-    tripsCount: row.owner_reviews_count ?? 0,
+    tripsCount: row.owner_reviews_count ? Number(row.owner_reviews_count) : 0,
     verified: !!row.verified,
   };
 }
 
-export function listTrips(type?: TripType): Trip[] {
-  const rows = type
-    ? (db
-        .prepare(`${LISTING_BASE} AND trips.type = ? ORDER BY trips.id DESC`)
-        .all(type) as TripRow[])
-    : (db.prepare(`${LISTING_BASE} ORDER BY trips.id DESC`).all() as TripRow[]);
+const TRIP_SELECT = sql`
+  trips.*,
+  (SELECT COUNT(*) FROM trip_participants WHERE trip_participants.trip_id = trips.id) as taken_seats,
+  (SELECT AVG(rating) FROM reviews WHERE reviews.reviewee_id = trips.owner_id) as owner_rating,
+  (SELECT COUNT(*) FROM reviews WHERE reviews.reviewee_id = trips.owner_id) as owner_reviews_count
+`;
+
+const ACTIVE_CLAUSE = sql`
+  trips.cancelled_at IS NULL
+  AND NOT (trips.driver_completed_at IS NOT NULL AND trips.passenger_completed_at IS NOT NULL)
+`;
+
+export async function listTrips(type?: TripType): Promise<Trip[]> {
+  const rows = await sql<TripRow[]>`
+    SELECT ${TRIP_SELECT}
+    FROM trips
+    JOIN users ON users.id = trips.owner_id AND users.role = 'driver'
+    WHERE ${ACTIVE_CLAUSE}
+    ${type ? sql`AND trips.type = ${type}` : sql``}
+    ORDER BY trips.id DESC
+  `;
 
   return rows.map(toTrip);
 }
 
-export function getTripById(id: number): Trip | undefined {
+export async function getTripById(id: number): Promise<Trip | undefined> {
   if (!Number.isInteger(id) || id <= 0) return undefined;
 
-  const row = db
-    .prepare(`${SELECT_BASE} WHERE trips.id = ?`)
-    .get(id) as TripRow | undefined;
+  const rows = await sql<TripRow[]>`
+    SELECT ${TRIP_SELECT} FROM trips WHERE trips.id = ${id}
+  `;
 
-  return row ? toTrip(row) : undefined;
+  return rows[0] ? toTrip(rows[0]) : undefined;
 }
 
-export function getTripOwnerId(id: number): number | null {
-  const row = db
-    .prepare("SELECT owner_id FROM trips WHERE id = ?")
-    .get(id) as { owner_id: number | null } | undefined;
+export async function getTripOwnerId(id: number): Promise<number | null> {
+  const rows = await sql<{ owner_id: number | null }[]>`
+    SELECT owner_id FROM trips WHERE id = ${id}
+  `;
 
-  return row?.owner_id ?? null;
+  return rows[0]?.owner_id ?? null;
 }
 
-export function isTripParticipant(tripId: number, userId: number): boolean {
-  const row = db
-    .prepare(
-      "SELECT 1 FROM trip_participants WHERE trip_id = ? AND user_id = ?"
-    )
-    .get(tripId, userId);
+export async function isTripParticipant(
+  tripId: number,
+  userId: number
+): Promise<boolean> {
+  const rows = await sql`
+    SELECT 1 FROM trip_participants WHERE trip_id = ${tripId} AND user_id = ${userId}
+  `;
 
-  return !!row;
+  return rows.length > 0;
 }
 
-export function isInstantTaxiTrip(tripId: number): boolean {
-  const row = db
-    .prepare("SELECT 1 FROM taxi_orders WHERE trip_id = ?")
-    .get(tripId);
+export async function isInstantTaxiTrip(tripId: number): Promise<boolean> {
+  const rows = await sql`SELECT 1 FROM taxi_orders WHERE trip_id = ${tripId}`;
 
-  return !!row;
+  return rows.length > 0;
 }
 
-export function leaveTrip(tripId: number, userId: number): void {
-  db.prepare(
-    "DELETE FROM trip_participants WHERE trip_id = ? AND user_id = ?"
-  ).run(tripId, userId);
+export async function leaveTrip(tripId: number, userId: number): Promise<void> {
+  await sql`DELETE FROM trip_participants WHERE trip_id = ${tripId} AND user_id = ${userId}`;
 }
 
 export type JoinResult =
@@ -119,23 +117,23 @@ export type JoinResult =
       reason: "not_found" | "cancelled" | "completed" | "self" | "full";
     };
 
-export function joinTrip(tripId: number, userId: number): JoinResult {
-  const trip = db
-    .prepare(
-      `SELECT owner_id, total_seats, cancelled_at, driver_completed_at, passenger_completed_at,
-              (SELECT COUNT(*) FROM trip_participants WHERE trip_participants.trip_id = trips.id) as taken_seats
-       FROM trips WHERE id = ?`
-    )
-    .get(tripId) as
-    | {
-        owner_id: number | null;
-        total_seats: number;
-        cancelled_at: string | null;
-        driver_completed_at: string | null;
-        passenger_completed_at: string | null;
-        taken_seats: number;
-      }
-    | undefined;
+export async function joinTrip(tripId: number, userId: number): Promise<JoinResult> {
+  const rows = await sql<
+    {
+      owner_id: number | null;
+      total_seats: number;
+      cancelled_at: string | null;
+      driver_completed_at: string | null;
+      passenger_completed_at: string | null;
+      taken_seats: string;
+    }[]
+  >`
+    SELECT owner_id, total_seats, cancelled_at, driver_completed_at, passenger_completed_at,
+           (SELECT COUNT(*) FROM trip_participants WHERE trip_participants.trip_id = trips.id) as taken_seats
+    FROM trips WHERE id = ${tripId}
+  `;
+
+  const trip = rows[0];
 
   if (!trip) return { ok: false, reason: "not_found" };
 
@@ -147,15 +145,16 @@ export function joinTrip(tripId: number, userId: number): JoinResult {
 
   if (trip.owner_id === userId) return { ok: false, reason: "self" };
 
-  if (isTripParticipant(tripId, userId)) return { ok: true };
+  if (await isTripParticipant(tripId, userId)) return { ok: true };
 
-  if (trip.taken_seats >= trip.total_seats) {
+  if (Number(trip.taken_seats) >= trip.total_seats) {
     return { ok: false, reason: "full" };
   }
 
-  db.prepare(
-    "INSERT OR IGNORE INTO trip_participants (trip_id, user_id) VALUES (?, ?)"
-  ).run(tripId, userId);
+  await sql`
+    INSERT INTO trip_participants (trip_id, user_id) VALUES (${tripId}, ${userId})
+    ON CONFLICT (trip_id, user_id) DO NOTHING
+  `;
 
   return { ok: true };
 }
@@ -181,14 +180,14 @@ export type TripLifecycle = {
   cancelledAt: string | null;
 };
 
-export function getTripLifecycle(tripId: number): TripLifecycle {
-  const row = db
-    .prepare(
-      `SELECT driver_confirmed_at, passenger_confirmed_at,
-              driver_completed_at, passenger_completed_at, cancelled_at
-       FROM trips WHERE id = ?`
-    )
-    .get(tripId) as LifecycleRow | undefined;
+export async function getTripLifecycle(tripId: number): Promise<TripLifecycle> {
+  const rows = await sql<LifecycleRow[]>`
+    SELECT driver_confirmed_at, passenger_confirmed_at,
+           driver_completed_at, passenger_completed_at, cancelled_at
+    FROM trips WHERE id = ${tripId}
+  `;
+
+  const row = rows[0];
 
   const driverConfirmed = !!row?.driver_confirmed_at;
   const passengerConfirmed = !!row?.passenger_confirmed_at;
@@ -226,85 +225,96 @@ export type ConfirmResult =
   | { ok: true; status: TripLifecycle }
   | { ok: false; reason: "not_found" | "not_allowed" | "not_started" };
 
-export function confirmTripStart(tripId: number, userId: number): ConfirmResult {
-  const trip = db
-    .prepare("SELECT owner_id FROM trips WHERE id = ?")
-    .get(tripId) as { owner_id: number | null } | undefined;
+export async function confirmTripStart(
+  tripId: number,
+  userId: number
+): Promise<ConfirmResult> {
+  const owner = await getTripOwnerIdOrNull(tripId);
 
-  if (!trip) return { ok: false, reason: "not_found" };
+  if (owner === undefined) return { ok: false, reason: "not_found" };
 
-  const isDriver = trip.owner_id === userId;
-  const isPassenger = isTripParticipant(tripId, userId);
+  const isDriver = owner === userId;
+  const isPassenger = await isTripParticipant(tripId, userId);
 
   if (!isDriver && !isPassenger) {
     return { ok: false, reason: "not_allowed" };
   }
 
   if (isDriver) {
-    db.prepare(
-      "UPDATE trips SET driver_confirmed_at = COALESCE(driver_confirmed_at, datetime('now')) WHERE id = ?"
-    ).run(tripId);
+    await sql`
+      UPDATE trips SET driver_confirmed_at = COALESCE(driver_confirmed_at, ${sql.unsafe(NOW)})
+      WHERE id = ${tripId}
+    `;
   }
 
   if (isPassenger) {
-    db.prepare(
-      "UPDATE trips SET passenger_confirmed_at = COALESCE(passenger_confirmed_at, datetime('now')) WHERE id = ?"
-    ).run(tripId);
+    await sql`
+      UPDATE trips SET passenger_confirmed_at = COALESCE(passenger_confirmed_at, ${sql.unsafe(NOW)})
+      WHERE id = ${tripId}
+    `;
   }
 
-  return { ok: true, status: getTripLifecycle(tripId) };
+  return { ok: true, status: await getTripLifecycle(tripId) };
 }
 
-export function confirmTripComplete(
+export async function confirmTripComplete(
   tripId: number,
   userId: number
-): ConfirmResult {
-  const trip = db
-    .prepare("SELECT owner_id FROM trips WHERE id = ?")
-    .get(tripId) as { owner_id: number | null } | undefined;
+): Promise<ConfirmResult> {
+  const owner = await getTripOwnerIdOrNull(tripId);
 
-  if (!trip) return { ok: false, reason: "not_found" };
+  if (owner === undefined) return { ok: false, reason: "not_found" };
 
-  const isDriver = trip.owner_id === userId;
-  const isPassenger = isTripParticipant(tripId, userId);
+  const isDriver = owner === userId;
+  const isPassenger = await isTripParticipant(tripId, userId);
 
   if (!isDriver && !isPassenger) {
     return { ok: false, reason: "not_allowed" };
   }
 
-  if (!getTripLifecycle(tripId).started) {
+  if (!(await getTripLifecycle(tripId)).started) {
     return { ok: false, reason: "not_started" };
   }
 
   if (isDriver) {
-    db.prepare(
-      "UPDATE trips SET driver_completed_at = COALESCE(driver_completed_at, datetime('now')) WHERE id = ?"
-    ).run(tripId);
+    await sql`
+      UPDATE trips SET driver_completed_at = COALESCE(driver_completed_at, ${sql.unsafe(NOW)})
+      WHERE id = ${tripId}
+    `;
   }
 
   if (isPassenger) {
-    db.prepare(
-      "UPDATE trips SET passenger_completed_at = COALESCE(passenger_completed_at, datetime('now')) WHERE id = ?"
-    ).run(tripId);
+    await sql`
+      UPDATE trips SET passenger_completed_at = COALESCE(passenger_completed_at, ${sql.unsafe(NOW)})
+      WHERE id = ${tripId}
+    `;
   }
 
-  return { ok: true, status: getTripLifecycle(tripId) };
+  return { ok: true, status: await getTripLifecycle(tripId) };
+}
+
+// Distinguishes "trip not found" (undefined) from "trip found but owner_id is NULL" (null).
+async function getTripOwnerIdOrNull(
+  tripId: number
+): Promise<number | null | undefined> {
+  const rows = await sql<{ owner_id: number | null }[]>`
+    SELECT owner_id FROM trips WHERE id = ${tripId}
+  `;
+
+  return rows[0] ? rows[0].owner_id : undefined;
 }
 
 export type CancelResult =
   | { ok: true }
   | { ok: false; reason: "not_found" | "not_allowed" | "already_started" | "already_done" };
 
-export function cancelTrip(tripId: number, userId: number): CancelResult {
-  const trip = db
-    .prepare("SELECT owner_id FROM trips WHERE id = ?")
-    .get(tripId) as { owner_id: number | null } | undefined;
+export async function cancelTrip(tripId: number, userId: number): Promise<CancelResult> {
+  const owner = await getTripOwnerIdOrNull(tripId);
 
-  if (!trip) return { ok: false, reason: "not_found" };
+  if (owner === undefined) return { ok: false, reason: "not_found" };
+  if (owner !== userId) return { ok: false, reason: "not_allowed" };
 
-  if (trip.owner_id !== userId) return { ok: false, reason: "not_allowed" };
-
-  const lifecycle = getTripLifecycle(tripId);
+  const lifecycle = await getTripLifecycle(tripId);
 
   if (lifecycle.cancelled || lifecycle.completed) {
     return { ok: false, reason: "already_done" };
@@ -314,17 +324,14 @@ export function cancelTrip(tripId: number, userId: number): CancelResult {
     return { ok: false, reason: "already_started" };
   }
 
-  const tx = db.transaction(() => {
-    db.prepare(
-      "UPDATE trips SET cancelled_at = datetime('now') WHERE id = ?"
-    ).run(tripId);
+  await sql.begin(async (tx) => {
+    await tx`UPDATE trips SET cancelled_at = ${tx.unsafe(NOW)} WHERE id = ${tripId}`;
 
-    db.prepare(
-      "UPDATE taxi_orders SET status = 'cancelled' WHERE trip_id = ? AND status != 'cancelled'"
-    ).run(tripId);
+    await tx`
+      UPDATE taxi_orders SET status = 'cancelled'
+      WHERE trip_id = ${tripId} AND status != 'cancelled'
+    `;
   });
-
-  tx();
 
   return { ok: true };
 }
@@ -342,12 +349,12 @@ export type TripDeal = {
   finalized: boolean;
 };
 
-export function getTripDeal(tripId: number): TripDeal {
-  const row = db
-    .prepare(
-      "SELECT deal_price, driver_deal_at, passenger_deal_at FROM trips WHERE id = ?"
-    )
-    .get(tripId) as DealRow | undefined;
+export async function getTripDeal(tripId: number): Promise<TripDeal> {
+  const rows = await sql<DealRow[]>`
+    SELECT deal_price, driver_deal_at, passenger_deal_at FROM trips WHERE id = ${tripId}
+  `;
+
+  const row = rows[0];
 
   const driverConfirmed = !!row?.driver_deal_at;
   const passengerConfirmed = !!row?.passenger_deal_at;
@@ -364,99 +371,94 @@ export type SubmitDealResult =
   | { ok: true; deal: TripDeal }
   | { ok: false; reason: "not_found" | "not_allowed" };
 
-export function submitDeal(
+export async function submitDeal(
   tripId: number,
   userId: number,
   price: number
-): SubmitDealResult {
-  const trip = db
-    .prepare("SELECT owner_id FROM trips WHERE id = ?")
-    .get(tripId) as { owner_id: number | null } | undefined;
+): Promise<SubmitDealResult> {
+  const owner = await getTripOwnerIdOrNull(tripId);
 
-  if (!trip) return { ok: false, reason: "not_found" };
+  if (owner === undefined) return { ok: false, reason: "not_found" };
 
-  const isDriver = trip.owner_id === userId;
-  const isPassenger = isTripParticipant(tripId, userId);
+  const isDriver = owner === userId;
+  const isPassenger = await isTripParticipant(tripId, userId);
 
   if (!isDriver && !isPassenger) {
     return { ok: false, reason: "not_allowed" };
   }
 
-  const current = getTripDeal(tripId);
+  const current = await getTripDeal(tripId);
 
-  const tx = db.transaction(() => {
+  await sql.begin(async (tx) => {
     if (current.price !== price) {
-      db.prepare(
-        `UPDATE trips SET deal_price = ?, driver_deal_at = NULL, passenger_deal_at = NULL
-         WHERE id = ?`
-      ).run(price, tripId);
+      await tx`
+        UPDATE trips SET deal_price = ${price}, driver_deal_at = NULL, passenger_deal_at = NULL
+        WHERE id = ${tripId}
+      `;
     }
 
     if (isDriver) {
-      db.prepare(
-        "UPDATE trips SET driver_deal_at = COALESCE(driver_deal_at, datetime('now')) WHERE id = ?"
-      ).run(tripId);
+      await tx`
+        UPDATE trips SET driver_deal_at = COALESCE(driver_deal_at, ${tx.unsafe(NOW)})
+        WHERE id = ${tripId}
+      `;
     }
 
     if (isPassenger) {
-      db.prepare(
-        "UPDATE trips SET passenger_deal_at = COALESCE(passenger_deal_at, datetime('now')) WHERE id = ?"
-      ).run(tripId);
+      await tx`
+        UPDATE trips SET passenger_deal_at = COALESCE(passenger_deal_at, ${tx.unsafe(NOW)})
+        WHERE id = ${tripId}
+      `;
     }
 
-    const deal = getTripDeal(tripId);
+    const dealRows = await tx<DealRow[]>`
+      SELECT deal_price, driver_deal_at, passenger_deal_at FROM trips WHERE id = ${tripId}
+    `;
 
-    if (deal.finalized && deal.price !== null) {
-      db.prepare("UPDATE trips SET price = ? WHERE id = ?").run(
-        deal.price,
-        tripId
-      );
+    const dealRow = dealRows[0];
+    const finalized = !!dealRow?.driver_deal_at && !!dealRow?.passenger_deal_at;
+
+    if (finalized && dealRow?.deal_price !== null && dealRow?.deal_price !== undefined) {
+      await tx`UPDATE trips SET price = ${dealRow.deal_price} WHERE id = ${tripId}`;
     }
   });
 
-  tx();
-
-  return { ok: true, deal: getTripDeal(tripId) };
+  return { ok: true, deal: await getTripDeal(tripId) };
 }
 
-const COMPLETED_CLAUSE =
-  "driver_completed_at IS NOT NULL AND passenger_completed_at IS NOT NULL";
+const COMPLETED_CLAUSE = sql`
+  driver_completed_at IS NOT NULL AND passenger_completed_at IS NOT NULL
+`;
 
-export function countTripsAsDriver(userId: number): number {
-  const row = db
-    .prepare(
-      `SELECT COUNT(*) as count FROM trips WHERE owner_id = ? AND ${COMPLETED_CLAUSE}`
-    )
-    .get(userId) as { count: number };
+export async function countTripsAsDriver(userId: number): Promise<number> {
+  const rows = await sql<{ count: string }[]>`
+    SELECT COUNT(*) as count FROM trips WHERE owner_id = ${userId} AND ${COMPLETED_CLAUSE}
+  `;
 
-  return row.count;
+  return Number(rows[0].count);
 }
 
-export function countTripsAsPassenger(userId: number): number {
-  const row = db
-    .prepare(
-      `SELECT COUNT(*) as count
-       FROM trip_participants
-       JOIN trips ON trips.id = trip_participants.trip_id
-       WHERE trip_participants.user_id = ? AND trips.${COMPLETED_CLAUSE}`
-    )
-    .get(userId) as { count: number };
+export async function countTripsAsPassenger(userId: number): Promise<number> {
+  const rows = await sql<{ count: string }[]>`
+    SELECT COUNT(*) as count
+    FROM trip_participants
+    JOIN trips ON trips.id = trip_participants.trip_id
+    WHERE trip_participants.user_id = ${userId} AND ${COMPLETED_CLAUSE}
+  `;
 
-  return row.count;
+  return Number(rows[0].count);
 }
 
-export function getDriverEarnings(userId: number): number {
-  const row = db
-    .prepare(
-      `SELECT COALESCE(SUM(trips.price * (
-         SELECT COUNT(*) FROM trip_participants WHERE trip_participants.trip_id = trips.id
-       )), 0) as total
-       FROM trips
-       WHERE trips.owner_id = ? AND trips.${COMPLETED_CLAUSE}`
-    )
-    .get(userId) as { total: number };
+export async function getDriverEarnings(userId: number): Promise<number> {
+  const rows = await sql<{ total: string }[]>`
+    SELECT COALESCE(SUM(trips.price * (
+      SELECT COUNT(*) FROM trip_participants WHERE trip_participants.trip_id = trips.id
+    )), 0) as total
+    FROM trips
+    WHERE trips.owner_id = ${userId} AND ${COMPLETED_CLAUSE}
+  `;
 
-  return row.total;
+  return Number(rows[0].total);
 }
 
 export type CreateTripInput = {
@@ -471,29 +473,21 @@ export type CreateTripInput = {
   transportCategory?: string;
 };
 
-export function createTrip(
+export async function createTrip(
   input: CreateTripInput,
-  owner: { id: number; name: string }
-): number {
-  const result = db
-    .prepare(
-      `INSERT INTO trips
-        (type, from_city, to_city, trip_date, trip_time, price, total_seats, transport, transport_category, driver_name, owner_id, verified)
-       VALUES (@type, @from, @to, @date, @time, @price, @totalSeats, @transport, @transportCategory, @driver, @ownerId, 0)`
+  owner: { id: number; name: string },
+  executor: postgres.ISql = sql
+): Promise<number> {
+  const rows = await executor<{ id: number }[]>`
+    INSERT INTO trips
+      (type, from_city, to_city, trip_date, trip_time, price, total_seats, transport, transport_category, driver_name, owner_id, verified)
+    VALUES (
+      ${input.type}, ${input.from}, ${input.to}, ${input.date}, ${input.time},
+      ${input.price}, ${input.totalSeats}, ${input.transport}, ${input.transportCategory ?? null},
+      ${owner.name}, ${owner.id}, 0
     )
-    .run({
-      type: input.type,
-      from: input.from,
-      to: input.to,
-      date: input.date,
-      time: input.time,
-      price: input.price,
-      totalSeats: input.totalSeats,
-      transport: input.transport,
-      transportCategory: input.transportCategory ?? null,
-      driver: owner.name,
-      ownerId: owner.id,
-    });
+    RETURNING id
+  `;
 
-  return Number(result.lastInsertRowid);
+  return rows[0].id;
 }

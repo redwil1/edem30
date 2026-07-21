@@ -15,7 +15,7 @@ export async function GET(req: NextRequest) {
   const minRating = minRatingParam ? Number(minRatingParam) : undefined;
 
   return NextResponse.json(
-    { reviews: listAdminReviews(minRating) },
+    { reviews: await listAdminReviews(minRating) },
     { headers: { "Cache-Control": "no-store" } }
   );
 }

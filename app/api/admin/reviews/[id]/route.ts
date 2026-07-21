@@ -30,7 +30,7 @@ export async function DELETE(req: NextRequest, { params }: Props) {
     return NextResponse.json({ error: "Некорректный отзыв" }, { status: 400 });
   }
 
-  const ok = deleteAdminReview(reviewId);
+  const ok = await deleteAdminReview(reviewId);
 
   if (!ok) {
     return NextResponse.json({ error: "Отзыв не найден" }, { status: 404 });

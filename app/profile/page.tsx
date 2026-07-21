@@ -5,7 +5,7 @@ import Navbar from "@/components/layout/Navbar";
 import Footer from "@/components/layout/Footer";
 import DriverCard from "@/components/driver/DriverCard";
 import { getCurrentUser } from "@/lib/auth";
-import { db } from "@/lib/db";
+import { sql } from "@/lib/db";
 import {
   countTripsAsDriver,
   countTripsAsPassenger,
@@ -51,18 +51,18 @@ export default async function ProfilePage() {
     );
   }
 
-  const asDriver = countTripsAsDriver(user.id);
-  const asPassenger = countTripsAsPassenger(user.id);
-  const ratingStats = getUserRatingStats(user.id);
-  const earnings = getDriverEarnings(user.id);
+  const [asDriver, asPassenger, ratingStats, earnings, userRow] = await Promise.all([
+    countTripsAsDriver(user.id),
+    countTripsAsPassenger(user.id),
+    getUserRatingStats(user.id),
+    getDriverEarnings(user.id),
+    sql<{ created_at: string }[]>`SELECT created_at FROM users WHERE id = ${user.id}`,
+  ]);
 
-  const row = db
-    .prepare("SELECT created_at FROM users WHERE id = ?")
-    .get(user.id) as { created_at: string };
-
-  const memberSince = new Date(
-    row.created_at.replace(" ", "T") + "Z"
-  ).toLocaleDateString("ru-RU", { year: "numeric", month: "long" });
+  const memberSince = new Date(userRow[0].created_at).toLocaleDateString("ru-RU", {
+    year: "numeric",
+    month: "long",
+  });
 
   return (
     <main className="min-h-screen bg-[#0b0b13] text-white flex flex-col">

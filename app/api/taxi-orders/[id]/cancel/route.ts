@@ -31,7 +31,7 @@ export async function POST(req: NextRequest, { params }: Props) {
     return NextResponse.json({ error: "Некорректный заказ" }, { status: 400 });
   }
 
-  const cancelled = cancelOrder(orderId, user.id);
+  const cancelled = await cancelOrder(orderId, user.id);
 
   if (!cancelled) {
     return NextResponse.json(

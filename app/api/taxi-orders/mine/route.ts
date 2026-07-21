@@ -12,7 +12,7 @@ export async function GET() {
     return NextResponse.json({ error: "Войдите в аккаунт" }, { status: 401 });
   }
 
-  const order = getLatestOrderForPassenger(user.id) ?? null;
+  const order = (await getLatestOrderForPassenger(user.id)) ?? null;
 
   return NextResponse.json(
     { order },

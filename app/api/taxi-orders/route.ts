@@ -15,8 +15,10 @@ export async function GET() {
     return NextResponse.json({ error: "Войдите в аккаунт" }, { status: 401 });
   }
 
-  const orders = listOpenOrders(user.id);
-  const balance = getDriverEarnings(user.id);
+  const [orders, balance] = await Promise.all([
+    listOpenOrders(user.id),
+    getDriverEarnings(user.id),
+  ]);
 
   return NextResponse.json(
     { orders, balance },
@@ -82,7 +84,7 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  const id = createOrder({ from, to, price, seats }, { id: user.id });
+  const id = await createOrder({ from, to, price, seats }, { id: user.id });
 
   return NextResponse.json({ id });
 }

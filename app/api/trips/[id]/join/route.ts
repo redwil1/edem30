@@ -41,7 +41,7 @@ export async function POST(req: NextRequest, { params }: Props) {
     return NextResponse.json({ error: "Некорректная поездка" }, { status: 400 });
   }
 
-  const result = joinTrip(tripId, user.id);
+  const result = await joinTrip(tripId, user.id);
 
   if (!result.ok) {
     const messages: Record<typeof result.reason, string> = {

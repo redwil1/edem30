@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 
-import { db } from "@/lib/db";
+import { sql } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
 import {
   getTripById,
@@ -28,7 +28,7 @@ type Props = {
 export default async function TripPage({ params }: Props) {
   const { id } = await params;
 
-  const trip = getTripById(Number(id));
+  const trip = await getTripById(Number(id));
 
   if (!trip) {
     return (
@@ -44,15 +44,13 @@ export default async function TripPage({ params }: Props) {
 
   const user = await getCurrentUser();
 
-  const participantRows = db
-    .prepare(
-      `SELECT users.id as id, users.name as name
-       FROM trip_participants
-       JOIN users ON users.id = trip_participants.user_id
-       WHERE trip_participants.trip_id = ?
-       ORDER BY trip_participants.joined_at ASC`
-    )
-    .all(trip.id) as { id: number; name: string }[];
+  const participantRows = await sql<{ id: number; name: string }[]>`
+    SELECT users.id as id, users.name as name
+    FROM trip_participants
+    JOIN users ON users.id = trip_participants.user_id
+    WHERE trip_participants.trip_id = ${trip.id}
+    ORDER BY trip_participants.joined_at ASC
+  `;
 
   const participants = participantRows.map((r) => ({
     id: r.id,
@@ -62,8 +60,8 @@ export default async function TripPage({ params }: Props) {
 
   const joined = !!user && participants.some((p) => p.isYou);
 
-  const ownerId = getTripOwnerId(trip.id);
-  const lifecycle = getTripLifecycle(trip.id);
+  const ownerId = await getTripOwnerId(trip.id);
+  const lifecycle = await getTripLifecycle(trip.id);
 
   const isDriver = !!user && ownerId === user.id;
   const isParty = isDriver || joined;
@@ -80,17 +78,17 @@ export default async function TripPage({ params }: Props) {
     );
   }
 
-  const instantTaxi = isInstantTaxiTrip(trip.id);
+  const instantTaxi = await isInstantTaxiTrip(trip.id);
+
+  const soleParticipant =
+    participants.length === 1 ? participants[0] : null;
 
   const canReviewAsPassenger =
     !!user &&
     joined &&
     !isDriver &&
     lifecycle.completed &&
-    !hasReviewed(trip.id, user.id);
-
-  const soleParticipant =
-    participants.length === 1 ? participants[0] : null;
+    !(await hasReviewed(trip.id, user.id));
 
   const canReviewAsDriver =
     !!user &&
@@ -98,7 +96,7 @@ export default async function TripPage({ params }: Props) {
     lifecycle.completed &&
     !!soleParticipant &&
     !soleParticipant.isYou &&
-    !hasReviewed(trip.id, user.id);
+    !(await hasReviewed(trip.id, user.id));
 
   return (
     <main className="min-h-screen bg-[#0b0b13] text-white pb-14">

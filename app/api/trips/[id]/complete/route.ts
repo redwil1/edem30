@@ -31,7 +31,7 @@ export async function POST(req: NextRequest, { params }: Props) {
     return NextResponse.json({ error: "Некорректная поездка" }, { status: 400 });
   }
 
-  const result = confirmTripComplete(tripId, user.id);
+  const result = await confirmTripComplete(tripId, user.id);
 
   if (!result.ok) {
     if (result.reason === "not_found") {
