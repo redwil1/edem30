@@ -18,6 +18,7 @@ import ParticipantsList from "@/components/trip/ParticipantsList";
 import SafetyCard from "@/components/trip/SafetyCard";
 import ChatPanel from "@/components/trip/ChatPanel";
 import ReviewBanner from "@/components/trip/ReviewBanner";
+import OwnerRoleHint from "@/components/trip/OwnerRoleHint";
 
 type Props = {
   params: Promise<{
@@ -129,6 +130,8 @@ export default async function TripPage({ params }: Props) {
 
         <div className="grid grid-cols-1 lg:grid-cols-[400px_1fr] gap-6 items-start">
           <div className="flex flex-col gap-6">
+            {isDriver && user?.role !== "driver" && <OwnerRoleHint />}
+
             <TripInfoCard trip={trip} joined={joined} />
 
             {lifecycle.cancelled ? (

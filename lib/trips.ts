@@ -69,7 +69,6 @@ export async function listTrips(type?: TripType): Promise<Trip[]> {
   const rows = await sql<TripRow[]>`
     SELECT ${TRIP_SELECT}
     FROM trips
-    JOIN users ON users.id = trips.owner_id AND users.role = 'driver'
     WHERE ${ACTIVE_CLAUSE}
     ${type ? sql`AND trips.type = ${type}` : sql``}
     ORDER BY trips.id DESC
