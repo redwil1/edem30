@@ -19,6 +19,7 @@ type MessageRow = {
   user_id: number;
   name: string;
   avatar_url: string | null;
+  avatar_preset: string | null;
   text: string;
   attachment_url: string | null;
   attachment_type: string | null;
@@ -41,6 +42,7 @@ export async function GET(_req: Request, { params }: Props) {
     sql<MessageRow[]>`
       SELECT chat_messages.id as id, chat_messages.user_id as user_id,
              users.name as name, users.avatar_url as avatar_url,
+             users.avatar_preset as avatar_preset,
              chat_messages.text as text, chat_messages.attachment_url as attachment_url,
              chat_messages.attachment_type as attachment_type,
              chat_messages.created_at as created_at
@@ -57,6 +59,7 @@ export async function GET(_req: Request, { params }: Props) {
         id: r.id,
         authorName: r.name,
         avatarUrl: r.avatar_url,
+        avatarPreset: r.avatar_preset,
         text: r.text,
         attachmentUrl: r.attachment_url,
         attachmentType: r.attachment_type,
@@ -173,6 +176,7 @@ export async function POST(req: NextRequest, { params }: Props) {
     id: inserted[0].id,
     authorName: user.name,
     avatarUrl: user.avatarUrl,
+    avatarPreset: user.avatarPreset,
     text,
     attachmentUrl,
     attachmentType: attachmentUrl ? attachmentType : null,

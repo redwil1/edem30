@@ -16,6 +16,8 @@ type AuthUser = {
   phone: string;
   role: UserRole;
   avatarUrl: string | null;
+  avatarPreset: string | null;
+  gender: string | null;
 };
 
 export type SetRoleResult = { ok: true } | { ok: false; error: string };

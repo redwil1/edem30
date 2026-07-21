@@ -39,6 +39,8 @@ export type SafeUser = {
   phone: string;
   role: UserRole;
   avatarUrl: string | null;
+  avatarPreset: string | null;
+  gender: string | null;
 };
 
 export async function hashPassword(password: string) {
@@ -107,7 +109,9 @@ export async function getCurrentUser(): Promise<SafeUser | null> {
   if (!payload) return null;
 
   const rows = await sql<SafeUser[]>`
-    SELECT id, name, phone, role, avatar_url as "avatarUrl" FROM users WHERE id = ${payload.userId}
+    SELECT id, name, phone, role, avatar_url as "avatarUrl",
+           avatar_preset as "avatarPreset", gender
+    FROM users WHERE id = ${payload.userId}
   `;
 
   return rows[0] ?? null;

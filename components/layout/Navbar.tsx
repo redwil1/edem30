@@ -93,7 +93,7 @@ export default function Navbar() {
                 onClick={() => setMenuOpen((v) => !v)}
                 className="flex items-center gap-2.5 rounded-xl border border-white/10 pl-2 pr-4 py-2 hover:bg-white/5 transition max-w-[220px]"
               >
-                <Avatar name={user.name} size={32} avatarUrl={user.avatarUrl} />
+                <Avatar name={user.name} size={32} avatarUrl={user.avatarUrl} avatarPreset={user.avatarPreset} />
                 <span className="text-sm font-medium truncate min-w-0">{user.name}</span>
               </button>
 
@@ -222,7 +222,7 @@ export default function Navbar() {
               <div className="px-3">
                 <div className="flex items-center justify-between gap-3">
                   <div className="flex items-center gap-2.5 min-w-0">
-                    <Avatar name={user.name} size={32} avatarUrl={user.avatarUrl} />
+                    <Avatar name={user.name} size={32} avatarUrl={user.avatarUrl} avatarPreset={user.avatarPreset} />
                     <span className="text-sm font-medium truncate min-w-0">{user.name}</span>
                   </div>
 

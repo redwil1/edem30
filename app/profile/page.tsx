@@ -5,6 +5,7 @@ import Navbar from "@/components/layout/Navbar";
 import Footer from "@/components/layout/Footer";
 import DriverCard from "@/components/driver/DriverCard";
 import VehicleSetup from "@/components/profile/VehicleSetup";
+import IdentitySettings from "@/components/profile/IdentitySettings";
 import { getCurrentUser } from "@/lib/auth";
 import { sql } from "@/lib/db";
 import {
@@ -125,6 +126,8 @@ export default async function ProfilePage() {
             <div className="text-2xl font-bold">{formatPrice(earnings)}</div>
           </div>
         </div>
+
+        <IdentitySettings />
 
         {user.role === "driver" && (
           <div className="mt-6">

@@ -34,4 +34,6 @@ export interface Trip {
   licensePlate: string | null;
 
   driverAvatarUrl: string | null;
+
+  driverAvatarPreset: string | null;
 }

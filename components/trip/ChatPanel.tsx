@@ -13,6 +13,7 @@ type Message = {
   id: number;
   authorName: string;
   avatarUrl: string | null;
+  avatarPreset: string | null;
   text: string;
   attachmentUrl: string | null;
   attachmentType: "image" | "video" | null;
@@ -302,7 +303,12 @@ export default function ChatPanel({ tripId }: Props) {
             </div>
           ) : (
             <div key={m.id} className="flex gap-3">
-              <Avatar name={m.authorName} size={32} avatarUrl={m.avatarUrl} />
+              <Avatar
+                name={m.authorName}
+                size={32}
+                avatarUrl={m.avatarUrl}
+                avatarPreset={m.avatarPreset}
+              />
 
               <div className="max-w-[75%]">
                 <div className="flex items-center gap-1.5 mb-1">

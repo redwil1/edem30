@@ -1,11 +1,14 @@
+import AvatarPresetIcon from "@/components/avatar/AvatarPresetIcon";
+
 type Props = {
   name: string;
   size?: number;
   tone?: "violet" | "neutral";
   avatarUrl?: string | null;
+  avatarPreset?: string | null;
 };
 
-export default function Avatar({ name, size = 36, avatarUrl }: Props) {
+export default function Avatar({ name, size = 36, avatarUrl, avatarPreset }: Props) {
   const initials = name
     .split(" ")
     .map((p) => p[0])
@@ -23,6 +26,10 @@ export default function Avatar({ name, size = 36, avatarUrl }: Props) {
         className="rounded-full object-cover shrink-0"
       />
     );
+  }
+
+  if (avatarPreset) {
+    return <AvatarPresetIcon preset={avatarPreset} size={size} />;
   }
 
   return (

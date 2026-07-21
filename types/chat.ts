@@ -5,6 +5,8 @@ export interface Participant {
 
   avatarUrl?: string | null;
 
+  avatarPreset?: string | null;
+
   isYou?: boolean;
 
   isDriver?: boolean;
