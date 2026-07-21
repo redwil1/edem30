@@ -574,3 +574,77 @@ export async function createTrip(
 
   return rows[0].id;
 }
+
+export type BlockingTripInfo = {
+  tripId: number;
+  route: string;
+  requiredRole: "driver" | "passenger";
+  minutesUntil: number;
+  started: boolean;
+};
+
+type BlockingRow = {
+  id: number;
+  owner_id: number | null;
+  from_city: string;
+  to_city: string;
+  trip_date: string;
+  trip_time: string;
+  driver_confirmed_at: string | null;
+  passenger_confirmed_at: string | null;
+};
+
+const TRIP_DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
+const TRIP_TIME_RE = /^\d{2}:\d{2}$/;
+
+// Едем30 работает только в Астраханской области (UTC+4, без перехода на
+// летнее время) — трактуем наивные trip_date/trip_time как местное время
+// этого региона, а не как время сервера/клиента.
+const ASTRAKHAN_OFFSET_MS = 4 * 60 * 60_000;
+
+export async function getBlockingTripInfo(
+  userId: number
+): Promise<BlockingTripInfo | null> {
+  const rows = await sql<BlockingRow[]>`
+    SELECT trips.id, trips.owner_id, trips.from_city, trips.to_city,
+           trips.trip_date, trips.trip_time,
+           trips.driver_confirmed_at, trips.passenger_confirmed_at
+    FROM trips
+    WHERE (
+      trips.owner_id = ${userId}
+      OR trips.id IN (SELECT trip_id FROM trip_participants WHERE user_id = ${userId})
+    )
+    AND trips.cancelled_at IS NULL
+    AND NOT (trips.driver_completed_at IS NOT NULL AND trips.passenger_completed_at IS NOT NULL)
+  `;
+
+  const now = Date.now();
+  let best: BlockingTripInfo | null = null;
+
+  for (const row of rows) {
+    const requiredRole = row.owner_id === userId ? "driver" : "passenger";
+    const route = `${row.from_city} → ${row.to_city}`;
+    const started = !!row.driver_confirmed_at && !!row.passenger_confirmed_at;
+
+    if (started) {
+      return { tripId: row.id, route, requiredRole, minutesUntil: 0, started: true };
+    }
+
+    if (!TRIP_DATE_RE.test(row.trip_date) || !TRIP_TIME_RE.test(row.trip_time)) {
+      continue;
+    }
+
+    const startsAtUtcMs =
+      new Date(`${row.trip_date}T${row.trip_time}:00Z`).getTime() - ASTRAKHAN_OFFSET_MS;
+
+    const minutesUntil = Math.round((startsAtUtcMs - now) / 60_000);
+
+    if (minutesUntil >= 0 && minutesUntil <= 15) {
+      if (!best || minutesUntil < best.minutesUntil) {
+        best = { tripId: row.id, route, requiredRole, minutesUntil, started: false };
+      }
+    }
+  }
+
+  return best;
+}

@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getCurrentUser, setUserRole } from "@/lib/auth";
 import { rateLimit } from "@/lib/rateLimit";
 import { isTrustedOrigin } from "@/lib/security";
+import { getBlockingTripInfo } from "@/lib/trips";
 
 export const runtime = "nodejs";
 
@@ -36,6 +37,21 @@ export async function POST(req: NextRequest) {
   const body = await req.json().catch(() => null);
 
   const role = body?.role === "driver" ? "driver" : "passenger";
+
+  if (role !== user.role) {
+    const blocking = await getBlockingTripInfo(user.id);
+
+    if (blocking) {
+      return NextResponse.json(
+        {
+          error: blocking.started
+            ? `Нельзя сменить роль: поездка «${blocking.route}» уже началась. Дождитесь её завершения.`
+            : `Нельзя сменить роль: поездка «${blocking.route}» начнётся через ${blocking.minutesUntil} мин.`,
+        },
+        { status: 409 }
+      );
+    }
+  }
 
   await setUserRole(user.id, role);
 

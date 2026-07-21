@@ -23,6 +23,7 @@ export default function Navbar() {
 
   const [mobileOpen, setMobileOpen] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
+  const [roleError, setRoleError] = useState("");
 
   async function handleLogout() {
     setMenuOpen(false);
@@ -31,7 +32,14 @@ export default function Navbar() {
   }
 
   async function handleRoleChange(role: "passenger" | "driver") {
-    await setRole(role);
+    setRoleError("");
+
+    const result = await setRole(role);
+
+    if (!result.ok) {
+      setRoleError(result.error);
+    }
+
     router.refresh();
   }
 
@@ -123,6 +131,12 @@ export default function Navbar() {
                           Водитель
                         </button>
                       </div>
+                    )}
+
+                    {roleError && (
+                      <p className="text-red-400 text-[11px] px-2 pb-1.5 leading-snug">
+                        {roleError}
+                      </p>
                     )}
 
                     {user.role === "admin" && (
@@ -249,7 +263,13 @@ export default function Navbar() {
                       Водитель
                     </button>
                   </div>
-                ) : (
+                ) : null}
+
+                {roleError && user.role !== "admin" && (
+                  <p className="text-red-400 text-xs mt-2 leading-snug">{roleError}</p>
+                )}
+
+                {user.role === "admin" && (
                   <Link
                     href="/eadmin30"
                     onClick={() => setMobileOpen(false)}

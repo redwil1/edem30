@@ -18,12 +18,14 @@ type AuthUser = {
   avatarUrl: string | null;
 };
 
+export type SetRoleResult = { ok: true } | { ok: false; error: string };
+
 type AuthContextValue = {
   user: AuthUser | null;
   loading: boolean;
   refresh: () => Promise<void>;
   logout: () => Promise<void>;
-  setRole: (role: UserRole) => Promise<void>;
+  setRole: (role: UserRole) => Promise<SetRoleResult>;
 };
 
 const AuthContext = createContext<AuthContextValue | null>(null);
@@ -47,16 +49,24 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const setRole = useCallback(
-    async (role: UserRole) => {
-      setUser((prev) => (prev ? { ...prev, role } : prev));
-
-      await fetch("/api/auth/role", {
+    async (role: UserRole): Promise<SetRoleResult> => {
+      const res = await fetch("/api/auth/role", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ role }),
       });
 
+      const data = await res.json().catch(() => null);
+
+      if (res.ok) {
+        setUser((prev) => (prev ? { ...prev, role } : prev));
+      }
+
       await refresh();
+
+      return res.ok
+        ? { ok: true }
+        : { ok: false, error: data?.error || "Не удалось сменить роль" };
     },
     [refresh]
   );
