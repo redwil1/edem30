@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { Paperclip, Send, Check, Lock, LogOut, Loader2 } from "lucide-react";
 
 import { useAuth } from "@/components/auth/AuthProvider";
+import { compressImage } from "@/lib/imageCompress";
 import Avatar from "./Avatar";
 
 type Message = {
@@ -145,27 +146,38 @@ export default function ChatPanel({ tripId }: Props) {
     setMessages((prev) => [...prev, data]);
   }
 
-  async function uploadAttachment(file: File) {
+  async function uploadAttachment(rawFile: File) {
     setError("");
 
-    if (!ALLOWED_ATTACHMENT_TYPES.includes(file.type)) {
-      setError("Поддерживаются только фото (JPG/PNG/WEBP/GIF) и видео (MP4/WEBM/MOV)");
+    const isVideo = rawFile.type.startsWith("video/");
+    const isImage = rawFile.type.startsWith("image/");
+
+    if (!isVideo && !isImage) {
+      setError("Поддерживаются только фото и видео");
       return;
     }
 
-    const isVideo = file.type.startsWith("video/");
-    const maxSize = isVideo ? MAX_VIDEO_SIZE : MAX_IMAGE_SIZE;
-
-    if (file.size > maxSize) {
-      setError(
-        isVideo ? "Видео слишком большое (максимум 50МБ)" : "Фото слишком большое (максимум 5МБ)"
-      );
+    if (isVideo && !ALLOWED_ATTACHMENT_TYPES.includes(rawFile.type)) {
+      setError("Поддерживаются видео форматов MP4/WEBM/MOV");
       return;
     }
 
     setUploading(true);
 
     try {
+      const file = isImage ? await compressImage(rawFile, 1600, 0.82) : rawFile;
+
+      const maxSize = isVideo ? MAX_VIDEO_SIZE : MAX_IMAGE_SIZE;
+
+      if (file.size > maxSize) {
+        setError(
+          isVideo
+            ? "Видео слишком большое (максимум 50МБ)"
+            : "Фото слишком большое даже после сжатия"
+        );
+        return;
+      }
+
       const signRes = await fetch(`/api/trips/${tripId}/messages/attachment-url`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
