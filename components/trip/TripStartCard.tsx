@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Check, Flag, Loader2, PlayCircle } from "lucide-react";
+import { Check, Flag, Loader2, MapPin, PlayCircle } from "lucide-react";
 
 type Participant = {
   userId: number;
@@ -11,6 +11,7 @@ type Participant = {
 };
 
 type Status = {
+  driverArrived: boolean;
   driverConfirmed: boolean;
   started: boolean;
   startedAt: string | null;
@@ -99,6 +100,16 @@ export default function TripStartCard({ tripId, tripDate, tripTime }: Props) {
 
     return () => clearInterval(tick);
   }, [status?.completed]);
+
+  async function confirmArrival() {
+    setConfirming(true);
+
+    const res = await fetch(`/api/trips/${tripId}/arrive`, { method: "POST" });
+
+    if (res.ok) setStatus(await res.json());
+
+    setConfirming(false);
+  }
 
   async function confirmStart() {
     setConfirming(true);
@@ -194,24 +205,72 @@ export default function TripStartCard({ tripId, tripDate, tripTime }: Props) {
     );
   }
 
+  if (!status.driverArrived) {
+    return (
+      <div className="bg-[#12121c] border border-white/5 rounded-3xl p-4 sm:p-6">
+        <div className="font-display flex items-center gap-2 font-bold mb-3">
+          <MapPin size={18} className="text-violet-400" />
+          Ожидание водителя
+        </div>
+
+        {status.isDriver ? (
+          <>
+            <p className="text-sm text-gray-400 mb-4">
+              Когда доберётесь до места посадки, подтвердите прибытие — пассажир
+              увидит, что вы на месте.
+            </p>
+
+            {!canConfirmStart && scheduledMs !== null ? (
+              <p className="text-xs text-gray-500 text-center">
+                Подтвердить прибытие можно за 10 минут до отправления — через{" "}
+                {formatCountdown(scheduledMs - START_WINDOW_MS - now)}
+              </p>
+            ) : (
+              <button
+                onClick={confirmArrival}
+                disabled={confirming}
+                className="btn-gradient w-full flex items-center justify-center gap-2 disabled:opacity-60 transition rounded-xl py-3 text-sm font-bold"
+              >
+                {confirming ? (
+                  <Loader2 size={15} className="animate-spin" />
+                ) : (
+                  <MapPin size={15} />
+                )}
+                Я на месте
+              </button>
+            )}
+          </>
+        ) : (
+          <div className="flex items-center gap-2 text-sm text-gray-400">
+            <span className="relative flex h-2 w-2 shrink-0">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-violet-400 opacity-75" />
+              <span className="relative inline-flex rounded-full h-2 w-2 bg-violet-500" />
+            </span>
+            Водитель едет к месту посадки. Ждём его прибытия...
+          </div>
+        )}
+      </div>
+    );
+  }
+
   return (
     <div className="bg-[#12121c] border border-white/5 rounded-3xl p-4 sm:p-6">
       <div className="font-display flex items-center gap-2 font-bold mb-3">
         <PlayCircle size={18} className="text-violet-400" />
-        Начало поездки
+        Водитель на месте
       </div>
 
-      <div className="space-y-2 text-sm max-h-[180px] overflow-y-auto pr-1">
-        <ConfirmRow label="Водитель на месте" confirmed={status.driverConfirmed} />
-
-        {status.participants.map((p) => (
-          <ConfirmRow
-            key={p.userId}
-            label={`${p.name} сел(а) в машину`}
-            confirmed={p.startConfirmed}
-          />
-        ))}
-      </div>
+      {status.participants.length > 0 && (
+        <div className="space-y-2 text-sm max-h-[180px] overflow-y-auto pr-1 mb-1">
+          {status.participants.map((p) => (
+            <ConfirmRow
+              key={p.userId}
+              label={`${p.name} сел(а) в машину`}
+              confirmed={p.startConfirmed}
+            />
+          ))}
+        </div>
+      )}
 
       {status.participants.length > 1 && (
         <p className="text-xs text-gray-500 mt-3">
@@ -221,30 +280,23 @@ export default function TripStartCard({ tripId, tripDate, tripTime }: Props) {
         </p>
       )}
 
-      {!canConfirmStart && scheduledMs !== null ? (
-        <p className="mt-4 text-xs text-gray-500 text-center">
-          Подтвердить готовность можно за 10 минут до отправления — через{" "}
-          {formatCountdown(scheduledMs - START_WINDOW_MS - now)}
-        </p>
-      ) : (
-        <button
-          onClick={confirmStart}
-          disabled={confirming || status.myStartConfirmed}
-          className="btn-gradient w-full mt-4 flex items-center justify-center gap-2 disabled:opacity-60 transition rounded-xl py-3 text-sm font-bold"
-        >
-          {confirming ? (
-            <Loader2 size={15} className="animate-spin" />
-          ) : status.myStartConfirmed ? (
-            <Check size={15} />
-          ) : null}
+      <button
+        onClick={confirmStart}
+        disabled={confirming || status.myStartConfirmed}
+        className="btn-gradient w-full mt-4 flex items-center justify-center gap-2 disabled:opacity-60 transition rounded-xl py-3 text-sm font-bold"
+      >
+        {confirming ? (
+          <Loader2 size={15} className="animate-spin" />
+        ) : status.myStartConfirmed ? (
+          <Check size={15} />
+        ) : null}
 
-          {status.myStartConfirmed
-            ? "Вы подтвердили"
-            : status.isDriver
-            ? "Поехали"
-            : "Я сел(а) в машину"}
-        </button>
-      )}
+        {status.myStartConfirmed
+          ? "Вы подтвердили"
+          : status.isDriver
+          ? "Поехали"
+          : "Я сел(а) в машину"}
+      </button>
     </div>
   );
 }

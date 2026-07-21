@@ -235,6 +235,7 @@ export async function joinTrip(tripId: number, userId: number): Promise<JoinResu
 }
 
 type LifecycleRow = {
+  driver_arrived_at: string | null;
   driver_confirmed_at: string | null;
   passenger_confirmed_at: string | null;
   driver_completed_at: string | null;
@@ -243,6 +244,8 @@ type LifecycleRow = {
 };
 
 export type TripLifecycle = {
+  driverArrived: boolean;
+  driverArrivedAt: string | null;
   driverConfirmed: boolean;
   passengerConfirmed: boolean;
   started: boolean;
@@ -257,7 +260,7 @@ export type TripLifecycle = {
 
 export async function getTripLifecycle(tripId: number): Promise<TripLifecycle> {
   const rows = await sql<LifecycleRow[]>`
-    SELECT driver_confirmed_at, passenger_confirmed_at,
+    SELECT driver_arrived_at, driver_confirmed_at, passenger_confirmed_at,
            driver_completed_at, passenger_completed_at, cancelled_at
     FROM trips WHERE id = ${tripId}
   `;
@@ -283,6 +286,8 @@ export async function getTripLifecycle(tripId: number): Promise<TripLifecycle> {
       : null;
 
   return {
+    driverArrived: !!row?.driver_arrived_at,
+    driverArrivedAt: row?.driver_arrived_at ?? null,
     driverConfirmed,
     passengerConfirmed,
     started,
@@ -376,6 +381,23 @@ export async function getTripStartDetail(
   };
 }
 
+export async function confirmDriverArrival(
+  tripId: number,
+  userId: number
+): Promise<ConfirmResult> {
+  const owner = await getTripOwnerIdOrNull(tripId);
+
+  if (owner === undefined) return { ok: false, reason: "not_found" };
+  if (owner !== userId) return { ok: false, reason: "not_allowed" };
+
+  await sql`
+    UPDATE trips SET driver_arrived_at = COALESCE(driver_arrived_at, ${sql.unsafe(NOW)})
+    WHERE id = ${tripId}
+  `;
+
+  return { ok: true, status: await getTripLifecycle(tripId) };
+}
+
 export async function confirmTripStart(
   tripId: number,
   userId: number
@@ -394,7 +416,9 @@ export async function confirmTripStart(
   await sql.begin(async (tx) => {
     if (isDriver) {
       await tx`
-        UPDATE trips SET driver_confirmed_at = COALESCE(driver_confirmed_at, ${tx.unsafe(NOW)})
+        UPDATE trips SET
+          driver_arrived_at = COALESCE(driver_arrived_at, ${tx.unsafe(NOW)}),
+          driver_confirmed_at = COALESCE(driver_confirmed_at, ${tx.unsafe(NOW)})
         WHERE id = ${tripId}
       `;
     }
