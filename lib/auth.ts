@@ -31,7 +31,7 @@ const secretKey = new TextEncoder().encode(
 const DUMMY_HASH =
   "$2a$10$CwTycUXWue0Thq9StjUM0uJ8Q7d9K8bx6vC0OZ9dJ5dfyPqz3aC1u";
 
-export type UserRole = "passenger" | "driver";
+export type UserRole = "passenger" | "driver" | "admin";
 
 export type SafeUser = {
   id: number;

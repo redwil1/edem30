@@ -4,7 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { Calendar, MessageCircle, Star } from "lucide-react";
 
-import { formatPrice, formatSeats } from "@/lib/utils";
+import { formatDate, formatPrice, formatSeats } from "@/lib/utils";
 import { Trip } from "@/types/trips";
 
 type Props = {
@@ -68,7 +68,7 @@ export default function SchedulePanel({ trips }: Props) {
               <div>
                 <div className="text-sm leading-none">
                   <span className="font-bold">{trip.time}</span>{" "}
-                  <span className="text-violet-400">{trip.date}</span>
+                  <span className="text-violet-400">{formatDate(trip.date)}</span>
                 </div>
 
                 <div className="font-bold text-lg mt-2 leading-snug">

@@ -86,7 +86,9 @@ function createDb() {
   `);
 
   ensureUserRoleColumn(db);
+  ensureAdminRoleSupport(db);
   ensureTripStartColumns(db);
+  ensureTripLifecycleColumns(db);
 
   return db;
 }
@@ -103,6 +105,37 @@ function ensureUserRoleColumn(db: Database.Database) {
       "ALTER TABLE users ADD COLUMN role TEXT NOT NULL DEFAULT 'passenger'"
     );
   }
+}
+
+function ensureAdminRoleSupport(db: Database.Database) {
+  const row = db
+    .prepare("SELECT sql FROM sqlite_master WHERE type = 'table' AND name = 'users'")
+    .get() as { sql: string } | undefined;
+
+  if (!row || row.sql.includes("'admin'")) return;
+
+  const tx = db.transaction(() => {
+    db.exec(`
+      CREATE TABLE users_new (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        name TEXT NOT NULL,
+        phone TEXT NOT NULL UNIQUE,
+        password_hash TEXT NOT NULL,
+        role TEXT NOT NULL DEFAULT 'passenger' CHECK (role IN ('passenger', 'driver', 'admin')),
+        created_at TEXT NOT NULL DEFAULT (datetime('now'))
+      );
+    `);
+
+    db.exec(
+      `INSERT INTO users_new (id, name, phone, password_hash, role, created_at)
+       SELECT id, name, phone, password_hash, role, created_at FROM users;`
+    );
+
+    db.exec("DROP TABLE users;");
+    db.exec("ALTER TABLE users_new RENAME TO users;");
+  });
+
+  tx();
 }
 
 function ensureTripStartColumns(db: Database.Database) {
@@ -126,6 +159,34 @@ function ensureTripStartColumns(db: Database.Database) {
 
   if (!names.has("passenger_completed_at")) {
     db.exec("ALTER TABLE trips ADD COLUMN passenger_completed_at TEXT");
+  }
+}
+
+function ensureTripLifecycleColumns(db: Database.Database) {
+  const columns = db.prepare("PRAGMA table_info(trips)").all() as {
+    name: string;
+  }[];
+
+  const names = new Set(columns.map((column) => column.name));
+
+  if (!names.has("transport_category")) {
+    db.exec("ALTER TABLE trips ADD COLUMN transport_category TEXT");
+  }
+
+  if (!names.has("cancelled_at")) {
+    db.exec("ALTER TABLE trips ADD COLUMN cancelled_at TEXT");
+  }
+
+  if (!names.has("deal_price")) {
+    db.exec("ALTER TABLE trips ADD COLUMN deal_price INTEGER");
+  }
+
+  if (!names.has("driver_deal_at")) {
+    db.exec("ALTER TABLE trips ADD COLUMN driver_deal_at TEXT");
+  }
+
+  if (!names.has("passenger_deal_at")) {
+    db.exec("ALTER TABLE trips ADD COLUMN passenger_deal_at TEXT");
   }
 }
 

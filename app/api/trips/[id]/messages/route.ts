@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 
 import { db } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
+import { checkChatMessage } from "@/lib/moderation";
 import { rateLimit } from "@/lib/rateLimit";
 import { isTrustedOrigin } from "@/lib/security";
 
@@ -122,6 +123,12 @@ export async function POST(req: NextRequest, { params }: Props) {
       { error: "Слишком длинное сообщение" },
       { status: 400 }
     );
+  }
+
+  const moderation = checkChatMessage(text);
+
+  if (moderation.blocked) {
+    return NextResponse.json({ error: moderation.reason }, { status: 400 });
   }
 
   const result = db

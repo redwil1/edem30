@@ -10,23 +10,33 @@ import AddressInput from "@/components/taxi/AddressInput";
 import { cities } from "@/lib/cities";
 import { TripType } from "@/types/trips";
 
-const DATES = ["Сегодня", "Завтра", "Послезавтра"];
+const TRANSPORT_CATEGORIES = [
+  { value: "sedan", label: "🚗 Легковой автомобиль" },
+  { value: "minivan", label: "🚙 Минивэн" },
+  { value: "minibus", label: "🚐 Микроавтобус" },
+  { value: "cargo", label: "🚚 Грузовой автомобиль" },
+];
+
+function today() {
+  return new Date().toISOString().slice(0, 10);
+}
 
 export default function CreateTripPage() {
   const router = useRouter();
-  const { user, loading } = useAuth();
+  const { user, loading, setRole } = useAuth();
 
   const [type, setType] = useState<TripType>("intercity");
   const [from, setFrom] = useState("");
   const [to, setTo] = useState("");
-  const [date, setDate] = useState(DATES[0]);
+  const [date, setDate] = useState(today());
   const [time, setTime] = useState("");
   const [price, setPrice] = useState("");
   const [totalSeats, setTotalSeats] = useState("");
-  const [transport, setTransport] = useState("");
+  const [transportCategory, setTransportCategory] = useState("");
 
   const [error, setError] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [becomingDriver, setBecomingDriver] = useState(false);
 
   async function submit(e: FormEvent) {
     e.preventDefault();
@@ -52,7 +62,7 @@ export default function CreateTripPage() {
       return;
     }
 
-    if (!transport.trim()) {
+    if (!transportCategory) {
       setError("Укажите тип транспорта");
       return;
     }
@@ -71,7 +81,7 @@ export default function CreateTripPage() {
           time,
           price: Number(price),
           totalSeats: Number(totalSeats),
-          transport: transport.trim(),
+          transportCategory,
         }),
       });
 
@@ -106,11 +116,43 @@ export default function CreateTripPage() {
           </p>
 
           <Link
-            href="/login?redirect=/create-trip"
+            href="/login?redirect=/create-trip&role=driver"
             className="block w-full text-center bg-violet-600 hover:bg-violet-700 transition rounded-2xl py-4 font-bold"
           >
             Войти или зарегистрироваться
           </Link>
+        </div>
+      </main>
+    );
+  }
+
+  if (!loading && user && user.role !== "driver") {
+    return (
+      <main className="min-h-screen bg-[#0b0b13] text-white">
+        <div className="max-w-md mx-auto px-5 py-8">
+          <Link href="/" className="text-violet-400 inline-block mb-8">
+            ← Назад
+          </Link>
+
+          <h1 className="text-3xl font-bold mb-4">Создать поездку</h1>
+
+          <p className="text-gray-400 mb-6">
+            Публиковать поездки могут только водители. Переключитесь в режим
+            водителя, чтобы продолжить.
+          </p>
+
+          <button
+            onClick={async () => {
+              setBecomingDriver(true);
+              await setRole("driver");
+              router.refresh();
+              setBecomingDriver(false);
+            }}
+            disabled={becomingDriver}
+            className="block w-full text-center bg-violet-600 hover:bg-violet-700 disabled:opacity-60 transition rounded-2xl py-4 font-bold"
+          >
+            {becomingDriver ? "Секунду..." : "Стать водителем"}
+          </button>
         </div>
       </main>
     );
@@ -159,17 +201,13 @@ export default function CreateTripPage() {
             </>
           )}
 
-          <select
+          <input
+            type="date"
+            min={today()}
             value={date}
             onChange={(e) => setDate(e.target.value)}
             className="w-full bg-[#171726] rounded-2xl p-4 outline-none"
-          >
-            {DATES.map((d) => (
-              <option key={d} value={d}>
-                📅 {d}
-              </option>
-            ))}
-          </select>
+          />
 
           <input
             type="time"
@@ -198,14 +236,18 @@ export default function CreateTripPage() {
             className="w-full bg-[#171726] rounded-2xl p-4 outline-none"
           />
 
-          <input
-            value={transport}
-            onChange={(e) => setTransport(e.target.value)}
-            placeholder={
-              type === "city" ? "🚗 Легковой автомобиль" : "🚐 Микроавтобус"
-            }
+          <select
+            value={transportCategory}
+            onChange={(e) => setTransportCategory(e.target.value)}
             className="w-full bg-[#171726] rounded-2xl p-4 outline-none"
-          />
+          >
+            <option value="">🚘 Тип транспорта</option>
+            {TRANSPORT_CATEGORIES.map((c) => (
+              <option key={c.value} value={c.value}>
+                {c.label}
+              </option>
+            ))}
+          </select>
 
           {error && <p className="text-red-400 text-sm">{error}</p>}
 

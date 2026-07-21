@@ -15,6 +15,7 @@ export default function JoinButton({ tripId, joined }: Props) {
   const router = useRouter();
   const { user } = useAuth();
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
 
   async function leave() {
     setLoading(true);
@@ -52,24 +53,38 @@ export default function JoinButton({ tripId, joined }: Props) {
     }
 
     setLoading(true);
+    setError("");
 
-    await fetch(`/api/trips/${tripId}/join`, { method: "POST" });
+    try {
+      const res = await fetch(`/api/trips/${tripId}/join`, { method: "POST" });
+      const data = await res.json().catch(() => null);
 
-    router.refresh();
-    setLoading(false);
+      if (!res.ok) {
+        setError(data?.error || "Не удалось присоединиться к поездке");
+        return;
+      }
+
+      router.refresh();
+    } finally {
+      setLoading(false);
+    }
   }
 
   return (
-    <button
-      onClick={join}
-      disabled={loading}
-      className="w-full mt-5 bg-violet-600 hover:bg-violet-700 disabled:opacity-60 transition rounded-xl py-3 text-sm font-bold"
-    >
-      {loading
-        ? "Секунду..."
-        : user
-        ? "Забронировать место"
-        : "Войдите, чтобы забронировать"}
-    </button>
+    <div className="mt-5">
+      <button
+        onClick={join}
+        disabled={loading}
+        className="w-full bg-violet-600 hover:bg-violet-700 disabled:opacity-60 transition rounded-xl py-3 text-sm font-bold"
+      >
+        {loading
+          ? "Секунду..."
+          : user
+          ? "Забронировать место"
+          : "Войдите, чтобы забронировать"}
+      </button>
+
+      {error && <p className="text-red-400 text-sm mt-2">{error}</p>}
+    </div>
   );
 }

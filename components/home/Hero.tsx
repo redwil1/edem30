@@ -1,6 +1,8 @@
 import Link from "next/link";
 import { Bus, Car, ChevronRight } from "lucide-react";
 
+import RoleSwitch from "./RoleSwitch";
+
 export default function Hero() {
   return (
     <section className="relative overflow-hidden">
@@ -20,7 +22,11 @@ export default function Hero() {
               месте.
             </p>
 
-            <div className="grid grid-cols-2 gap-3 sm:gap-4 mt-7 sm:mt-9 max-w-lg">
+            <div className="mt-7 sm:mt-9">
+              <RoleSwitch />
+            </div>
+
+            <div className="grid grid-cols-2 gap-3 sm:gap-4 max-w-lg">
               <Link
                 href="#schedule"
                 className="group bg-[#14141f] border border-violet-500/20 rounded-2xl p-3.5 sm:p-5 flex items-center gap-3 sm:gap-4 hover:border-violet-500 transition"

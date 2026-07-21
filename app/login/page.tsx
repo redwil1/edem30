@@ -18,6 +18,9 @@ function LoginForm() {
   const redirectParam = searchParams.get("redirect") || "/";
   const redirectTo = isSafeRedirect(redirectParam) ? redirectParam : "/";
 
+  const roleParam = searchParams.get("role");
+  const requestedRole = roleParam === "driver" ? "driver" : roleParam === "passenger" ? "passenger" : null;
+
   const [mode, setMode] = useState<"login" | "register">("register");
 
   const [name, setName] = useState("");
@@ -74,6 +77,14 @@ function LoginForm() {
         setLoading(false);
         if (mode === "register") await loadCaptcha();
         return;
+      }
+
+      if (requestedRole) {
+        await fetch("/api/auth/role", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ role: requestedRole }),
+        });
       }
 
       await refresh();

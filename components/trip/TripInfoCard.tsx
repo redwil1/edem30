@@ -1,7 +1,7 @@
 import { Star } from "lucide-react";
 
 import { Trip } from "@/types/trips";
-import { formatPrice, formatSeats } from "@/lib/utils";
+import { formatDate, formatPrice, formatSeats } from "@/lib/utils";
 import Avatar from "./Avatar";
 import JoinButton from "./JoinButton";
 
@@ -15,7 +15,7 @@ export default function TripInfoCard({ trip, joined }: Props) {
     <div className="bg-[#12121c] border border-white/5 rounded-3xl p-4 sm:p-6">
       <div className="text-sm leading-none">
         <span className="font-bold text-lg">{trip.time}</span>{" "}
-        <span className="text-violet-400">{trip.date}</span>
+        <span className="text-violet-400">{formatDate(trip.date)}</span>
       </div>
 
       <div className="font-bold text-2xl mt-2 leading-snug">

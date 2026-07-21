@@ -3,11 +3,17 @@ import { ArrowLeft } from "lucide-react";
 
 import { db } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
-import { getTripById, getTripLifecycle, getTripOwnerId } from "@/lib/trips";
+import {
+  getTripById,
+  getTripLifecycle,
+  getTripOwnerId,
+  isInstantTaxiTrip,
+} from "@/lib/trips";
 import { hasReviewed } from "@/lib/reviews";
 import Navbar from "@/components/layout/Navbar";
 import TripInfoCard from "@/components/trip/TripInfoCard";
-import TripStartCard from "@/components/trip/TripStartCard";
+import TripFlowCards from "@/components/trip/TripFlowCards";
+import CancelTripButton from "@/components/trip/CancelTripButton";
 import ParticipantsList from "@/components/trip/ParticipantsList";
 import SafetyCard from "@/components/trip/SafetyCard";
 import ChatPanel from "@/components/trip/ChatPanel";
@@ -60,6 +66,21 @@ export default async function TripPage({ params }: Props) {
   const lifecycle = getTripLifecycle(trip.id);
 
   const isDriver = !!user && ownerId === user.id;
+  const isParty = isDriver || joined;
+
+  if ((lifecycle.completed || lifecycle.cancelled) && !isParty) {
+    return (
+      <main className="min-h-screen bg-[#0b0b13] text-white">
+        <Navbar />
+
+        <div className="flex items-center justify-center py-32">
+          <h1 className="text-3xl font-bold">Поездка не найдена</h1>
+        </div>
+      </main>
+    );
+  }
+
+  const instantTaxi = isInstantTaxiTrip(trip.id);
 
   const canReviewAsPassenger =
     !!user &&
@@ -96,7 +117,23 @@ export default async function TripPage({ params }: Props) {
           <div className="flex flex-col gap-6">
             <TripInfoCard trip={trip} joined={joined} />
 
-            {(isDriver || joined) && <TripStartCard tripId={trip.id} />}
+            {lifecycle.cancelled ? (
+              <div className="bg-[#12121c] border border-red-500/20 rounded-3xl p-4 sm:p-6 text-red-400 font-bold">
+                Поездка отменена
+              </div>
+            ) : (
+              (isDriver || joined) && (
+                <TripFlowCards
+                  tripId={trip.id}
+                  instantTaxi={instantTaxi}
+                  initialPrice={trip.price}
+                />
+              )
+            )}
+
+            {isDriver && !lifecycle.started && !lifecycle.completed && !lifecycle.cancelled && (
+              <CancelTripButton tripId={trip.id} />
+            )}
 
             <ParticipantsList participants={participants} />
             <SafetyCard />

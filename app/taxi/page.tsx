@@ -6,8 +6,13 @@ import Footer from "@/components/layout/Footer";
 import TaxiDashboard from "@/components/taxi/TaxiDashboard";
 import { listTrips } from "@/lib/trips";
 
-export default function TaxiPage() {
+type Props = {
+  searchParams: Promise<{ from?: string; to?: string }>;
+};
+
+export default async function TaxiPage({ searchParams }: Props) {
   const scheduledTrips = listTrips("city");
+  const { from, to } = await searchParams;
 
   return (
     <main className="min-h-screen bg-[#0b0b13] text-white flex flex-col">
@@ -35,7 +40,11 @@ export default function TaxiPage() {
           </Link>
         </div>
 
-        <TaxiDashboard scheduledTrips={scheduledTrips} />
+        <TaxiDashboard
+          scheduledTrips={scheduledTrips}
+          initialFrom={from}
+          initialTo={to}
+        />
       </div>
 
       <Footer />

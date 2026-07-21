@@ -34,6 +34,7 @@ export default function ChatPanel({ tripId }: Props) {
   const [messages, setMessages] = useState<Message[]>([]);
   const [canPost, setCanPost] = useState(false);
   const [value, setValue] = useState("");
+  const [error, setError] = useState("");
   const [joining, setJoining] = useState(false);
   const [leaving, setLeaving] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -66,7 +67,7 @@ export default function ChatPanel({ tripId }: Props) {
 
     if (!text || !canPost) return;
 
-    setValue("");
+    setError("");
 
     const res = await fetch(`/api/trips/${tripId}/messages`, {
       method: "POST",
@@ -74,10 +75,15 @@ export default function ChatPanel({ tripId }: Props) {
       body: JSON.stringify({ text }),
     });
 
-    if (res.ok) {
-      const message = await res.json();
-      setMessages((prev) => [...prev, message]);
+    const data = await res.json().catch(() => null);
+
+    if (!res.ok) {
+      setError(data?.error || "Не удалось отправить сообщение");
+      return;
     }
+
+    setValue("");
+    setMessages((prev) => [...prev, data]);
   }
 
   async function joinAndUnlock() {
@@ -169,25 +175,32 @@ export default function ChatPanel({ tripId }: Props) {
       </div>
 
       {canPost ? (
-        <div className="flex items-center gap-2 mt-5 bg-[#1c1c2b] rounded-2xl px-3 py-2">
-          <button className="text-gray-500 hover:text-gray-300 transition p-1.5">
-            <Paperclip size={18} />
-          </button>
+        <div className="mt-5">
+          {error && <p className="text-red-400 text-xs mb-2">{error}</p>}
 
-          <input
-            value={value}
-            onChange={(e) => setValue(e.target.value)}
-            onKeyDown={(e) => e.key === "Enter" && send()}
-            placeholder="Напишите сообщение..."
-            className="flex-1 bg-transparent outline-none text-sm placeholder:text-gray-500"
-          />
+          <div className="flex items-center gap-2 bg-[#1c1c2b] rounded-2xl px-3 py-2">
+            <button className="text-gray-500 hover:text-gray-300 transition p-1.5">
+              <Paperclip size={18} />
+            </button>
 
-          <button
-            onClick={send}
-            className="bg-violet-600 hover:bg-violet-700 transition w-9 h-9 rounded-xl flex items-center justify-center shrink-0"
-          >
-            <Send size={16} />
-          </button>
+            <input
+              value={value}
+              onChange={(e) => {
+                setValue(e.target.value);
+                if (error) setError("");
+              }}
+              onKeyDown={(e) => e.key === "Enter" && send()}
+              placeholder="Напишите сообщение..."
+              className="flex-1 bg-transparent outline-none text-sm placeholder:text-gray-500"
+            />
+
+            <button
+              onClick={send}
+              className="bg-violet-600 hover:bg-violet-700 transition w-9 h-9 rounded-xl flex items-center justify-center shrink-0"
+            >
+              <Send size={16} />
+            </button>
+          </div>
         </div>
       ) : (
         <div className="flex items-center justify-between gap-3 mt-5 bg-[#1c1c2b] rounded-2xl px-4 py-3.5">
