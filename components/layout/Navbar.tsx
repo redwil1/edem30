@@ -37,14 +37,7 @@ export default function Navbar() {
   return (
     <header className="sticky top-0 z-30 border-b border-white/5 bg-[#0b0b13]/90 backdrop-blur">
       <div className="max-w-[1400px] mx-auto px-5 lg:px-10 h-20 flex items-center justify-between">
-        <Link
-          href="/"
-          onDoubleClick={(e) => {
-            e.preventDefault();
-            router.push("/admin");
-          }}
-          className="flex items-center gap-3 shrink-0"
-        >
+        <Link href="/" className="flex items-center gap-3 shrink-0">
           <div className="w-11 h-11 rounded-xl bg-violet-600 flex items-center justify-center font-bold text-lg shrink-0">
             Е
           </div>
