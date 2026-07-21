@@ -19,6 +19,13 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Войдите в аккаунт" }, { status: 401 });
   }
 
+  if (user.role === "admin") {
+    return NextResponse.json(
+      { error: "Роль администратора нельзя изменить здесь" },
+      { status: 403 }
+    );
+  }
+
   const body = await req.json().catch(() => null);
 
   const role = body?.role === "driver" ? "driver" : "passenger";

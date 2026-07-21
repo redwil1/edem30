@@ -94,31 +94,44 @@ export default function Navbar() {
                   />
 
                   <div className="absolute right-0 top-full mt-2 w-52 bg-[#171726] border border-white/10 rounded-2xl p-1.5 z-40 shadow-xl">
-                    <div className="flex bg-[#0f0f18] rounded-xl p-1 mb-1.5">
-                      <button
-                        onClick={() => handleRoleChange("passenger")}
-                        className={`flex-1 flex items-center justify-center gap-1.5 rounded-lg py-2 text-xs font-medium transition ${
-                          user.role === "passenger"
-                            ? "bg-violet-600 text-white"
-                            : "text-gray-400 hover:text-white"
-                        }`}
-                      >
-                        <Users size={13} />
-                        Пассажир
-                      </button>
+                    {user.role !== "admin" && (
+                      <div className="flex bg-[#0f0f18] rounded-xl p-1 mb-1.5">
+                        <button
+                          onClick={() => handleRoleChange("passenger")}
+                          className={`flex-1 flex items-center justify-center gap-1.5 rounded-lg py-2 text-xs font-medium transition ${
+                            user.role === "passenger"
+                              ? "bg-violet-600 text-white"
+                              : "text-gray-400 hover:text-white"
+                          }`}
+                        >
+                          <Users size={13} />
+                          Пассажир
+                        </button>
 
-                      <button
-                        onClick={() => handleRoleChange("driver")}
-                        className={`flex-1 flex items-center justify-center gap-1.5 rounded-lg py-2 text-xs font-medium transition ${
-                          user.role === "driver"
-                            ? "bg-violet-600 text-white"
-                            : "text-gray-400 hover:text-white"
-                        }`}
+                        <button
+                          onClick={() => handleRoleChange("driver")}
+                          className={`flex-1 flex items-center justify-center gap-1.5 rounded-lg py-2 text-xs font-medium transition ${
+                            user.role === "driver"
+                              ? "bg-violet-600 text-white"
+                              : "text-gray-400 hover:text-white"
+                          }`}
+                        >
+                          <Car size={13} />
+                          Водитель
+                        </button>
+                      </div>
+                    )}
+
+                    {user.role === "admin" && (
+                      <Link
+                        href="/eadmin30"
+                        onClick={() => setMenuOpen(false)}
+                        className="flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm hover:bg-white/5 transition"
                       >
-                        <Car size={13} />
-                        Водитель
-                      </button>
-                    </div>
+                        <User size={16} className="text-gray-400" />
+                        Админ-панель
+                      </Link>
+                    )}
 
                     <Link
                       href="/profile"
@@ -202,31 +215,41 @@ export default function Navbar() {
                   </button>
                 </div>
 
-                <div className="flex bg-[#171726] rounded-xl p-1 mt-3">
-                  <button
-                    onClick={() => handleRoleChange("passenger")}
-                    className={`flex-1 flex items-center justify-center gap-1.5 rounded-lg py-2.5 text-xs font-medium transition ${
-                      user.role === "passenger"
-                        ? "bg-violet-600 text-white"
-                        : "text-gray-400"
-                    }`}
-                  >
-                    <Users size={13} />
-                    Пассажир
-                  </button>
+                {user.role !== "admin" ? (
+                  <div className="flex bg-[#171726] rounded-xl p-1 mt-3">
+                    <button
+                      onClick={() => handleRoleChange("passenger")}
+                      className={`flex-1 flex items-center justify-center gap-1.5 rounded-lg py-2.5 text-xs font-medium transition ${
+                        user.role === "passenger"
+                          ? "bg-violet-600 text-white"
+                          : "text-gray-400"
+                      }`}
+                    >
+                      <Users size={13} />
+                      Пассажир
+                    </button>
 
-                  <button
-                    onClick={() => handleRoleChange("driver")}
-                    className={`flex-1 flex items-center justify-center gap-1.5 rounded-lg py-2.5 text-xs font-medium transition ${
-                      user.role === "driver"
-                        ? "bg-violet-600 text-white"
-                        : "text-gray-400"
-                    }`}
+                    <button
+                      onClick={() => handleRoleChange("driver")}
+                      className={`flex-1 flex items-center justify-center gap-1.5 rounded-lg py-2.5 text-xs font-medium transition ${
+                        user.role === "driver"
+                          ? "bg-violet-600 text-white"
+                          : "text-gray-400"
+                      }`}
+                    >
+                      <Car size={13} />
+                      Водитель
+                    </button>
+                  </div>
+                ) : (
+                  <Link
+                    href="/eadmin30"
+                    onClick={() => setMobileOpen(false)}
+                    className="block text-center rounded-xl bg-violet-600 py-3 text-sm font-medium mt-3"
                   >
-                    <Car size={13} />
-                    Водитель
-                  </button>
-                </div>
+                    Админ-панель
+                  </Link>
+                )}
               </div>
             ) : (
               <Link
