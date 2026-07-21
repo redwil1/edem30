@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Loader2, Search } from "lucide-react";
+import { Loader2, Search, Trash2 } from "lucide-react";
 
 type Role = "passenger" | "driver" | "admin";
 
@@ -23,6 +23,8 @@ export default function AdminUsersTable() {
   const [users, setUsers] = useState<User[] | null>(null);
   const [search, setSearch] = useState("");
   const [savingId, setSavingId] = useState<number | null>(null);
+  const [deletingId, setDeletingId] = useState<number | null>(null);
+  const [error, setError] = useState("");
 
   async function load(query: string) {
     const res = await fetch(
@@ -48,6 +50,33 @@ export default function AdminUsersTable() {
 
     await load(search);
     setSavingId(null);
+  }
+
+  async function deleteUser(user: User) {
+    if (
+      !confirm(
+        `Удалить пользователя «${user.name}» (+${user.phone})? Будут безвозвратно удалены его поездки, сообщения в чатах, заказы такси и отзывы.`
+      )
+    ) {
+      return;
+    }
+
+    setError("");
+    setDeletingId(user.id);
+
+    try {
+      const res = await fetch(`/api/admin/users/${user.id}`, { method: "DELETE" });
+      const data = await res.json().catch(() => null);
+
+      if (!res.ok) {
+        setError(data?.error || "Не удалось удалить пользователя");
+        return;
+      }
+
+      await load(search);
+    } finally {
+      setDeletingId(null);
+    }
   }
 
   return (
@@ -83,6 +112,7 @@ export default function AdminUsersTable() {
                 <th className="px-4 py-3 font-medium">Телефон</th>
                 <th className="px-4 py-3 font-medium">Роль</th>
                 <th className="px-4 py-3 font-medium">Дата</th>
+                <th className="px-4 py-3 font-medium" />
               </tr>
             </thead>
 
@@ -109,12 +139,31 @@ export default function AdminUsersTable() {
                   <td className="px-4 py-3 text-gray-500 whitespace-nowrap">
                     {u.createdAt}
                   </td>
+                  <td className="px-4 py-3 text-right">
+                    <button
+                      type="button"
+                      onClick={() => deleteUser(u)}
+                      disabled={deletingId === u.id || u.role === "admin"}
+                      title={
+                        u.role === "admin"
+                          ? "Нельзя удалить администратора"
+                          : "Удалить пользователя"
+                      }
+                      className="inline-flex items-center justify-center w-8 h-8 rounded-lg text-red-400 hover:bg-red-500/10 disabled:opacity-30 disabled:hover:bg-transparent transition"
+                    >
+                      {deletingId === u.id ? (
+                        <Loader2 size={15} className="animate-spin" />
+                      ) : (
+                        <Trash2 size={15} />
+                      )}
+                    </button>
+                  </td>
                 </tr>
               ))}
 
               {users.length === 0 && (
                 <tr>
-                  <td colSpan={5} className="px-4 py-10 text-center text-gray-500">
+                  <td colSpan={6} className="px-4 py-10 text-center text-gray-500">
                     Никого не найдено
                   </td>
                 </tr>
@@ -123,6 +172,8 @@ export default function AdminUsersTable() {
           </table>
         </div>
       )}
+
+      {error && <p className="text-red-400 text-sm mt-3">{error}</p>}
     </div>
   );
 }

@@ -78,6 +78,7 @@ export default async function ProfilePage() {
           rating={ratingStats.average}
           verified={false}
           tripsCount={asDriver}
+          gender={user.gender}
         />
 
         <div className="text-sm text-gray-500 mt-4 space-y-1">

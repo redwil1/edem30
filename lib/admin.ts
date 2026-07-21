@@ -296,3 +296,34 @@ export async function resolveReport(reportId: number): Promise<boolean> {
 
   return result.count > 0;
 }
+
+export async function deleteAdminUser(userId: number): Promise<boolean> {
+  return sql.begin(async (tx) => {
+    const ownedTrips = await tx<{ id: number }[]>`
+      SELECT id FROM trips WHERE owner_id = ${userId}
+    `;
+    const ownedTripIds = ownedTrips.map((t) => t.id);
+
+    if (ownedTripIds.length > 0) {
+      await tx`DELETE FROM reviews WHERE trip_id = ANY(${ownedTripIds})`;
+      await tx`DELETE FROM trip_reports WHERE trip_id = ANY(${ownedTripIds})`;
+      await tx`DELETE FROM chat_messages WHERE trip_id = ANY(${ownedTripIds})`;
+      await tx`DELETE FROM trip_participants WHERE trip_id = ANY(${ownedTripIds})`;
+      await tx`UPDATE taxi_orders SET trip_id = NULL WHERE trip_id = ANY(${ownedTripIds})`;
+    }
+
+    await tx`DELETE FROM reviews WHERE reviewer_id = ${userId} OR reviewee_id = ${userId}`;
+    await tx`DELETE FROM trip_reports WHERE reporter_id = ${userId}`;
+    await tx`DELETE FROM chat_messages WHERE user_id = ${userId}`;
+    await tx`DELETE FROM trip_participants WHERE user_id = ${userId}`;
+    await tx`DELETE FROM taxi_orders WHERE passenger_id = ${userId} OR driver_id = ${userId}`;
+
+    if (ownedTripIds.length > 0) {
+      await tx`DELETE FROM trips WHERE id = ANY(${ownedTripIds})`;
+    }
+
+    const result = await tx`DELETE FROM users WHERE id = ${userId}`;
+
+    return result.count > 0;
+  });
+}

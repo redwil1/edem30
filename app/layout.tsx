@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Manrope, Unbounded } from "next/font/google";
+import { ThemeProvider } from "next-themes";
 import "./globals.css";
 import { AuthProvider } from "@/components/auth/AuthProvider";
 import RoleThemeSync from "@/components/auth/RoleThemeSync";
@@ -33,17 +34,20 @@ export default function RootLayout({
   return (
     <html
       lang="ru"
+      suppressHydrationWarning
       className={`${manrope.variable} ${unbounded.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col pb-16 lg:pb-0">
-        <AuthProvider>
-          <RoleThemeSync />
-          <DriverOrderNotifier />
-          <TripReminderNotifier />
-          <NewTripNotifier />
-          {children}
-          <BottomNav />
-        </AuthProvider>
+        <ThemeProvider attribute="class" defaultTheme="dark" enableSystem={false}>
+          <AuthProvider>
+            <RoleThemeSync />
+            <DriverOrderNotifier />
+            <TripReminderNotifier />
+            <NewTripNotifier />
+            {children}
+            <BottomNav />
+          </AuthProvider>
+        </ThemeProvider>
       </body>
     </html>
   );

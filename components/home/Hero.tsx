@@ -4,6 +4,7 @@ import { Bus, Car, ChevronRight } from "lucide-react";
 
 import RoleSwitch from "./RoleSwitch";
 import CitySwitch from "./CitySwitch";
+import CitySkyline from "./CitySkyline";
 
 type Props = {
   city: string | null;
@@ -12,7 +13,7 @@ type Props = {
 
 export default function Hero({ city, onCityChange }: Props) {
   return (
-    <section className="relative overflow-hidden">
+    <section className="hero-bg relative overflow-hidden">
       <div className="absolute -top-40 right-0 w-[600px] h-[600px] bg-violet-600/20 rounded-full blur-[120px] pointer-events-none" />
 
       <div className="max-w-[1400px] mx-auto px-5 sm:px-6 lg:px-10 pt-8 sm:pt-10 lg:pt-14 pb-8 lg:pb-10 relative">
@@ -90,15 +91,21 @@ export default function Hero({ city, onCityChange }: Props) {
             </div>
           </div>
 
-          <div className="hidden lg:block relative h-[435px] rounded-[22px] overflow-hidden bg-[#0b0816] shadow-[0_25px_70px_-15px_rgba(139,92,246,0.5)]">
-            <Image
-              src="/hero-car-neon.png"
-              alt="Машина Едем30"
-              fill
-              priority
-              sizes="(min-width: 1024px) 45vw, 0px"
-              className="object-cover object-[center_40%]"
-            />
+          <div className="hidden lg:block relative h-[435px]">
+            <CitySkyline className="absolute inset-x-0 bottom-0 h-[70%] w-full text-[var(--border-color)] opacity-60 blur-[1px] pointer-events-none" />
+
+            <div className="absolute inset-0 m-auto w-[85%] h-[70%] bg-violet-600/25 rounded-full blur-[90px] pointer-events-none" />
+
+            <div className="absolute inset-0 rounded-[22px] overflow-hidden bg-[#0b0816] shadow-[0_25px_70px_-15px_rgba(139,92,246,0.5)]">
+              <Image
+                src="/hero-car-neon.png"
+                alt="Машина Едем30"
+                fill
+                priority
+                sizes="(min-width: 1024px) 45vw, 0px"
+                className="object-cover object-[center_40%]"
+              />
+            </div>
           </div>
         </div>
       </div>

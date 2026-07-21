@@ -3,6 +3,37 @@
 :root {
   --background: #ffffff;
   --foreground: #171717;
+
+  /* Едем30 — светлая тема (по умолчанию для CSS-переменных ниже;
+     фактический тёмный/светлый режим сайта переключается классом
+     .dark на <html>, который добавляет next-themes). */
+  --bg-page: #f6f7fb;
+  --bg-card: #ffffff;
+  --bg-secondary: #eef1f7;
+  --border-color: #e4e7ee;
+  --text-primary: #111827;
+  --text-secondary: #6b7280;
+  --accent: #7c3aed;
+  --accent-hover: #6d28d9;
+  --success: #22c55e;
+  --warning: #f59e0b;
+  --error: #ef4444;
+}
+
+.dark {
+  /* Текущая тёмная тема сайта — значения перенесены как есть, без
+     визуальных изменений. */
+  --bg-page: #0a0812;
+  --bg-card: #16121e;
+  --bg-secondary: #0f0b18;
+  --border-color: rgba(255, 255, 255, 0.09);
+  --text-primary: #f3f1f8;
+  --text-secondary: #948ea6;
+  --accent: #a78bfa;
+  --accent-hover: #c4b5fd;
+  --success: #16a34a;
+  --warning: #a16207;
+  --error: #dc2626;
 }
 
 @theme inline {
@@ -12,22 +43,16 @@
   --font-mono: var(--font-manrope);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
-}
-
 html {
   font-size: 17px;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
+  background: var(--bg-page);
+  color: var(--text-primary);
   font-family: var(--font-manrope), Arial, Helvetica, sans-serif;
   line-height: 1.55;
+  transition: background-color 0.2s ease, color 0.2s ease;
 }
 
 .font-display {
@@ -35,10 +60,17 @@ body {
 }
 
 .btn-gradient {
+  background: var(--accent);
+  box-shadow: 0 1px 2px rgba(17, 24, 39, 0.06), 0 4px 12px rgba(124, 58, 237, 0.15);
+}
+.btn-gradient:hover {
+  background: var(--accent-hover);
+}
+.dark .btn-gradient {
   background: linear-gradient(135deg, #8b5cf6, #7c3aed);
   box-shadow: 0 8px 22px rgb(139 92 246 / 0.4);
 }
-.btn-gradient:hover {
+.dark .btn-gradient:hover {
   background: linear-gradient(135deg, #9866f7, #8b5cf6);
 }
 
@@ -55,61 +87,73 @@ body {
 }
 
 /*
-  Базовая палитра сайта (design_handoff_edem30): те же bracket-классы
-  Tailwind, которые уже используются в компонентах, перекрашиваются здесь
-  в новые hex-значения — без изменения JSX. Действует всегда (не под
-  атрибутом), т.к. это новая база по умолчанию, а не альтернативная тема.
+  Единая палитра сайта через CSS-переменные — одни и те же bracket/named
+  классы Tailwind, которые уже используются в компонентах, привязаны к
+  var(...) и работают в обеих темах. Меняются только значения переменных
+  в :root (светлая, по умолчанию) и .dark (тёмная) выше — сами правила
+  ниже не дублируются на тему.
 */
 
 /* фон страницы */
-.bg-\[\#0b0b13\] { background-color: #0a0812 !important; }
-.bg-\[\#0b0b13\]\/90 { background-color: rgb(10 8 18 / 0.9) !important; }
-.bg-\[\#0b0b13\]\/95 { background-color: rgb(10 8 18 / 0.95) !important; }
+.bg-\[\#0b0b13\] { background-color: var(--bg-page) !important; }
+.bg-\[\#0b0b13\]\/90 { background-color: color-mix(in srgb, var(--bg-page) 90%, transparent) !important; }
+.bg-\[\#0b0b13\]\/95 { background-color: color-mix(in srgb, var(--bg-page) 95%, transparent) !important; }
 
 /* фон карточек/панелей */
 .bg-\[\#12121c\],
 .bg-\[\#171726\],
-.bg-\[\#14141f\] { background-color: #16121e !important; }
-.bg-\[\#171726\]\/95 { background-color: rgb(22 18 30 / 0.95) !important; }
+.bg-\[\#14141f\] { background-color: var(--bg-card) !important; }
+.bg-\[\#171726\]\/95 { background-color: color-mix(in srgb, var(--bg-card) 95%, transparent) !important; }
 
-/* вложенный фон: вкладки, бейджи, второстепенные панели */
+/* вложенный фон: вкладки, бейджи, инпуты, второстепенные панели */
 .bg-\[\#171723\],
 .bg-\[\#202030\],
 .bg-\[\#242435\],
 .bg-\[\#151521\],
-.bg-\[\#0f0f18\] { background-color: #0f0b18 !important; }
-
-/* фон инпутов/вложенных интерактивных элементов */
+.bg-\[\#0f0f18\],
 .bg-\[\#1c1c2b\],
-.bg-\[\#222233\] { background-color: #1b1626 !important; }
+.bg-\[\#222233\] { background-color: var(--bg-secondary) !important; }
 
-/* hover-фон строк/кнопок */
+/* hover-фон строк/кнопок — чуть темнее вложенного фона */
 .bg-\[\#2a2a40\],
-.hover\:bg-\[\#2a2a40\]:hover { background-color: #241d33 !important; }
+.hover\:bg-\[\#2a2a40\]:hover {
+  background-color: color-mix(in srgb, var(--bg-secondary) 80%, var(--text-primary) 20%) !important;
+}
 
 /* текст */
-.text-white { color: #f3f1f8 !important; }
-.text-gray-300 { color: #e6def7 !important; }
+.text-white,
+.text-gray-300 { color: var(--text-primary) !important; }
 .text-gray-400,
-.text-gray-500 { color: #948ea6 !important; }
-.text-gray-600 { color: #7d7690 !important; }
-.placeholder\:text-gray-500::placeholder { color: #8a839c !important; }
+.text-gray-500,
+.text-gray-600,
+.placeholder\:text-gray-500::placeholder { color: var(--text-secondary) !important; }
 
 /* рамки на основе белого */
-.border-white\/5 { border-color: rgb(255 255 255 / 0.07) !important; }
-.border-white\/10 { border-color: rgb(255 255 255 / 0.12) !important; }
+.border-white\/5,
+.border-white\/10 { border-color: var(--border-color) !important; }
+.bg-white\/5 { background-color: color-mix(in srgb, var(--text-primary) 4%, transparent) !important; }
+.bg-white\/10 { background-color: color-mix(in srgb, var(--text-primary) 6%, transparent) !important; }
 
 /* фиолетовый акцент */
 .text-violet-200,
 .text-violet-300,
 .text-violet-400,
-.text-violet-500 { color: #a78bfa !important; }
+.text-violet-500 { color: var(--accent) !important; }
 .hover\:text-violet-300:hover,
-.hover\:text-violet-400:hover { color: #c4b5fd !important; }
+.hover\:text-violet-400:hover { color: var(--accent-hover) !important; }
+
+/* статусные цвета текста */
+.text-red-300,
+.text-red-400 { color: var(--error) !important; }
+.text-green-300,
+.text-green-400 { color: var(--success) !important; }
+.text-yellow-200,
+.text-yellow-400 { color: var(--warning) !important; }
+.text-orange-400 { color: var(--warning) !important; }
 
 /*
-  Режим "водитель": тот же стиль сайта, меняется только акцентный
-  цвет (фиолетовый -> янтарный), когда на <html> стоит
+  Режим "водитель": тот же стиль сайта (в любой теме), меняется только
+  акцентный цвет (фиолетовый -> янтарный), когда на <html> стоит
   data-role-theme="driver". Фон и текст не трогаем.
 */
 [data-role-theme="driver"] .bg-violet-600 {
@@ -182,55 +226,11 @@ body {
   fill: #fbbf24 !important;
 }
 
-/*
-  Светлая тема: тот же макет, инвертированные цвета фона/текста.
-  Активируется атрибутом data-theme="light" на <html> (см. hooks/useTheme.ts).
-  По умолчанию (без атрибута) — обычная тёмная тема (см. базовую палитру выше).
-*/
-
-/* фоны: страница / карточки / вложенные элементы */
-[data-theme="light"] .bg-\[\#0b0b13\] { background-color: #f7f7fb !important; }
-[data-theme="light"] .bg-\[\#12121c\] { background-color: #ffffff !important; }
-[data-theme="light"] .bg-\[\#14141f\] { background-color: #ffffff !important; }
-[data-theme="light"] .bg-\[\#171726\] { background-color: #f0f1f6 !important; }
-[data-theme="light"] .bg-\[\#171723\] { background-color: #eceef4 !important; }
-[data-theme="light"] .bg-\[\#1c1c2b\] { background-color: #e9ebf2 !important; }
-[data-theme="light"] .bg-\[\#202030\] { background-color: #e9ebf2 !important; }
-[data-theme="light"] .bg-\[\#222233\] { background-color: #e3e5ee !important; }
-[data-theme="light"] .bg-\[\#242435\] { background-color: #e1e3ec !important; }
-[data-theme="light"] .bg-\[\#151521\] { background-color: #f3f4f8 !important; }
-[data-theme="light"] .bg-\[\#0f0f18\] { background-color: #e7e9f1 !important; }
-[data-theme="light"] .bg-\[\#2a2a40\] { background-color: #dde0ea !important; }
-[data-theme="light"] .hover\:bg-\[\#2a2a40\]:hover { background-color: #d3d6e2 !important; }
-[data-theme="light"] .bg-\[\#0b0b13\]\/90 { background-color: rgb(247 247 251 / 0.9) !important; }
-[data-theme="light"] .bg-\[\#0b0b13\]\/95 { background-color: rgb(247 247 251 / 0.95) !important; }
-[data-theme="light"] .bg-\[\#171726\]\/95 { background-color: rgb(240 241 246 / 0.95) !important; }
-
-/* текст */
-[data-theme="light"] .text-white { color: #12121c !important; }
-[data-theme="light"] .text-gray-300 { color: #454a5c !important; }
-[data-theme="light"] .text-gray-400 { color: #4f5568 !important; }
-[data-theme="light"] .text-gray-500 { color: #5c6278 !important; }
-[data-theme="light"] .text-gray-600 { color: #404657 !important; }
-[data-theme="light"] .placeholder\:text-gray-500::placeholder { color: #7a7f92 !important; }
-
-/* рамки/подложки на основе белого — на светлом фоне должны быть тёмными */
-[data-theme="light"] .border-white\/5 { border-color: rgb(0 0 0 / 0.06) !important; }
-[data-theme="light"] .border-white\/10 { border-color: rgb(0 0 0 / 0.1) !important; }
-[data-theme="light"] .bg-white\/5 { background-color: rgb(0 0 0 / 0.04) !important; }
-[data-theme="light"] .bg-white\/10 { background-color: rgb(0 0 0 / 0.06) !important; }
-
-/* фиолетовый акцент в виде текста — на белом фоне бледный violet-400 нечитаем */
-[data-theme="light"] .text-violet-200 { color: #6d28d9 !important; }
-[data-theme="light"] .text-violet-300 { color: #6d28d9 !important; }
-[data-theme="light"] .text-violet-400 { color: #7c3aed !important; }
-[data-theme="light"] .text-violet-500 { color: #7c3aed !important; }
-
-/* статусные цвета текста — темнее для контраста на белом */
-[data-theme="light"] .text-red-300 { color: #dc2626 !important; }
-[data-theme="light"] .text-red-400 { color: #dc2626 !important; }
-[data-theme="light"] .text-green-300 { color: #16a34a !important; }
-[data-theme="light"] .text-green-400 { color: #16a34a !important; }
-[data-theme="light"] .text-yellow-200 { color: #a16207 !important; }
-[data-theme="light"] .text-yellow-400 { color: #a16207 !important; }
-[data-theme="light"] .text-orange-400 { color: #c2410c !important; }
+/* Hero: светлая секция получает мягкий градиент сверху вниз, тёмная —
+   обычный фон страницы (см. components/home/Hero.tsx). */
+.hero-bg {
+  background: linear-gradient(180deg, #f6f7fb, #eef2ff);
+}
+.dark .hero-bg {
+  background: var(--bg-page);
+}

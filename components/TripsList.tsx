@@ -23,7 +23,7 @@ export default function TripsList({ trips, emptyText }: Props) {
       <div className="space-y-4">
         {trips.map((trip) => (
           <Link key={trip.id} href={`/trip/${trip.id}`}>
-            <div className="bg-[#171726] rounded-3xl p-5 border border-violet-500/10 hover:border-violet-500 hover:scale-[1.02] transition cursor-pointer">
+            <div className="bg-[#171726] rounded-3xl p-5 border border-violet-500/10 hover:border-violet-500 hover:scale-[1.01] transition cursor-pointer">
               <div className="flex justify-between">
                 <div>
                   <div className="font-bold text-lg">
