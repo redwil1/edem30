@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 
 import { useAuth } from "@/components/auth/AuthProvider";
+import PhoneInput from "@/components/PhoneInput";
 
 function isSafeRedirect(path: string) {
   return /^\/(?!\/|\\)/.test(path);
@@ -147,12 +148,7 @@ function LoginForm() {
             />
           )}
 
-          <input
-            value={phone}
-            onChange={(e) => setPhone(e.target.value)}
-            placeholder="+7 (999) 999-99-99"
-            className="w-full bg-[#171726] border border-white/5 focus:border-violet-500 rounded-2xl p-4 outline-none transition"
-          />
+          <PhoneInput value={phone} onChange={setPhone} />
 
           <input
             value={password}
