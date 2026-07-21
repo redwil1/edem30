@@ -92,6 +92,12 @@ export async function POST(req: NextRequest) {
   const time = typeof body?.time === "string" ? body.time.trim() : "";
   const transportCategory =
     typeof body?.transportCategory === "string" ? body.transportCategory : "";
+  const carModel =
+    typeof body?.carModel === "string" ? body.carModel.trim().slice(0, 60) : "";
+  const licensePlate =
+    typeof body?.licensePlate === "string"
+      ? body.licensePlate.trim().slice(0, 20)
+      : "";
 
   const price = Number(body?.price);
   const totalSeats = Number(body?.totalSeats);
@@ -126,6 +132,20 @@ export async function POST(req: NextRequest) {
     );
   }
 
+  if (!carModel) {
+    return NextResponse.json(
+      { error: "Укажите марку и модель автомобиля" },
+      { status: 400 }
+    );
+  }
+
+  if (!licensePlate) {
+    return NextResponse.json(
+      { error: "Укажите гос. номер автомобиля" },
+      { status: 400 }
+    );
+  }
+
   if (!Number.isInteger(price) || price <= 0 || price > 100_000) {
     return NextResponse.json(
       { error: "Укажите корректную цену" },
@@ -141,7 +161,19 @@ export async function POST(req: NextRequest) {
   }
 
   const id = await createTrip(
-    { type, from, to, date, time, price, totalSeats, transport, transportCategory },
+    {
+      type,
+      from,
+      to,
+      date,
+      time,
+      price,
+      totalSeats,
+      transport,
+      transportCategory,
+      carModel,
+      licensePlate,
+    },
     { id: user.id, name: user.name }
   );
 

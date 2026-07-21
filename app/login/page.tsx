@@ -52,6 +52,19 @@ function LoginForm() {
     e.preventDefault();
 
     setError("");
+
+    if (mode === "register") {
+      if (phone.replace(/\D/g, "").length !== 11) {
+        setError("Номер телефона должен содержать 11 цифр");
+        return;
+      }
+
+      if (password.length < 7) {
+        setError("Пароль должен быть не короче 7 символов");
+        return;
+      }
+    }
+
     setLoading(true);
 
     try {

@@ -23,6 +23,8 @@ type TripRow = {
   taken_seats: string;
   owner_rating: number | null;
   owner_reviews_count: string | null;
+  car_model: string | null;
+  license_plate: string | null;
 };
 
 function toTrip(row: TripRow): Trip {
@@ -43,6 +45,8 @@ function toTrip(row: TripRow): Trip {
     rating: row.owner_rating ? Math.round(row.owner_rating * 10) / 10 : 0,
     tripsCount: row.owner_reviews_count ? Number(row.owner_reviews_count) : 0,
     verified: !!row.verified,
+    carModel: row.car_model,
+    licensePlate: row.license_plate,
   };
 }
 
@@ -545,6 +549,8 @@ export type CreateTripInput = {
   totalSeats: number;
   transport: string;
   transportCategory?: string;
+  carModel?: string;
+  licensePlate?: string;
 };
 
 export async function createTrip(
@@ -554,10 +560,11 @@ export async function createTrip(
 ): Promise<number> {
   const rows = await executor<{ id: number }[]>`
     INSERT INTO trips
-      (type, from_city, to_city, trip_date, trip_time, price, total_seats, transport, transport_category, driver_name, owner_id, verified)
+      (type, from_city, to_city, trip_date, trip_time, price, total_seats, transport, transport_category, car_model, license_plate, driver_name, owner_id, verified)
     VALUES (
       ${input.type}, ${input.from}, ${input.to}, ${input.date}, ${input.time},
       ${input.price}, ${input.totalSeats}, ${input.transport}, ${input.transportCategory ?? null},
+      ${input.carModel ?? null}, ${input.licensePlate ?? null},
       ${owner.name}, ${owner.id}, 0
     )
     RETURNING id

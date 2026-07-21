@@ -23,8 +23,15 @@ export default function TripInfoCard({ trip, joined }: Props) {
       </div>
 
       <div className="text-gray-500 text-sm mt-1 leading-none">
-        {trip.transport} · {trip.totalSeats} мест
+        {trip.transport}
+        {trip.carModel ? ` · ${trip.carModel}` : ""} · {trip.totalSeats} мест
       </div>
+
+      {trip.licensePlate && (
+        <span className="inline-block bg-[#1c1c2b] border border-white/10 rounded-lg px-2 py-1 text-xs font-mono tracking-wide mt-2">
+          {trip.licensePlate}
+        </span>
+      )}
 
       <div className="mt-4 leading-none">
         <span className="font-display text-violet-400 font-bold text-xl">

@@ -28,4 +28,8 @@ export interface Trip {
   transport: string;
 
   totalSeats: number;
+
+  carModel: string | null;
+
+  licensePlate: string | null;
 }

@@ -49,16 +49,16 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Укажите имя" }, { status: 400 });
   }
 
-  if (phone.length < 10 || phone.length > 15) {
+  if (phone.length !== 11) {
     return NextResponse.json(
-      { error: "Укажите корректный номер телефона" },
+      { error: "Номер телефона должен содержать 11 цифр" },
       { status: 400 }
     );
   }
 
-  if (password.length < 6) {
+  if (password.length < 7) {
     return NextResponse.json(
-      { error: "Пароль должен быть не короче 6 символов" },
+      { error: "Пароль должен быть не короче 7 символов" },
       { status: 400 }
     );
   }

@@ -8,6 +8,7 @@ import { ChevronDown, MapPin } from "lucide-react";
 import { useAuth } from "@/components/auth/AuthProvider";
 import CategorySwitch from "@/components/CategorySwitch";
 import CityModal from "@/components/CityModal";
+import CarModelInput from "@/components/CarModelInput";
 import AddressInput from "@/components/taxi/AddressInput";
 import { TripType } from "@/types/trips";
 
@@ -36,6 +37,8 @@ export default function CreateTripPage() {
   const [price, setPrice] = useState("");
   const [totalSeats, setTotalSeats] = useState("");
   const [transportCategory, setTransportCategory] = useState("");
+  const [carModel, setCarModel] = useState("");
+  const [licensePlate, setLicensePlate] = useState("");
 
   const [error, setError] = useState("");
   const [submitting, setSubmitting] = useState(false);
@@ -71,6 +74,16 @@ export default function CreateTripPage() {
       return;
     }
 
+    if (!carModel.trim()) {
+      setError("Укажите марку и модель автомобиля");
+      return;
+    }
+
+    if (!licensePlate.trim()) {
+      setError("Укажите гос. номер автомобиля");
+      return;
+    }
+
     setSubmitting(true);
 
     try {
@@ -86,6 +99,8 @@ export default function CreateTripPage() {
           price: Number(price),
           totalSeats: Number(totalSeats),
           transportCategory,
+          carModel: carModel.trim(),
+          licensePlate: licensePlate.trim(),
         }),
       });
 
@@ -264,6 +279,20 @@ export default function CreateTripPage() {
               </option>
             ))}
           </select>
+
+          <CarModelInput
+            value={carModel}
+            onChange={setCarModel}
+            placeholder="🚗 Марка и модель автомобиля"
+          />
+
+          <input
+            value={licensePlate}
+            onChange={(e) => setLicensePlate(e.target.value.toUpperCase())}
+            placeholder="🔢 Гос. номер"
+            maxLength={20}
+            className="w-full bg-[#171726] border border-white/10 focus:border-violet-500 rounded-2xl p-4 outline-none transition"
+          />
 
           {error && <p className="text-red-400 text-sm">{error}</p>}
 
