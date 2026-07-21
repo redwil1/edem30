@@ -100,26 +100,28 @@ export default function DriverOrderNotifier() {
   if (toasts.length === 0) return null;
 
   return (
-    <div className="fixed top-24 right-4 z-50 flex flex-col gap-2 max-w-sm w-[calc(100%-2rem)]">
+    <div className="fixed inset-x-0 top-20 z-50 flex flex-col items-center gap-3 px-4 pointer-events-none">
       {toasts.map((o) => (
         <Link
           key={o.id}
           href="/taxi"
           onClick={() => dismiss(o.id)}
-          className="bg-[#171726] border border-violet-500/30 rounded-2xl p-4 shadow-xl flex items-start gap-3 hover:border-violet-500 transition"
+          className="pointer-events-auto w-full max-w-lg bg-[#171726] border-2 border-violet-500/50 rounded-3xl p-5 sm:p-6 shadow-2xl shadow-violet-900/40 flex items-center gap-4 hover:border-violet-500 transition animate-drop-in"
         >
-          <div className="w-9 h-9 rounded-xl bg-violet-600/20 flex items-center justify-center shrink-0">
-            <Car size={16} className="text-violet-400" />
+          <div className="w-14 h-14 rounded-2xl bg-violet-600/20 flex items-center justify-center shrink-0">
+            <Car size={26} className="text-violet-400" />
           </div>
 
           <div className="flex-1 min-w-0">
-            <div className="text-sm font-bold">Новый заказ такси</div>
+            <div className="text-base sm:text-lg font-display font-bold">
+              Новый заказ такси!
+            </div>
 
-            <div className="text-xs text-gray-400 mt-0.5 truncate">
+            <div className="text-sm text-gray-400 mt-1 truncate">
               {o.from} → {o.to}
             </div>
 
-            <div className="text-xs text-violet-400 font-medium mt-1">
+            <div className="text-lg text-violet-400 font-bold mt-1.5">
               {formatPrice(o.price)}
             </div>
           </div>
@@ -133,7 +135,7 @@ export default function DriverOrderNotifier() {
             className="text-gray-500 hover:text-white transition shrink-0"
             aria-label="Скрыть"
           >
-            <X size={16} />
+            <X size={20} />
           </button>
         </Link>
       ))}

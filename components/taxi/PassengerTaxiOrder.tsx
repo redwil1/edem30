@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useEffect, useState } from "react";
+import { FormEvent, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Car, Check, Loader2, X } from "lucide-react";
 
@@ -36,7 +36,7 @@ export default function PassengerTaxiOrder({ initialFrom, initialTo }: Props = {
 
   const [order, setOrder] = useState<Order | null>(null);
   const [dismissed, setDismissed] = useState(false);
-  const [redirecting, setRedirecting] = useState(false);
+  const redirectingRef = useRef(false);
 
   const [from, setFrom] = useState(initialFrom ?? "");
   const [to, setTo] = useState(initialTo ?? "");
@@ -66,16 +66,18 @@ export default function PassengerTaxiOrder({ initialFrom, initialTo }: Props = {
   }, [order?.id, order?.status]);
 
   useEffect(() => {
-    if (order?.status !== "accepted" || !order.tripId || redirecting) return;
+    if (order?.status !== "accepted" || !order.tripId || redirectingRef.current) {
+      return;
+    }
 
-    setRedirecting(true);
+    redirectingRef.current = true;
 
     const timeout = setTimeout(() => {
       router.push(`/trip/${order.tripId}`);
     }, 1200);
 
     return () => clearTimeout(timeout);
-  }, [order?.status, order?.tripId, redirecting, router]);
+  }, [order?.status, order?.tripId, router]);
 
   async function submit(e: FormEvent) {
     e.preventDefault();
