@@ -66,6 +66,18 @@ export default async function TripPage({ params }: Props) {
   const isDriver = !!user && ownerId === user.id;
   const isParty = isDriver || joined;
 
+  const displayParticipants = ownerId
+    ? [
+        {
+          id: ownerId,
+          name: trip.driver,
+          isYou: !!user && ownerId === user.id,
+          isDriver: true,
+        },
+        ...participants,
+      ]
+    : participants;
+
   if ((lifecycle.completed || lifecycle.cancelled) && !isParty) {
     return (
       <main className="min-h-screen bg-[#0b0b13] text-white">
@@ -125,6 +137,8 @@ export default async function TripPage({ params }: Props) {
                   tripId={trip.id}
                   instantTaxi={instantTaxi}
                   initialPrice={trip.price}
+                  tripDate={trip.date}
+                  tripTime={trip.time}
                 />
               )
             )}
@@ -133,7 +147,7 @@ export default async function TripPage({ params }: Props) {
               <CancelTripButton tripId={trip.id} />
             )}
 
-            <ParticipantsList participants={participants} />
+            <ParticipantsList participants={displayParticipants} />
             <SafetyCard />
           </div>
 

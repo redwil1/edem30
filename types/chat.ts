@@ -4,6 +4,8 @@ export interface Participant {
   name: string;
 
   isYou?: boolean;
+
+  isDriver?: boolean;
 }
 
 export interface ChatMessage {

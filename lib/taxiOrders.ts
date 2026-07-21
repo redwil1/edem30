@@ -113,11 +113,14 @@ export async function getLatestOrderForPassenger(
   return rows[0] ? toOrder(rows[0]) : undefined;
 }
 
-function currentTimeHHMM(): string {
+function currentDateHHMM(): { date: string; time: string } {
   const now = new Date();
+  const yyyy = now.getFullYear();
+  const mm = String(now.getMonth() + 1).padStart(2, "0");
+  const dd = String(now.getDate()).padStart(2, "0");
   const hh = String(now.getHours()).padStart(2, "0");
-  const mm = String(now.getMinutes()).padStart(2, "0");
-  return `${hh}:${mm}`;
+  const min = String(now.getMinutes()).padStart(2, "0");
+  return { date: `${yyyy}-${mm}-${dd}`, time: `${hh}:${min}` };
 }
 
 export type AcceptOrderResult =
@@ -153,13 +156,15 @@ export async function acceptOrder(
   }
 
   const tripId = await sql.begin(async (tx) => {
+    const { date, time } = currentDateHHMM();
+
     const id = await createTrip(
       {
         type: "city",
         from: order.from_address,
         to: order.to_address,
-        date: "Сегодня",
-        time: currentTimeHHMM(),
+        date,
+        time,
         price: order.price,
         totalSeats: order.seats,
         transport: "Легковой автомобиль",

@@ -126,21 +126,57 @@ export async function isTripParticipant(
   return rows.length > 0;
 }
 
+export async function isTripPartyMember(
+  tripId: number,
+  userId: number
+): Promise<boolean> {
+  const [owner, participant] = await Promise.all([
+    getTripOwnerId(tripId),
+    isTripParticipant(tripId, userId),
+  ]);
+
+  return owner === userId || participant;
+}
+
 export async function isInstantTaxiTrip(tripId: number): Promise<boolean> {
   const rows = await sql`SELECT 1 FROM taxi_orders WHERE trip_id = ${tripId}`;
 
   return rows.length > 0;
 }
 
+const MAX_LEAVES_PER_TRIP = 3;
+
 export async function leaveTrip(tripId: number, userId: number): Promise<void> {
-  await sql`DELETE FROM trip_participants WHERE trip_id = ${tripId} AND user_id = ${userId}`;
+  await sql.begin(async (tx) => {
+    const deleted = await tx`
+      DELETE FROM trip_participants WHERE trip_id = ${tripId} AND user_id = ${userId}
+    `;
+
+    if (deleted.count > 0) {
+      await tx`INSERT INTO trip_leave_log (trip_id, user_id) VALUES (${tripId}, ${userId})`;
+    }
+  });
+}
+
+async function leaveCount(tripId: number, userId: number): Promise<number> {
+  const rows = await sql<{ count: string }[]>`
+    SELECT COUNT(*) as count FROM trip_leave_log WHERE trip_id = ${tripId} AND user_id = ${userId}
+  `;
+
+  return Number(rows[0].count);
 }
 
 export type JoinResult =
   | { ok: true }
   | {
       ok: false;
-      reason: "not_found" | "cancelled" | "completed" | "self" | "full";
+      reason:
+        | "not_found"
+        | "cancelled"
+        | "completed"
+        | "self"
+        | "full"
+        | "too_many_cancellations";
     };
 
 export async function joinTrip(tripId: number, userId: number): Promise<JoinResult> {
@@ -175,6 +211,10 @@ export async function joinTrip(tripId: number, userId: number): Promise<JoinResu
 
   if (Number(trip.taken_seats) >= trip.total_seats) {
     return { ok: false, reason: "full" };
+  }
+
+  if ((await leaveCount(tripId, userId)) >= MAX_LEAVES_PER_TRIP) {
+    return { ok: false, reason: "too_many_cancellations" };
   }
 
   await sql`
@@ -485,6 +525,14 @@ export async function getDriverEarnings(userId: number): Promise<number> {
   `;
 
   return Number(rows[0].total);
+}
+
+export async function countActiveTripsByOwner(ownerId: number): Promise<number> {
+  const rows = await sql<{ count: string }[]>`
+    SELECT COUNT(*) as count FROM trips WHERE owner_id = ${ownerId} AND ${ACTIVE_CLAUSE}
+  `;
+
+  return Number(rows[0].count);
 }
 
 export type CreateTripInput = {

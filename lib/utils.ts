@@ -11,7 +11,7 @@ export function formatSeats(count: number) {
 }
 
 export function formatRating(rating: number) {
-  return rating.toFixed(1);
+  return `${rating.toFixed(1)} из 5`;
 }
 
 const DATE_RE = /^(\d{4})-(\d{2})-(\d{2})$/;

@@ -14,7 +14,22 @@ type Message = {
   text: string;
   createdAt: string;
   isYou: boolean;
+  isDriver: boolean;
 };
+
+function RoleBadge({ isDriver }: { isDriver: boolean }) {
+  return (
+    <span
+      className={`text-[10px] font-medium px-1.5 py-0.5 rounded-full ${
+        isDriver
+          ? "bg-orange-500/20 text-orange-400"
+          : "bg-violet-600/20 text-violet-300"
+      }`}
+    >
+      {isDriver ? "Водитель" : "Пассажир"}
+    </span>
+  );
+}
 
 type Props = {
   tripId: number;
@@ -142,7 +157,10 @@ export default function ChatPanel({ tripId }: Props) {
           m.isYou ? (
             <div key={m.id} className="flex justify-end">
               <div className="max-w-[75%]">
-                <div className="text-xs text-gray-500 text-right mb-1">Вы</div>
+                <div className="flex items-center justify-end gap-1.5 mb-1">
+                  <span className="text-xs text-gray-500">Вы</span>
+                  <RoleBadge isDriver={m.isDriver} />
+                </div>
 
                 <div className="bg-violet-600 rounded-2xl rounded-tr-sm px-4 py-2.5 text-sm break-words">
                   {m.text}
@@ -159,7 +177,10 @@ export default function ChatPanel({ tripId }: Props) {
               <Avatar name={m.authorName} size={32} />
 
               <div className="max-w-[75%]">
-                <div className="text-xs text-gray-500 mb-1">{m.authorName}</div>
+                <div className="flex items-center gap-1.5 mb-1">
+                  <span className="text-xs text-gray-500">{m.authorName}</span>
+                  <RoleBadge isDriver={m.isDriver} />
+                </div>
 
                 <div className="bg-[#1c1c2b] rounded-2xl rounded-tl-sm px-4 py-2.5 text-sm break-words">
                   {m.text}

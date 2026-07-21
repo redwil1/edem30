@@ -1,3 +1,5 @@
+import { formatRating } from "@/lib/utils";
+
 type Props = {
   driver: string;
   rating: number;
@@ -21,7 +23,7 @@ export default function DriverCard({
         <div>
           <div className="font-bold text-lg">{driver}</div>
 
-          <div className="text-yellow-400">⭐ {rating}</div>
+          <div className="text-yellow-400">⭐ {formatRating(rating)}</div>
         </div>
       </div>
 

@@ -1,6 +1,6 @@
 import Link from "next/link";
 
-import { formatDate, formatPrice, formatSeats } from "@/lib/utils";
+import { formatDate, formatPrice, formatRating, formatSeats } from "@/lib/utils";
 import { Trip } from "../types/trips";
 
 type Props = {
@@ -47,7 +47,7 @@ export default function TripsList({ trips, emptyText }: Props) {
                 <div>
                   <div className="font-semibold">{trip.driver}</div>
 
-                  <div className="text-yellow-400">⭐ {trip.rating}</div>
+                  <div className="text-yellow-400">⭐ {formatRating(trip.rating)}</div>
 
                   {trip.verified && (
                     <div className="text-green-400 text-sm mt-1">

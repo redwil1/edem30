@@ -18,7 +18,11 @@ type Status = {
 
 type Props = {
   tripId: number;
+  tripDate: string;
+  tripTime: string;
 };
+
+const START_WINDOW_MS = 10 * 60_000;
 
 function formatDuration(ms: number) {
   const totalSeconds = Math.max(0, Math.floor(ms / 1000));
@@ -27,10 +31,30 @@ function formatDuration(ms: number) {
   return `${minutes}:${String(seconds).padStart(2, "0")}`;
 }
 
-export default function TripStartCard({ tripId }: Props) {
+function formatCountdown(ms: number) {
+  const totalMinutes = Math.ceil(ms / 60_000);
+
+  if (totalMinutes > 60) {
+    const hours = Math.floor(totalMinutes / 60);
+    const minutes = totalMinutes % 60;
+    return `${hours} ч ${minutes} мин`;
+  }
+
+  return `${totalMinutes} мин`;
+}
+
+export default function TripStartCard({ tripId, tripDate, tripTime }: Props) {
   const [status, setStatus] = useState<Status | null>(null);
   const [confirming, setConfirming] = useState(false);
   const [now, setNow] = useState(() => Date.now());
+
+  const scheduledMs = (() => {
+    const parsed = new Date(`${tripDate}T${tripTime}:00`).getTime();
+    return Number.isNaN(parsed) ? null : parsed;
+  })();
+
+  const canConfirmStart =
+    scheduledMs === null || now >= scheduledMs - START_WINDOW_MS;
 
   async function load() {
     const res = await fetch(`/api/trips/${tripId}/start`, {
@@ -50,12 +74,12 @@ export default function TripStartCard({ tripId }: Props) {
   }, [tripId]);
 
   useEffect(() => {
-    if (!status?.started || status.completed) return;
+    if (status?.completed) return;
 
     const tick = setInterval(() => setNow(Date.now()), 1000);
 
     return () => clearInterval(tick);
-  }, [status?.started, status?.completed]);
+  }, [status?.completed]);
 
   async function confirmStart() {
     setConfirming(true);
@@ -208,23 +232,30 @@ export default function TripStartCard({ tripId }: Props) {
         </div>
       </div>
 
-      <button
-        onClick={confirmStart}
-        disabled={confirming || myConfirmed}
-        className="w-full mt-4 flex items-center justify-center gap-2 bg-violet-600 hover:bg-violet-700 disabled:opacity-60 transition rounded-xl py-3 text-sm font-bold"
-      >
-        {confirming ? (
-          <Loader2 size={15} className="animate-spin" />
-        ) : myConfirmed ? (
-          <Check size={15} />
-        ) : null}
+      {!canConfirmStart && scheduledMs !== null ? (
+        <p className="mt-4 text-xs text-gray-500 text-center">
+          Подтвердить готовность можно за 10 минут до отправления — через{" "}
+          {formatCountdown(scheduledMs - START_WINDOW_MS - now)}
+        </p>
+      ) : (
+        <button
+          onClick={confirmStart}
+          disabled={confirming || myConfirmed}
+          className="w-full mt-4 flex items-center justify-center gap-2 bg-violet-600 hover:bg-violet-700 disabled:opacity-60 transition rounded-xl py-3 text-sm font-bold"
+        >
+          {confirming ? (
+            <Loader2 size={15} className="animate-spin" />
+          ) : myConfirmed ? (
+            <Check size={15} />
+          ) : null}
 
-        {myConfirmed
-          ? "Вы подтвердили"
-          : status.isDriver
-          ? "Я на месте"
-          : "Я сел(а) в машину"}
-      </button>
+          {myConfirmed
+            ? "Вы подтвердили"
+            : status.isDriver
+            ? "Поехали"
+            : "Я сел(а) в машину"}
+        </button>
+      )}
     </div>
   );
 }

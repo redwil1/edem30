@@ -19,8 +19,14 @@ export default function ParticipantsList({ participants }: Props) {
 
             <div className="text-sm">{p.name}</div>
 
-            {p.isYou && (
+            {p.isDriver && (
               <span className="text-xs bg-violet-600/20 text-violet-300 px-2 py-0.5 rounded-full">
+                Водитель
+              </span>
+            )}
+
+            {p.isYou && (
+              <span className="text-xs bg-white/10 text-gray-300 px-2 py-0.5 rounded-full">
                 Вы
               </span>
             )}

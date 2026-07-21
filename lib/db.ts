@@ -13,7 +13,11 @@ function createSql() {
     throw new Error("DATABASE_URL must be set");
   }
 
-  return postgres(connectionString, { ssl: "require" });
+  // Supabase's pooled connection (port 6543) runs PgBouncer in transaction
+  // mode, which doesn't guarantee the same backend connection across
+  // statements — postgres.js's default prepared statements can then
+  // reference a statement name that no longer exists. Disable them.
+  return postgres(connectionString, { ssl: "require", prepare: false });
 }
 
 export const sql = globalForDb.sql ?? createSql();

@@ -3,13 +3,14 @@ import { NextRequest, NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import { rateLimit } from "@/lib/rateLimit";
 import { isTrustedOrigin } from "@/lib/security";
-import { createTrip } from "@/lib/trips";
+import { countActiveTripsByOwner, createTrip } from "@/lib/trips";
 import { TripType } from "@/types/trips";
 
 export const runtime = "nodejs";
 
 const DATE_RE = /^(\d{4})-(\d{2})-(\d{2})$/;
 const TIME_RE = /^([01]\d|2[0-3]):[0-5]\d$/;
+const MAX_ACTIVE_TRIPS = 3;
 
 const TRANSPORT_CATEGORIES: Record<string, string> = {
   sedan: "Легковой автомобиль",
@@ -54,6 +55,17 @@ export async function POST(req: NextRequest) {
     return NextResponse.json(
       { error: "Публиковать поездки могут только водители" },
       { status: 403 }
+    );
+  }
+
+  const activeCount = await countActiveTripsByOwner(user.id);
+
+  if (activeCount >= MAX_ACTIVE_TRIPS) {
+    return NextResponse.json(
+      {
+        error: `Можно разместить не более ${MAX_ACTIVE_TRIPS} активных поездок одновременно. Дождитесь завершения одной из них или отмените её.`,
+      },
+      { status: 409 }
     );
   }
 

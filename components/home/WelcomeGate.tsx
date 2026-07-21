@@ -5,7 +5,7 @@ import Link from "next/link";
 import { Bus, Car, Star } from "lucide-react";
 
 import AddressInput from "@/components/taxi/AddressInput";
-import { formatDate, formatPrice, formatSeats } from "@/lib/utils";
+import { formatDate, formatPrice, formatRating, formatSeats } from "@/lib/utils";
 import { Trip } from "@/types/trips";
 import CitySwitch from "./CitySwitch";
 
@@ -103,7 +103,7 @@ export default function WelcomeGate({ trips, city, onCityChange }: Props) {
                     }`}
                   >
                     <div className="flex items-start justify-between gap-3">
-                      <div>
+                      <div className="min-w-0">
                         <div className="font-bold">
                           {trip.from} → {trip.to}
                         </div>
@@ -114,8 +114,10 @@ export default function WelcomeGate({ trips, city, onCityChange }: Props) {
                         </div>
 
                         <div className="text-xs text-yellow-400 flex items-center gap-1 mt-1.5">
-                          <Star size={11} className="fill-yellow-400" />
-                          {trip.rating} {trip.driver}
+                          <Star size={11} className="fill-yellow-400 shrink-0" />
+                          <span className="truncate">
+                            {formatRating(trip.rating)} · {trip.driver}
+                          </span>
                         </div>
                       </div>
 

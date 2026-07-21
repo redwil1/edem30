@@ -50,6 +50,8 @@ export async function POST(req: NextRequest, { params }: Props) {
       completed: "Поездка уже завершена",
       self: "Вы не можете присоединиться к собственной поездке",
       full: "Свободных мест больше нет",
+      too_many_cancellations:
+        "Вы уже отменяли бронь на эту поездку 3 раза — повторное присоединение недоступно",
     };
 
     const status = result.reason === "not_found" ? 404 : 409;

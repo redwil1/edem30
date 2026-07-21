@@ -12,7 +12,7 @@ import {
   getDriverEarnings,
 } from "@/lib/trips";
 import { getUserRatingStats } from "@/lib/reviews";
-import { formatPrice } from "@/lib/utils";
+import { formatPrice, formatRating } from "@/lib/utils";
 
 function reviewsWord(count: number) {
   const mod10 = count % 10;
@@ -102,7 +102,7 @@ export default async function ProfilePage() {
             <div className="text-2xl font-bold">
               {ratingStats.count > 0 ? (
                 <>
-                  {ratingStats.average.toFixed(1)}{" "}
+                  {formatRating(ratingStats.average)}{" "}
                   <span className="text-sm font-normal text-gray-500">
                     ({ratingStats.count} {reviewsWord(ratingStats.count)})
                   </span>

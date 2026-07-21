@@ -9,9 +9,17 @@ type Props = {
   tripId: number;
   instantTaxi: boolean;
   initialPrice: number;
+  tripDate: string;
+  tripTime: string;
 };
 
-export default function TripFlowCards({ tripId, instantTaxi, initialPrice }: Props) {
+export default function TripFlowCards({
+  tripId,
+  instantTaxi,
+  initialPrice,
+  tripDate,
+  tripTime,
+}: Props) {
   const [dealFinalized, setDealFinalized] = useState(!instantTaxi);
 
   if (instantTaxi && !dealFinalized) {
@@ -24,5 +32,5 @@ export default function TripFlowCards({ tripId, instantTaxi, initialPrice }: Pro
     );
   }
 
-  return <TripStartCard tripId={tripId} />;
+  return <TripStartCard tripId={tripId} tripDate={tripDate} tripTime={tripTime} />;
 }

@@ -4,7 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { Calendar, MessageCircle, Star } from "lucide-react";
 
-import { formatDate, formatPrice, formatSeats } from "@/lib/utils";
+import { formatDate, formatPrice, formatRating, formatSeats } from "@/lib/utils";
 import { Trip } from "@/types/trips";
 
 type Props = {
@@ -113,7 +113,7 @@ export default function SchedulePanel({ trips }: Props) {
 
                       <div className="text-xs text-yellow-400 flex items-center gap-1 mt-1.5">
                         <Star size={11} className="fill-yellow-400 shrink-0" />
-                        {trip.rating}{" "}
+                        {formatRating(trip.rating)}{" "}
                         <span className="text-gray-500">
                           ({trip.tripsCount} отзывов)
                         </span>
