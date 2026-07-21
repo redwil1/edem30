@@ -80,8 +80,8 @@ export default function PassengerTaxiOrder({ initialFrom, initialTo }: Props = {
       return;
     }
 
-    if (!price || Number(price) <= 0) {
-      setError("Укажите сумму за поездку");
+    if (!price || Number(price) < 20) {
+      setError("Минимальная цена поездки — 20 ₽");
       return;
     }
 
@@ -199,11 +199,11 @@ export default function PassengerTaxiOrder({ initialFrom, initialTo }: Props = {
 
       <input
         type="number"
-        min={1}
+        min={20}
         max={100_000}
         value={price}
         onChange={(e) => setPrice(e.target.value)}
-        placeholder="💰 Сколько готовы заплатить, ₽"
+        placeholder="💰 Сколько готовы заплатить, ₽ (от 20 ₽)"
         className="w-full bg-[#171726] border border-white/10 focus:border-violet-500 rounded-2xl p-4 outline-none transition"
       />
 

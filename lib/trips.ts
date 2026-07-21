@@ -297,6 +297,82 @@ export type ConfirmResult =
   | { ok: true; status: TripLifecycle }
   | { ok: false; reason: "not_found" | "not_allowed" | "not_started" };
 
+export type ParticipantConfirmation = {
+  userId: number;
+  name: string;
+  startConfirmed: boolean;
+  completeConfirmed: boolean;
+};
+
+export async function getParticipantConfirmations(
+  tripId: number
+): Promise<ParticipantConfirmation[]> {
+  const rows = await sql<
+    {
+      user_id: number;
+      name: string;
+      start_confirmed_at: string | null;
+      complete_confirmed_at: string | null;
+    }[]
+  >`
+    SELECT trip_participants.user_id as user_id, users.name as name,
+           trip_participants.start_confirmed_at as start_confirmed_at,
+           trip_participants.complete_confirmed_at as complete_confirmed_at
+    FROM trip_participants
+    JOIN users ON users.id = trip_participants.user_id
+    WHERE trip_participants.trip_id = ${tripId}
+    ORDER BY trip_participants.joined_at ASC
+  `;
+
+  return rows.map((r) => ({
+    userId: r.user_id,
+    name: r.name,
+    startConfirmed: !!r.start_confirmed_at,
+    completeConfirmed: !!r.complete_confirmed_at,
+  }));
+}
+
+export type TripStartDetail = TripLifecycle & {
+  isDriver: boolean;
+  isPassenger: boolean;
+  myStartConfirmed: boolean;
+  myCompleteConfirmed: boolean;
+  participants: ParticipantConfirmation[];
+};
+
+export async function getTripStartDetail(
+  tripId: number,
+  userId: number | null
+): Promise<TripStartDetail> {
+  const [lifecycle, participants, ownerId] = await Promise.all([
+    getTripLifecycle(tripId),
+    getParticipantConfirmations(tripId),
+    getTripOwnerId(tripId),
+  ]);
+
+  const isDriver = userId !== null && ownerId === userId;
+  const myParticipant =
+    userId !== null ? participants.find((p) => p.userId === userId) : undefined;
+  const isPassenger = !!myParticipant;
+
+  const myStartConfirmed = isDriver
+    ? lifecycle.driverConfirmed
+    : !!myParticipant?.startConfirmed;
+
+  const myCompleteConfirmed = isDriver
+    ? lifecycle.driverCompleted
+    : !!myParticipant?.completeConfirmed;
+
+  return {
+    ...lifecycle,
+    isDriver,
+    isPassenger,
+    myStartConfirmed,
+    myCompleteConfirmed,
+    participants,
+  };
+}
+
 export async function confirmTripStart(
   tripId: number,
   userId: number
@@ -312,19 +388,34 @@ export async function confirmTripStart(
     return { ok: false, reason: "not_allowed" };
   }
 
-  if (isDriver) {
-    await sql`
-      UPDATE trips SET driver_confirmed_at = COALESCE(driver_confirmed_at, ${sql.unsafe(NOW)})
-      WHERE id = ${tripId}
-    `;
-  }
+  await sql.begin(async (tx) => {
+    if (isDriver) {
+      await tx`
+        UPDATE trips SET driver_confirmed_at = COALESCE(driver_confirmed_at, ${tx.unsafe(NOW)})
+        WHERE id = ${tripId}
+      `;
+    }
 
-  if (isPassenger) {
-    await sql`
-      UPDATE trips SET passenger_confirmed_at = COALESCE(passenger_confirmed_at, ${sql.unsafe(NOW)})
-      WHERE id = ${tripId}
-    `;
-  }
+    if (isPassenger) {
+      await tx`
+        UPDATE trip_participants
+        SET start_confirmed_at = COALESCE(start_confirmed_at, ${tx.unsafe(NOW)})
+        WHERE trip_id = ${tripId} AND user_id = ${userId}
+      `;
+
+      const remaining = await tx<{ c: string }[]>`
+        SELECT COUNT(*) as c FROM trip_participants
+        WHERE trip_id = ${tripId} AND start_confirmed_at IS NULL
+      `;
+
+      if (Number(remaining[0].c) === 0) {
+        await tx`
+          UPDATE trips SET passenger_confirmed_at = COALESCE(passenger_confirmed_at, ${tx.unsafe(NOW)})
+          WHERE id = ${tripId}
+        `;
+      }
+    }
+  });
 
   return { ok: true, status: await getTripLifecycle(tripId) };
 }
@@ -348,19 +439,34 @@ export async function confirmTripComplete(
     return { ok: false, reason: "not_started" };
   }
 
-  if (isDriver) {
-    await sql`
-      UPDATE trips SET driver_completed_at = COALESCE(driver_completed_at, ${sql.unsafe(NOW)})
-      WHERE id = ${tripId}
-    `;
-  }
+  await sql.begin(async (tx) => {
+    if (isDriver) {
+      await tx`
+        UPDATE trips SET driver_completed_at = COALESCE(driver_completed_at, ${tx.unsafe(NOW)})
+        WHERE id = ${tripId}
+      `;
+    }
 
-  if (isPassenger) {
-    await sql`
-      UPDATE trips SET passenger_completed_at = COALESCE(passenger_completed_at, ${sql.unsafe(NOW)})
-      WHERE id = ${tripId}
-    `;
-  }
+    if (isPassenger) {
+      await tx`
+        UPDATE trip_participants
+        SET complete_confirmed_at = COALESCE(complete_confirmed_at, ${tx.unsafe(NOW)})
+        WHERE trip_id = ${tripId} AND user_id = ${userId}
+      `;
+
+      const remaining = await tx<{ c: string }[]>`
+        SELECT COUNT(*) as c FROM trip_participants
+        WHERE trip_id = ${tripId} AND complete_confirmed_at IS NULL
+      `;
+
+      if (Number(remaining[0].c) === 0) {
+        await tx`
+          UPDATE trips SET passenger_completed_at = COALESCE(passenger_completed_at, ${tx.unsafe(NOW)})
+          WHERE id = ${tripId}
+        `;
+      }
+    }
+  });
 
   return { ok: true, status: await getTripLifecycle(tripId) };
 }

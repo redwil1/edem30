@@ -70,9 +70,9 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  if (!Number.isInteger(price) || price <= 0 || price > 100_000) {
+  if (!Number.isInteger(price) || price < 20 || price > 100_000) {
     return NextResponse.json(
-      { error: "Укажите корректную сумму за поездку" },
+      { error: "Минимальная цена поездки — 20 ₽" },
       { status: 400 }
     );
   }

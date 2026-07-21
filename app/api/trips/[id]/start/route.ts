@@ -3,12 +3,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import { rateLimit } from "@/lib/rateLimit";
 import { isTrustedOrigin } from "@/lib/security";
-import {
-  confirmTripStart,
-  getTripLifecycle,
-  getTripOwnerId,
-  isTripParticipant,
-} from "@/lib/trips";
+import { confirmTripStart, getTripStartDetail } from "@/lib/trips";
 
 export const runtime = "nodejs";
 
@@ -25,15 +20,10 @@ export async function GET(_req: Request, { params }: Props) {
   }
 
   const user = await getCurrentUser();
-  const status = await getTripLifecycle(tripId);
 
-  const isDriver = !!user && (await getTripOwnerId(tripId)) === user.id;
-  const isPassenger = !!user && (await isTripParticipant(tripId, user.id));
-
-  return NextResponse.json(
-    { ...status, isDriver, isPassenger },
-    { headers: { "Cache-Control": "no-store" } }
-  );
+  return NextResponse.json(await getTripStartDetail(tripId, user?.id ?? null), {
+    headers: { "Cache-Control": "no-store" },
+  });
 }
 
 export async function POST(req: NextRequest, { params }: Props) {
@@ -76,5 +66,5 @@ export async function POST(req: NextRequest, { params }: Props) {
     );
   }
 
-  return NextResponse.json(result.status);
+  return NextResponse.json(await getTripStartDetail(tripId, user.id));
 }

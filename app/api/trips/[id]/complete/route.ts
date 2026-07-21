@@ -3,7 +3,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import { rateLimit } from "@/lib/rateLimit";
 import { isTrustedOrigin } from "@/lib/security";
-import { confirmTripComplete } from "@/lib/trips";
+import { confirmTripComplete, getTripStartDetail } from "@/lib/trips";
 
 export const runtime = "nodejs";
 
@@ -47,7 +47,7 @@ export async function POST(req: NextRequest, { params }: Props) {
 
     if (result.reason === "not_started") {
       return NextResponse.json(
-        { error: "Сначала обе стороны должны подтвердить начало поездки" },
+        { error: "Сначала все участники должны подтвердить начало поездки" },
         { status: 409 }
       );
     }
@@ -58,5 +58,5 @@ export async function POST(req: NextRequest, { params }: Props) {
     );
   }
 
-  return NextResponse.json(result.status);
+  return NextResponse.json(await getTripStartDetail(tripId, user.id));
 }

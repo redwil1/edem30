@@ -3,17 +3,25 @@
 import { useEffect, useState } from "react";
 import { Check, Flag, Loader2, PlayCircle } from "lucide-react";
 
+type Participant = {
+  userId: number;
+  name: string;
+  startConfirmed: boolean;
+  completeConfirmed: boolean;
+};
+
 type Status = {
   driverConfirmed: boolean;
-  passengerConfirmed: boolean;
   started: boolean;
   startedAt: string | null;
   driverCompleted: boolean;
-  passengerCompleted: boolean;
   completed: boolean;
   completedAt: string | null;
   isDriver: boolean;
   isPassenger: boolean;
+  myStartConfirmed: boolean;
+  myCompleteConfirmed: boolean;
+  participants: Participant[];
 };
 
 type Props = {
@@ -41,6 +49,17 @@ function formatCountdown(ms: number) {
   }
 
   return `${totalMinutes} мин`;
+}
+
+function ConfirmRow({ label, confirmed }: { label: string; confirmed: boolean }) {
+  return (
+    <div className="flex items-center justify-between">
+      <span className="text-gray-400 truncate pr-2">{label}</span>
+      <span className={confirmed ? "text-green-400 shrink-0" : "text-gray-500 shrink-0"}>
+        {confirmed ? "Подтвердил" : "Ждём"}
+      </span>
+    </div>
+  );
 }
 
 export default function TripStartCard({ tripId, tripDate, tripTime }: Props) {
@@ -86,10 +105,7 @@ export default function TripStartCard({ tripId, tripDate, tripTime }: Props) {
 
     const res = await fetch(`/api/trips/${tripId}/start`, { method: "POST" });
 
-    if (res.ok) {
-      const data = await res.json();
-      setStatus((prev) => (prev ? { ...prev, ...data } : prev));
-    }
+    if (res.ok) setStatus(await res.json());
 
     setConfirming(false);
   }
@@ -101,10 +117,7 @@ export default function TripStartCard({ tripId, tripDate, tripTime }: Props) {
       method: "POST",
     });
 
-    if (res.ok) {
-      const data = await res.json();
-      setStatus((prev) => (prev ? { ...prev, ...data } : prev));
-    }
+    if (res.ok) setStatus(await res.json());
 
     setConfirming(false);
   }
@@ -135,10 +148,6 @@ export default function TripStartCard({ tripId, tripDate, tripTime }: Props) {
   }
 
   if (status.started) {
-    const myCompleted = status.isDriver
-      ? status.driverCompleted
-      : status.passengerCompleted;
-
     const elapsedMs = status.startedAt
       ? now - new Date(status.startedAt).getTime()
       : 0;
@@ -154,52 +163,36 @@ export default function TripStartCard({ tripId, tripDate, tripTime }: Props) {
           {formatDuration(elapsedMs)}
         </div>
 
-        <div className="space-y-2 text-sm">
-          <div className="flex items-center justify-between">
-            <span className="text-gray-400">Пассажир завершил</span>
-            <span
-              className={
-                status.passengerCompleted ? "text-green-400" : "text-gray-500"
-              }
-            >
-              {status.passengerCompleted ? "Подтвердил" : "Ждём"}
-            </span>
-          </div>
+        <div className="space-y-2 text-sm max-h-[180px] overflow-y-auto pr-1">
+          <ConfirmRow label="Водитель завершил" confirmed={status.driverCompleted} />
 
-          <div className="flex items-center justify-between">
-            <span className="text-gray-400">Водитель завершил</span>
-            <span
-              className={
-                status.driverCompleted ? "text-green-400" : "text-gray-500"
-              }
-            >
-              {status.driverCompleted ? "Подтвердил" : "Ждём"}
-            </span>
-          </div>
+          {status.participants.map((p) => (
+            <ConfirmRow
+              key={p.userId}
+              label={`${p.name} завершил`}
+              confirmed={p.completeConfirmed}
+            />
+          ))}
         </div>
 
         <button
           onClick={confirmComplete}
-          disabled={confirming || myCompleted}
+          disabled={confirming || status.myCompleteConfirmed}
           className="btn-gradient w-full mt-4 flex items-center justify-center gap-2 disabled:opacity-60 transition rounded-xl py-3 text-sm font-bold"
         >
           {confirming ? (
             <Loader2 size={15} className="animate-spin" />
-          ) : myCompleted ? (
+          ) : status.myCompleteConfirmed ? (
             <Check size={15} />
           ) : (
             <Flag size={15} />
           )}
 
-          {myCompleted ? "Вы подтвердили" : "Завершить поездку"}
+          {status.myCompleteConfirmed ? "Вы подтвердили" : "Завершить поездку"}
         </button>
       </div>
     );
   }
-
-  const myConfirmed = status.isDriver
-    ? status.driverConfirmed
-    : status.passengerConfirmed;
 
   return (
     <div className="bg-[#12121c] border border-white/5 rounded-3xl p-4 sm:p-6">
@@ -208,29 +201,25 @@ export default function TripStartCard({ tripId, tripDate, tripTime }: Props) {
         Начало поездки
       </div>
 
-      <div className="space-y-2 text-sm">
-        <div className="flex items-center justify-between">
-          <span className="text-gray-400">Пассажир сел в машину</span>
-          <span
-            className={
-              status.passengerConfirmed ? "text-green-400" : "text-gray-500"
-            }
-          >
-            {status.passengerConfirmed ? "Подтвердил" : "Ждём"}
-          </span>
-        </div>
+      <div className="space-y-2 text-sm max-h-[180px] overflow-y-auto pr-1">
+        <ConfirmRow label="Водитель на месте" confirmed={status.driverConfirmed} />
 
-        <div className="flex items-center justify-between">
-          <span className="text-gray-400">Водитель на месте</span>
-          <span
-            className={
-              status.driverConfirmed ? "text-green-400" : "text-gray-500"
-            }
-          >
-            {status.driverConfirmed ? "Подтвердил" : "Ждём"}
-          </span>
-        </div>
+        {status.participants.map((p) => (
+          <ConfirmRow
+            key={p.userId}
+            label={`${p.name} сел(а) в машину`}
+            confirmed={p.startConfirmed}
+          />
+        ))}
       </div>
+
+      {status.participants.length > 1 && (
+        <p className="text-xs text-gray-500 mt-3">
+          Поездка начнётся, когда подтвердят все участники —{" "}
+          {status.participants.filter((p) => p.startConfirmed).length} из{" "}
+          {status.participants.length} пассажиров готовы.
+        </p>
+      )}
 
       {!canConfirmStart && scheduledMs !== null ? (
         <p className="mt-4 text-xs text-gray-500 text-center">
@@ -240,16 +229,16 @@ export default function TripStartCard({ tripId, tripDate, tripTime }: Props) {
       ) : (
         <button
           onClick={confirmStart}
-          disabled={confirming || myConfirmed}
+          disabled={confirming || status.myStartConfirmed}
           className="btn-gradient w-full mt-4 flex items-center justify-center gap-2 disabled:opacity-60 transition rounded-xl py-3 text-sm font-bold"
         >
           {confirming ? (
             <Loader2 size={15} className="animate-spin" />
-          ) : myConfirmed ? (
+          ) : status.myStartConfirmed ? (
             <Check size={15} />
           ) : null}
 
-          {myConfirmed
+          {status.myStartConfirmed
             ? "Вы подтвердили"
             : status.isDriver
             ? "Поехали"
