@@ -37,5 +37,7 @@ export function isTrustedOrigin(req: Request) {
     }
   }
 
-  return true;
+  // Neither header present — can't verify the request's origin, so fail
+  // closed rather than trusting it by default.
+  return false;
 }

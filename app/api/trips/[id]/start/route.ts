@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 
 import { getCurrentUser } from "@/lib/auth";
+import { rateLimit } from "@/lib/rateLimit";
 import { isTrustedOrigin } from "@/lib/security";
 import {
   confirmTripStart,
@@ -47,6 +48,12 @@ export async function POST(req: NextRequest, { params }: Props) {
 
   if (!user) {
     return NextResponse.json({ error: "Войдите в аккаунт" }, { status: 401 });
+  }
+
+  const limit = rateLimit(`trip-start:${user.id}`, { limit: 20, windowMs: 60_000 });
+
+  if (!limit.allowed) {
+    return NextResponse.json({ error: "Слишком много запросов" }, { status: 429 });
   }
 
   const { id } = await params;

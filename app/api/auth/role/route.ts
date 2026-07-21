@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 
 import { getCurrentUser, setUserRole } from "@/lib/auth";
+import { rateLimit } from "@/lib/rateLimit";
 import { isTrustedOrigin } from "@/lib/security";
 
 export const runtime = "nodejs";
@@ -24,6 +25,12 @@ export async function POST(req: NextRequest) {
       { error: "Роль администратора нельзя изменить здесь" },
       { status: 403 }
     );
+  }
+
+  const limit = rateLimit(`role:${user.id}`, { limit: 20, windowMs: 60_000 });
+
+  if (!limit.allowed) {
+    return NextResponse.json({ error: "Слишком много запросов" }, { status: 429 });
   }
 
   const body = await req.json().catch(() => null);

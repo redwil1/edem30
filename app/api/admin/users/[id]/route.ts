@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 
 import { requireAdmin, setAdminUserRole } from "@/lib/admin";
+import { rateLimit } from "@/lib/rateLimit";
 import { isTrustedOrigin } from "@/lib/security";
 
 export const runtime = "nodejs";
@@ -21,6 +22,12 @@ export async function PATCH(req: NextRequest, { params }: Props) {
 
   if (!admin) {
     return NextResponse.json({ error: "Доступ запрещён" }, { status: 403 });
+  }
+
+  const limit = rateLimit(`admin-users:${admin.id}`, { limit: 30, windowMs: 60_000 });
+
+  if (!limit.allowed) {
+    return NextResponse.json({ error: "Слишком много запросов" }, { status: 429 });
   }
 
   const { id } = await params;
