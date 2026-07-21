@@ -71,6 +71,32 @@ export async function listTrips(type?: TripType): Promise<Trip[]> {
   return rows.map(toTrip);
 }
 
+type OwnedTripRow = TripRow & {
+  cancelled_at: string | null;
+  driver_completed_at: string | null;
+  passenger_completed_at: string | null;
+};
+
+export type OwnedTrip = Trip & {
+  cancelled: boolean;
+  completed: boolean;
+};
+
+export async function listTripsByOwner(ownerId: number): Promise<OwnedTrip[]> {
+  const rows = await sql<OwnedTripRow[]>`
+    SELECT ${TRIP_SELECT}
+    FROM trips
+    WHERE trips.owner_id = ${ownerId}
+    ORDER BY trips.id DESC
+  `;
+
+  return rows.map((row) => ({
+    ...toTrip(row),
+    cancelled: !!row.cancelled_at,
+    completed: !!row.driver_completed_at && !!row.passenger_completed_at,
+  }));
+}
+
 export async function getTripById(id: number): Promise<Trip | undefined> {
   if (!Number.isInteger(id) || id <= 0) return undefined;
 

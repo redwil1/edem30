@@ -5,8 +5,8 @@ import { Loader2, ShieldCheck } from "lucide-react";
 
 import { useAuth } from "@/components/auth/AuthProvider";
 import { useSelectedCity } from "@/hooks/useSelectedCity";
-import DriverOrdersFeed from "@/components/taxi/DriverOrdersFeed";
 import { Trip } from "@/types/trips";
+import DriverHome from "./DriverHome";
 import Hero from "./Hero";
 import SchedulePanel from "./SchedulePanel";
 import TaxiOrderCard from "./TaxiOrderCard";
@@ -41,7 +41,7 @@ export default function HomeContent({ trips }: Props) {
   if (user.role === "driver") {
     return (
       <div className="max-w-[1400px] mx-auto px-5 sm:px-6 lg:px-10 py-8 lg:py-10">
-        <DriverOrdersFeed />
+        <DriverHome />
       </div>
     );
   }
