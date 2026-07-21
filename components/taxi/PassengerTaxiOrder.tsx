@@ -18,6 +18,12 @@ type Order = {
   passengerName: string;
   tripId: number | null;
   createdAt: string;
+  driverVehicle: {
+    bodyTypeLabel: string;
+    model: string | null;
+    plate: string | null;
+    color: string | null;
+  } | null;
 };
 
 type Props = {
@@ -173,6 +179,20 @@ export default function PassengerTaxiOrder({ initialFrom, initialTo }: Props = {
                 {formatPrice(order.price)} · {formatSeats(order.seats)}
               </div>
             </div>
+
+            {order.driverVehicle && (
+              <div className="flex items-center gap-2.5 bg-violet-600/10 border border-violet-500/20 rounded-xl px-3.5 py-3 mt-4">
+                <Car size={16} className="text-violet-400 shrink-0" />
+                <div className="text-sm">
+                  К вам едет{" "}
+                  <span className="font-bold">
+                    ({order.driverVehicle.color?.toLowerCase()}){" "}
+                    {order.driverVehicle.model}
+                  </span>{" "}
+                  <span className="font-mono">{order.driverVehicle.plate}</span>
+                </div>
+              </div>
+            )}
 
             <p className="text-sm text-violet-300 mt-5 flex items-center gap-2">
               <Loader2 size={14} className="animate-spin" />

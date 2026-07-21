@@ -4,6 +4,7 @@ import { Users, Wallet } from "lucide-react";
 import Navbar from "@/components/layout/Navbar";
 import Footer from "@/components/layout/Footer";
 import DriverCard from "@/components/driver/DriverCard";
+import VehicleSetup from "@/components/profile/VehicleSetup";
 import { getCurrentUser } from "@/lib/auth";
 import { sql } from "@/lib/db";
 import {
@@ -124,6 +125,12 @@ export default async function ProfilePage() {
             <div className="text-2xl font-bold">{formatPrice(earnings)}</div>
           </div>
         </div>
+
+        {user.role === "driver" && (
+          <div className="mt-6">
+            <VehicleSetup />
+          </div>
+        )}
       </div>
 
       <Footer />

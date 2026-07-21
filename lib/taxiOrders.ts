@@ -2,6 +2,7 @@ import "server-only";
 
 import { sql } from "@/lib/db";
 import { createTrip } from "@/lib/trips";
+import { carBodyTypeLabel, isVehicleComplete, Vehicle } from "@/lib/vehicle";
 
 export type TaxiOrderStatus = "open" | "accepted" | "cancelled";
 
@@ -16,6 +17,7 @@ export type TaxiOrder = {
   passengerName: string;
   tripId: number | null;
   createdAt: string;
+  driverVehicle: (Vehicle & { bodyTypeLabel: string }) | null;
 };
 
 type OrderRow = {
@@ -29,9 +31,20 @@ type OrderRow = {
   status: TaxiOrderStatus;
   trip_id: number | null;
   created_at: string;
+  driver_car_body_type: string | null;
+  driver_car_model: string | null;
+  driver_car_plate: string | null;
+  driver_car_color: string | null;
 };
 
 function toOrder(row: OrderRow): TaxiOrder {
+  const driverVehicle: Vehicle = {
+    bodyType: row.driver_car_body_type,
+    model: row.driver_car_model,
+    plate: row.driver_car_plate,
+    color: row.driver_car_color,
+  };
+
   return {
     id: row.id,
     from: row.from_address,
@@ -43,6 +56,9 @@ function toOrder(row: OrderRow): TaxiOrder {
     passengerName: row.passenger_name,
     tripId: row.trip_id,
     createdAt: row.created_at,
+    driverVehicle: isVehicleComplete(driverVehicle)
+      ? { ...driverVehicle, bodyTypeLabel: carBodyTypeLabel(driverVehicle.bodyType) }
+      : null,
   };
 }
 
@@ -78,7 +94,9 @@ export async function listOpenOrders(excludeUserId: number): Promise<TaxiOrder[]
       taxi_orders.seats as seats,
       taxi_orders.status as status,
       taxi_orders.trip_id as trip_id,
-      taxi_orders.created_at as created_at
+      taxi_orders.created_at as created_at,
+      NULL as driver_car_body_type, NULL as driver_car_model,
+      NULL as driver_car_plate, NULL as driver_car_color
     FROM taxi_orders
     JOIN users ON users.id = taxi_orders.passenger_id
     WHERE taxi_orders.status = 'open' AND taxi_orders.passenger_id != ${excludeUserId}
@@ -102,9 +120,14 @@ export async function getLatestOrderForPassenger(
       taxi_orders.seats as seats,
       taxi_orders.status as status,
       taxi_orders.trip_id as trip_id,
-      taxi_orders.created_at as created_at
+      taxi_orders.created_at as created_at,
+      driver.car_body_type as driver_car_body_type,
+      driver.car_model as driver_car_model,
+      driver.car_plate as driver_car_plate,
+      driver.car_color as driver_car_color
     FROM taxi_orders
     JOIN users ON users.id = taxi_orders.passenger_id
+    LEFT JOIN users driver ON driver.id = taxi_orders.driver_id
     WHERE taxi_orders.passenger_id = ${passengerId} AND taxi_orders.status IN ('open', 'accepted')
     ORDER BY taxi_orders.created_at DESC
     LIMIT 1
@@ -125,7 +148,7 @@ function currentDateHHMM(): { date: string; time: string } {
 
 export type AcceptOrderResult =
   | { ok: true; tripId: number }
-  | { ok: false; reason: "not_found" | "self" };
+  | { ok: false; reason: "not_found" | "self" | "vehicle_incomplete" };
 
 export async function acceptOrder(
   orderId: number,
@@ -155,6 +178,28 @@ export async function acceptOrder(
     return { ok: false, reason: "self" };
   }
 
+  const driverRows = await sql<
+    {
+      car_body_type: string | null;
+      car_model: string | null;
+      car_plate: string | null;
+      car_color: string | null;
+    }[]
+  >`
+    SELECT car_body_type, car_model, car_plate, car_color FROM users WHERE id = ${driver.id}
+  `;
+
+  const vehicle: Vehicle = {
+    bodyType: driverRows[0]?.car_body_type ?? null,
+    model: driverRows[0]?.car_model ?? null,
+    plate: driverRows[0]?.car_plate ?? null,
+    color: driverRows[0]?.car_color ?? null,
+  };
+
+  if (!isVehicleComplete(vehicle)) {
+    return { ok: false, reason: "vehicle_incomplete" };
+  }
+
   const tripId = await sql.begin(async (tx) => {
     const { date, time } = currentDateHHMM();
 
@@ -167,8 +212,10 @@ export async function acceptOrder(
         time,
         price: order.price,
         totalSeats: order.seats,
-        transport: "Легковой автомобиль",
-        transportCategory: "sedan",
+        transport: carBodyTypeLabel(vehicle.bodyType),
+        transportCategory: vehicle.bodyType ?? undefined,
+        carModel: vehicle.model ?? undefined,
+        licensePlate: vehicle.plate ?? undefined,
       },
       driver,
       tx

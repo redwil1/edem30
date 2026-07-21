@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Users } from "lucide-react";
 
@@ -83,7 +84,19 @@ export default function DriverOrdersFeed() {
         </div>
       </div>
 
-      {error && <p className="text-red-400 text-sm mb-4">{error}</p>}
+      {error && (
+        <div className="text-red-400 text-sm mb-4">
+          {error}
+          {error.includes("профиле") && (
+            <>
+              {" "}
+              <Link href="/profile" className="underline hover:text-red-300">
+                Перейти в профиль
+              </Link>
+            </>
+          )}
+        </div>
+      )}
 
       {orders.length === 0 ? (
         <div className="bg-[#12121c] border border-white/5 rounded-3xl p-10 text-center text-gray-500 text-sm">

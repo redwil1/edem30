@@ -51,6 +51,16 @@ export async function POST(req: NextRequest, { params }: Props) {
       );
     }
 
+    if (result.reason === "vehicle_incomplete") {
+      return NextResponse.json(
+        {
+          error:
+            "Заполните данные машины в профиле (тип, марка, номер, цвет), чтобы принимать заказы такси",
+        },
+        { status: 409 }
+      );
+    }
+
     return NextResponse.json(
       { error: "Заказ уже принят другим водителем или отменён" },
       { status: 409 }
