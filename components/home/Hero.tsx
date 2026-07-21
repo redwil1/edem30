@@ -16,8 +16,23 @@ export default function Hero({ city, onCityChange }: Props) {
       <div className="absolute -top-40 right-0 w-[600px] h-[600px] bg-violet-600/20 rounded-full blur-[120px] pointer-events-none" />
 
       <div className="max-w-[1400px] mx-auto px-5 sm:px-6 lg:px-10 pt-8 sm:pt-10 lg:pt-14 pb-8 lg:pb-10 relative">
+        {/* Oversized background car — decorative, sits behind the content and never captures clicks */}
+        <div className="hidden lg:block absolute right-[-120px] top-1/2 -translate-y-1/2 w-[1250px] pointer-events-none select-none z-0">
+          <div className="absolute inset-0 m-auto w-[700px] h-[700px] bg-violet-600/25 rounded-full blur-[160px]" />
+
+          <Image
+            src="/hero-car.png"
+            alt=""
+            width={1452}
+            height={720}
+            priority
+            sizes="1250px"
+            className="relative w-full h-auto"
+          />
+        </div>
+
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 items-center">
-          <div>
+          <div className="relative z-10">
             <CitySwitch city={city} onChange={onCityChange} />
 
             <h1 className="text-4xl sm:text-5xl font-bold leading-tight mt-4">
@@ -90,19 +105,7 @@ export default function Hero({ city, onCityChange }: Props) {
             </div>
           </div>
 
-          <div className="hidden lg:flex justify-center items-center relative">
-            <div className="absolute w-[480px] h-[480px] bg-violet-600/25 rounded-full blur-[110px] pointer-events-none" />
-
-            <Image
-              src="/hero-car.png"
-              alt=""
-              width={1452}
-              height={720}
-              priority
-              sizes="500px"
-              className="relative w-full max-w-[500px] h-auto"
-            />
-          </div>
+          <div className="hidden lg:block" />
         </div>
       </div>
     </section>
