@@ -90,7 +90,7 @@ export default function Hero({ city, onCityChange }: Props) {
             </div>
           </div>
 
-          <div className="hidden lg:block relative h-[290px] rounded-[22px] overflow-hidden border border-white/5 bg-[#0b0816]">
+          <div className="hidden lg:block relative h-[435px] rounded-[22px] overflow-hidden bg-[#0b0816] shadow-[0_25px_70px_-15px_rgba(139,92,246,0.5)]">
             <Image
               src="/hero-car-city.png"
               alt="Машина Едем30 на фоне города"
