@@ -93,14 +93,16 @@ export default function Hero({ city, onCityChange }: Props) {
           <div className="hidden lg:flex justify-center items-center relative">
             <div className="absolute w-[420px] h-[420px] bg-violet-600/30 rounded-full blur-[100px] pointer-events-none" />
 
-            <Image
-              src="/hero-car.png"
-              alt=""
-              width={500}
-              height={248}
-              priority
-              className="relative w-full max-w-[500px] h-auto drop-shadow-[0_20px_60px_rgba(124,58,237,0.45)]"
-            />
+            <div className="relative w-full max-w-[500px] aspect-[500/190] drop-shadow-[0_20px_60px_rgba(124,58,237,0.45)]">
+              <Image
+                src="/hero-car.png"
+                alt=""
+                fill
+                priority
+                sizes="500px"
+                className="object-cover object-center"
+              />
+            </div>
           </div>
         </div>
       </div>
