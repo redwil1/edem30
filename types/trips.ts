@@ -32,4 +32,6 @@ export interface Trip {
   carModel: string | null;
 
   licensePlate: string | null;
+
+  driverAvatarUrl: string | null;
 }

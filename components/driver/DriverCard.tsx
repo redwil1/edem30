@@ -1,4 +1,5 @@
 import { formatRating } from "@/lib/utils";
+import AvatarUploader from "@/components/profile/AvatarUploader";
 
 type Props = {
   driver: string;
@@ -16,9 +17,7 @@ export default function DriverCard({
   return (
     <div className="bg-[#171726] rounded-3xl p-5 border border-violet-500/10">
       <div className="flex items-center gap-4">
-        <div className="w-14 h-14 rounded-full bg-violet-600 flex items-center justify-center text-2xl">
-          👤
-        </div>
+        <AvatarUploader />
 
         <div>
           <div className="font-bold text-lg">{driver}</div>

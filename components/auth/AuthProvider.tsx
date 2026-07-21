@@ -15,6 +15,7 @@ type AuthUser = {
   name: string;
   phone: string;
   role: UserRole;
+  avatarUrl: string | null;
 };
 
 type AuthContextValue = {

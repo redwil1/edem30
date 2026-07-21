@@ -25,6 +25,7 @@ type TripRow = {
   owner_reviews_count: string | null;
   car_model: string | null;
   license_plate: string | null;
+  owner_avatar_url: string | null;
 };
 
 function toTrip(row: TripRow): Trip {
@@ -47,6 +48,7 @@ function toTrip(row: TripRow): Trip {
     verified: !!row.verified,
     carModel: row.car_model,
     licensePlate: row.license_plate,
+    driverAvatarUrl: row.owner_avatar_url,
   };
 }
 
@@ -54,7 +56,8 @@ const TRIP_SELECT = sql`
   trips.*,
   (SELECT COUNT(*) FROM trip_participants WHERE trip_participants.trip_id = trips.id) as taken_seats,
   (SELECT AVG(rating) FROM reviews WHERE reviews.reviewee_id = trips.owner_id) as owner_rating,
-  (SELECT COUNT(*) FROM reviews WHERE reviews.reviewee_id = trips.owner_id) as owner_reviews_count
+  (SELECT COUNT(*) FROM reviews WHERE reviews.reviewee_id = trips.owner_id) as owner_reviews_count,
+  (SELECT avatar_url FROM users WHERE users.id = trips.owner_id) as owner_avatar_url
 `;
 
 const ACTIVE_CLAUSE = sql`

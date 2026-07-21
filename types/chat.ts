@@ -3,6 +3,8 @@ export interface Participant {
 
   name: string;
 
+  avatarUrl?: string | null;
+
   isYou?: boolean;
 
   isDriver?: boolean;

@@ -42,7 +42,7 @@ export default function TripInfoCard({ trip, joined }: Props) {
 
       <div className="flex items-center justify-between mt-5 pt-5 border-t border-white/5">
         <div className="flex items-center gap-3">
-          <Avatar name={trip.driver} tone="violet" size={40} />
+          <Avatar name={trip.driver} size={40} avatarUrl={trip.driverAvatarUrl} />
 
           <div>
             <div className="font-medium text-sm">{trip.driver}</div>

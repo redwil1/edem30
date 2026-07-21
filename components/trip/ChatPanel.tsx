@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Paperclip, Send, Check, Lock, LogOut } from "lucide-react";
+import { Paperclip, Send, Check, Lock, LogOut, Loader2 } from "lucide-react";
 
 import { useAuth } from "@/components/auth/AuthProvider";
 import Avatar from "./Avatar";
@@ -11,11 +11,26 @@ import Avatar from "./Avatar";
 type Message = {
   id: number;
   authorName: string;
+  avatarUrl: string | null;
   text: string;
+  attachmentUrl: string | null;
+  attachmentType: "image" | "video" | null;
   createdAt: string;
   isYou: boolean;
   isDriver: boolean;
 };
+
+const MAX_IMAGE_SIZE = 5 * 1024 * 1024;
+const MAX_VIDEO_SIZE = 50 * 1024 * 1024;
+const ALLOWED_ATTACHMENT_TYPES = [
+  "image/jpeg",
+  "image/png",
+  "image/webp",
+  "image/gif",
+  "video/mp4",
+  "video/webm",
+  "video/quicktime",
+];
 
 function RoleBadge({ isDriver }: { isDriver: boolean }) {
   return (
@@ -28,6 +43,33 @@ function RoleBadge({ isDriver }: { isDriver: boolean }) {
     >
       {isDriver ? "Водитель" : "Пассажир"}
     </span>
+  );
+}
+
+function Attachment({
+  url,
+  type,
+}: {
+  url: string;
+  type: "image" | "video";
+}) {
+  if (type === "video") {
+    return (
+      <video
+        src={url}
+        controls
+        className="max-w-full rounded-xl mb-1.5 max-h-[280px]"
+      />
+    );
+  }
+
+  return (
+    // eslint-disable-next-line @next/next/no-img-element
+    <img
+      src={url}
+      alt="Вложение"
+      className="max-w-full rounded-xl mb-1.5 max-h-[280px] object-cover"
+    />
   );
 }
 
@@ -52,7 +94,9 @@ export default function ChatPanel({ tripId }: Props) {
   const [error, setError] = useState("");
   const [joining, setJoining] = useState(false);
   const [leaving, setLeaving] = useState(false);
+  const [uploading, setUploading] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   async function load() {
     const res = await fetch(`/api/trips/${tripId}/messages`, {
@@ -99,6 +143,75 @@ export default function ChatPanel({ tripId }: Props) {
 
     setValue("");
     setMessages((prev) => [...prev, data]);
+  }
+
+  async function uploadAttachment(file: File) {
+    setError("");
+
+    if (!ALLOWED_ATTACHMENT_TYPES.includes(file.type)) {
+      setError("Поддерживаются только фото (JPG/PNG/WEBP/GIF) и видео (MP4/WEBM/MOV)");
+      return;
+    }
+
+    const isVideo = file.type.startsWith("video/");
+    const maxSize = isVideo ? MAX_VIDEO_SIZE : MAX_IMAGE_SIZE;
+
+    if (file.size > maxSize) {
+      setError(
+        isVideo ? "Видео слишком большое (максимум 50МБ)" : "Фото слишком большое (максимум 5МБ)"
+      );
+      return;
+    }
+
+    setUploading(true);
+
+    try {
+      const signRes = await fetch(`/api/trips/${tripId}/messages/attachment-url`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ contentType: file.type }),
+      });
+
+      const signData = await signRes.json().catch(() => null);
+
+      if (!signRes.ok) {
+        setError(signData?.error || "Не удалось подготовить загрузку");
+        return;
+      }
+
+      const putRes = await fetch(signData.uploadUrl, {
+        method: "PUT",
+        headers: { "Content-Type": file.type },
+        body: file,
+      });
+
+      if (!putRes.ok) {
+        setError("Не удалось загрузить файл");
+        return;
+      }
+
+      const msgRes = await fetch(`/api/trips/${tripId}/messages`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          attachmentPath: signData.path,
+          attachmentType: signData.attachmentType,
+        }),
+      });
+
+      const msgData = await msgRes.json().catch(() => null);
+
+      if (!msgRes.ok) {
+        setError(msgData?.error || "Не удалось отправить вложение");
+        return;
+      }
+
+      setMessages((prev) => [...prev, msgData]);
+    } catch {
+      setError("Не удалось подключиться к серверу");
+    } finally {
+      setUploading(false);
+    }
   }
 
   async function joinAndUnlock() {
@@ -163,6 +276,9 @@ export default function ChatPanel({ tripId }: Props) {
                 </div>
 
                 <div className="bubble-gradient rounded-2xl rounded-tr-sm px-4 py-2.5 text-sm break-words">
+                  {m.attachmentUrl && m.attachmentType && (
+                    <Attachment url={m.attachmentUrl} type={m.attachmentType} />
+                  )}
                   {m.text}
                 </div>
 
@@ -174,7 +290,7 @@ export default function ChatPanel({ tripId }: Props) {
             </div>
           ) : (
             <div key={m.id} className="flex gap-3">
-              <Avatar name={m.authorName} size={32} />
+              <Avatar name={m.authorName} size={32} avatarUrl={m.avatarUrl} />
 
               <div className="max-w-[75%]">
                 <div className="flex items-center gap-1.5 mb-1">
@@ -183,6 +299,9 @@ export default function ChatPanel({ tripId }: Props) {
                 </div>
 
                 <div className="bg-[#1c1c2b] rounded-2xl rounded-tl-sm px-4 py-2.5 text-sm break-words">
+                  {m.attachmentUrl && m.attachmentType && (
+                    <Attachment url={m.attachmentUrl} type={m.attachmentType} />
+                  )}
                   {m.text}
                 </div>
 
@@ -200,9 +319,30 @@ export default function ChatPanel({ tripId }: Props) {
           {error && <p className="text-red-400 text-xs mb-2">{error}</p>}
 
           <div className="flex items-center gap-2 bg-[#1c1c2b] rounded-2xl px-3 py-2">
-            <button className="text-gray-500 hover:text-gray-300 transition p-1.5">
-              <Paperclip size={18} />
+            <button
+              type="button"
+              onClick={() => fileInputRef.current?.click()}
+              disabled={uploading}
+              className="text-gray-500 hover:text-gray-300 transition p-1.5 disabled:opacity-60"
+            >
+              {uploading ? (
+                <Loader2 size={18} className="animate-spin" />
+              ) : (
+                <Paperclip size={18} />
+              )}
             </button>
+
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*,video/*"
+              className="hidden"
+              onChange={(e) => {
+                const file = e.target.files?.[0];
+                if (file) uploadAttachment(file);
+                e.target.value = "";
+              }}
+            />
 
             <input
               value={value}

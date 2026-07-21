@@ -44,8 +44,10 @@ export default async function TripPage({ params }: Props) {
 
   const user = await getCurrentUser();
 
-  const participantRows = await sql<{ id: number; name: string }[]>`
-    SELECT users.id as id, users.name as name
+  const participantRows = await sql<
+    { id: number; name: string; avatar_url: string | null }[]
+  >`
+    SELECT users.id as id, users.name as name, users.avatar_url as avatar_url
     FROM trip_participants
     JOIN users ON users.id = trip_participants.user_id
     WHERE trip_participants.trip_id = ${trip.id}
@@ -55,6 +57,7 @@ export default async function TripPage({ params }: Props) {
   const participants = participantRows.map((r) => ({
     id: r.id,
     name: r.name,
+    avatarUrl: r.avatar_url,
     isYou: user ? r.id === user.id : false,
   }));
 
@@ -71,6 +74,7 @@ export default async function TripPage({ params }: Props) {
         {
           id: ownerId,
           name: trip.driver,
+          avatarUrl: trip.driverAvatarUrl,
           isYou: !!user && ownerId === user.id,
           isDriver: true,
         },

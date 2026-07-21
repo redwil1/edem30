@@ -15,7 +15,7 @@ export default function ParticipantsList({ participants }: Props) {
       <div className="space-y-3.5">
         {participants.map((p) => (
           <div key={p.id} className="flex items-center gap-3">
-            <Avatar name={p.name} size={32} />
+            <Avatar name={p.name} size={32} avatarUrl={p.avatarUrl} />
 
             <div className="text-sm">{p.name}</div>
 
