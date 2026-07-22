@@ -116,7 +116,7 @@ export default async function TripPage({ params }: Props) {
           Назад к списку
         </Link>
 
-        <div className="grid grid-cols-1 lg:grid-cols-[400px_1fr] gap-6 items-start">
+        <div className="grid grid-cols-1 lg:grid-cols-[400px_1fr] gap-6 items-start lg:items-stretch">
           <div className="flex flex-col gap-6">
             {isDriver && user?.role !== "driver" && <OwnerRoleHint />}
 

@@ -271,7 +271,7 @@ export default function ChatPanel({ tripId }: Props) {
 
       <div
         ref={scrollRef}
-        className="flex-1 overflow-y-auto space-y-4 pr-1 min-h-[380px] max-h-[520px]"
+        className="flex-1 overflow-y-auto space-y-4 pr-1 min-h-[240px] max-h-[480px] lg:max-h-none"
       >
         {messages.length === 0 && (
           <div className="h-full min-h-[300px] flex items-center justify-center text-sm text-gray-500 text-center px-6">
