@@ -444,6 +444,56 @@ export type ReviewPrompt = {
   revieweeName: string;
 };
 
+export type PendingReview = ReviewPrompt & {
+  tripId: number;
+};
+
+export async function getPendingReviewPrompt(
+  userId: number
+): Promise<PendingReview | null> {
+  const rows = await sql<
+    { trip_id: number; reviewee_id: number; reviewee_name: string; trip_date: string; trip_time: string }[]
+  >`
+    SELECT trips.id as trip_id, participant.user_id as reviewee_id, users.name as reviewee_name,
+           trips.trip_date as trip_date, trips.trip_time as trip_time
+    FROM trips
+    JOIN (
+      SELECT trip_id, MIN(user_id) as user_id, COUNT(*) as cnt
+      FROM trip_participants GROUP BY trip_id
+    ) participant ON participant.trip_id = trips.id AND participant.cnt = 1
+    JOIN users ON users.id = participant.user_id
+    WHERE trips.owner_id = ${userId} AND ${COMPLETED_CLAUSE}
+      AND NOT EXISTS (
+        SELECT 1 FROM reviews WHERE reviews.trip_id = trips.id AND reviews.reviewer_id = ${userId}
+      )
+
+    UNION ALL
+
+    SELECT trips.id as trip_id, trips.owner_id as reviewee_id, users.name as reviewee_name,
+           trips.trip_date as trip_date, trips.trip_time as trip_time
+    FROM trips
+    JOIN trip_participants ON trip_participants.trip_id = trips.id AND trip_participants.user_id = ${userId}
+    JOIN users ON users.id = trips.owner_id
+    WHERE ${COMPLETED_CLAUSE} AND trips.owner_id IS NOT NULL AND trips.owner_id != ${userId}
+      AND NOT EXISTS (
+        SELECT 1 FROM reviews WHERE reviews.trip_id = trips.id AND reviews.reviewer_id = ${userId}
+      )
+
+    ORDER BY trip_date DESC, trip_time DESC
+    LIMIT 1
+  `;
+
+  const row = rows[0];
+
+  if (!row) return null;
+
+  return {
+    tripId: row.trip_id,
+    revieweeId: row.reviewee_id,
+    revieweeName: row.reviewee_name,
+  };
+}
+
 export type TripStartDetail = TripLifecycle & {
   isDriver: boolean;
   isPassenger: boolean;

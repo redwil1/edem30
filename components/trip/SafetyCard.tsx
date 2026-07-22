@@ -6,6 +6,7 @@ import { PhoneCall, ShieldCheck, TriangleAlert } from "lucide-react";
 
 import { useAuth } from "@/components/auth/AuthProvider";
 import ReportModal from "./ReportModal";
+import PhoneShareCard from "./PhoneShareCard";
 
 type Props = {
   tripId: number;
@@ -47,6 +48,8 @@ export default function SafetyCard({ tripId }: Props) {
           посадке.
         </p>
       </div>
+
+      {user && <PhoneShareCard tripId={tripId} />}
 
       {user ? (
         <button
