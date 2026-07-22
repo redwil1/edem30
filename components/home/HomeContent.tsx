@@ -79,7 +79,7 @@ export default function HomeContent({ trips }: Props) {
 
       <div className="max-w-[1400px] mx-auto px-5 sm:px-6 lg:px-10 grid grid-cols-1 lg:grid-cols-3 gap-6 pb-10">
         <div className="lg:col-span-2">
-          <SchedulePanel trips={visibleTrips} />
+          <SchedulePanel trips={trips} />
         </div>
 
         <div className="flex flex-col gap-6">
