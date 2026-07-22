@@ -10,16 +10,24 @@ type Review = {
   comment: string | null;
   tripRoute: string;
   tripId: number;
+  tripType: "intercity" | "city";
 };
+
+type TripTypeFilter = "all" | "intercity" | "city";
 
 export default function AdminReviewsTable() {
   const [reviews, setReviews] = useState<Review[] | null>(null);
   const [minRating, setMinRating] = useState(0);
+  const [tripType, setTripType] = useState<TripTypeFilter>("all");
   const [busyId, setBusyId] = useState<number | null>(null);
 
-  async function load(min: number) {
+  async function load(min: number, type: TripTypeFilter) {
+    const params = new URLSearchParams();
+    if (min > 0) params.set("minRating", String(min));
+    if (type !== "all") params.set("tripType", type);
+
     const res = await fetch(
-      `/api/admin/reviews${min > 0 ? `?minRating=${min}` : ""}`,
+      `/api/admin/reviews${params.toString() ? `?${params}` : ""}`,
       { cache: "no-store" }
     );
     const data = await res.json();
@@ -27,34 +35,50 @@ export default function AdminReviewsTable() {
   }
 
   useEffect(() => {
-    load(minRating);
-  }, [minRating]);
+    load(minRating, tripType);
+  }, [minRating, tripType]);
 
   async function remove(reviewId: number) {
     setBusyId(reviewId);
 
     await fetch(`/api/admin/reviews/${reviewId}`, { method: "DELETE" });
 
-    await load(minRating);
+    await load(minRating, tripType);
     setBusyId(null);
   }
 
   return (
     <div>
-      <div className="flex items-center gap-2 mb-5">
-        <span className="text-sm text-gray-500">Рейтинг от:</span>
+      <div className="flex flex-wrap items-center gap-4 mb-5">
+        <div className="flex items-center gap-2">
+          <span className="text-sm text-gray-500">Рейтинг от:</span>
 
-        <select
-          value={minRating}
-          onChange={(e) => setMinRating(Number(e.target.value))}
-          className="bg-[#12121c] border border-white/5 rounded-xl px-3 py-2 text-sm outline-none"
-        >
-          {[0, 1, 2, 3, 4, 5].map((n) => (
-            <option key={n} value={n}>
-              {n === 0 ? "Все" : `${n}+`}
-            </option>
-          ))}
-        </select>
+          <select
+            value={minRating}
+            onChange={(e) => setMinRating(Number(e.target.value))}
+            className="bg-[#12121c] border border-white/5 rounded-xl px-3 py-2 text-sm outline-none"
+          >
+            {[0, 1, 2, 3, 4, 5].map((n) => (
+              <option key={n} value={n}>
+                {n === 0 ? "Все" : `${n}+`}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        <div className="flex items-center gap-2">
+          <span className="text-sm text-gray-500">Тип поездки:</span>
+
+          <select
+            value={tripType}
+            onChange={(e) => setTripType(e.target.value as TripTypeFilter)}
+            className="bg-[#12121c] border border-white/5 rounded-xl px-3 py-2 text-sm outline-none"
+          >
+            <option value="all">Все</option>
+            <option value="intercity">Межгород</option>
+            <option value="city">По городу</option>
+          </select>
+        </div>
       </div>
 
       {!reviews ? (
@@ -63,7 +87,7 @@ export default function AdminReviewsTable() {
         </div>
       ) : (
         <div className="bg-[#12121c] border border-white/5 rounded-2xl overflow-x-auto">
-          <table className="w-full text-sm min-w-[700px]">
+          <table className="w-full text-sm min-w-[760px]">
             <thead>
               <tr className="text-left text-gray-500 border-b border-white/5">
                 <th className="px-4 py-3 font-medium">ID</th>
@@ -71,6 +95,7 @@ export default function AdminReviewsTable() {
                 <th className="px-4 py-3 font-medium">Рейтинг</th>
                 <th className="px-4 py-3 font-medium">Текст</th>
                 <th className="px-4 py-3 font-medium">Поездка</th>
+                <th className="px-4 py-3 font-medium">Тип</th>
                 <th className="px-4 py-3 font-medium">Действия</th>
               </tr>
             </thead>
@@ -94,6 +119,11 @@ export default function AdminReviewsTable() {
                   <td className="px-4 py-3 text-gray-400 whitespace-nowrap">
                     {r.tripRoute}
                   </td>
+                  <td className="px-4 py-3 whitespace-nowrap">
+                    <span className="text-xs bg-violet-600/15 text-violet-300 px-2 py-1 rounded-full">
+                      {r.tripType === "intercity" ? "Межгород" : "По городу"}
+                    </span>
+                  </td>
                   <td className="px-4 py-3">
                     <button
                       onClick={() => remove(r.id)}
@@ -109,7 +139,7 @@ export default function AdminReviewsTable() {
 
               {reviews.length === 0 && (
                 <tr>
-                  <td colSpan={6} className="px-4 py-10 text-center text-gray-500">
+                  <td colSpan={7} className="px-4 py-10 text-center text-gray-500">
                     Отзывов нет
                   </td>
                 </tr>

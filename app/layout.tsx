@@ -6,7 +6,9 @@ import { AuthProvider } from "@/components/auth/AuthProvider";
 import RoleThemeSync from "@/components/auth/RoleThemeSync";
 import DriverOrderNotifier from "@/components/taxi/DriverOrderNotifier";
 import TripReminderNotifier from "@/components/trip/TripReminderNotifier";
+import EmptyTripNotifier from "@/components/trip/EmptyTripNotifier";
 import NewTripNotifier from "@/components/NewTripNotifier";
+import VisitTracker from "@/components/VisitTracker";
 import BottomNav from "@/components/layout/BottomNav";
 
 const manrope = Manrope({
@@ -41,8 +43,10 @@ export default function RootLayout({
         <ThemeProvider attribute="class" defaultTheme="dark" enableSystem={false}>
           <AuthProvider>
             <RoleThemeSync />
+            <VisitTracker />
             <DriverOrderNotifier />
             <TripReminderNotifier />
+            <EmptyTripNotifier />
             <NewTripNotifier />
             {children}
             <BottomNav />

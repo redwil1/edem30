@@ -61,5 +61,10 @@ export async function POST(req: NextRequest) {
 
   await createSession(user.id);
 
+  await sql`
+    UPDATE users SET last_login_ip = ${ip}, last_login_at = ${new Date().toISOString()}
+    WHERE id = ${user.id}
+  `;
+
   return NextResponse.json({ id: user.id, name: user.name, phone: user.phone });
 }

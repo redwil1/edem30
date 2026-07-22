@@ -71,6 +71,8 @@ const ACTIVE_CLAUSE = sql`
 `;
 
 export async function listTrips(type?: TripType): Promise<Trip[]> {
+  await autoCancelEmptyIntercityTrips();
+
   const rows = await sql<TripRow[]>`
     SELECT ${TRIP_SELECT}
     FROM trips
@@ -814,4 +816,74 @@ export async function getBlockingTripInfo(
   }
 
   return best;
+}
+
+export type EmptyTripWarning = {
+  tripId: number;
+  route: string;
+  minutesUntil: number;
+};
+
+const EMPTY_TRIP_WARNING_WINDOW_MIN = 10;
+
+// Межгородние поездки водителя без единого попутчика, до отправления
+// которых осталось не больше 10 минут — показываем предупреждение, что
+// поездка скоро закроется автоматически.
+export async function getEmptyTripWarnings(
+  driverId: number
+): Promise<EmptyTripWarning[]> {
+  const rows = await sql<
+    { id: number; from_city: string; to_city: string; trip_date: string; trip_time: string }[]
+  >`
+    SELECT trips.id, trips.from_city, trips.to_city, trips.trip_date, trips.trip_time
+    FROM trips
+    WHERE trips.owner_id = ${driverId}
+      AND trips.type = 'intercity'
+      AND trips.cancelled_at IS NULL
+      AND trips.driver_completed_at IS NULL
+      AND (SELECT COUNT(*) FROM trip_participants WHERE trip_participants.trip_id = trips.id) = 0
+  `;
+
+  const now = Date.now();
+  const warnings: EmptyTripWarning[] = [];
+
+  for (const row of rows) {
+    if (!TRIP_DATE_RE.test(row.trip_date) || !TRIP_TIME_RE.test(row.trip_time)) {
+      continue;
+    }
+
+    const startsAtUtcMs =
+      new Date(`${row.trip_date}T${row.trip_time}:00Z`).getTime() - ASTRAKHAN_OFFSET_MS;
+
+    const minutesUntil = Math.round((startsAtUtcMs - now) / 60_000);
+
+    if (minutesUntil >= 0 && minutesUntil <= EMPTY_TRIP_WARNING_WINDOW_MIN) {
+      warnings.push({
+        tripId: row.id,
+        route: `${row.from_city} → ${row.to_city}`,
+        minutesUntil,
+      });
+    }
+  }
+
+  return warnings;
+}
+
+// Опportunistic-очистка: межгородние поездки без попутчиков, время
+// отправления которых уже наступило, автоматически отменяются. Настоящего
+// крон-планировщика в проекте нет — функция вызывается при каждой загрузке
+// списка поездок, так что закрытие происходит с задержкой до следующего
+// обращения к сайту (обычно секунды-минуты), а не строго по таймеру.
+export async function autoCancelEmptyIntercityTrips(): Promise<void> {
+  await sql`
+    UPDATE trips
+    SET cancelled_at = ${sql.unsafe(NOW)}
+    WHERE type = 'intercity'
+      AND cancelled_at IS NULL
+      AND driver_completed_at IS NULL
+      AND (SELECT COUNT(*) FROM trip_participants WHERE trip_participants.trip_id = trips.id) = 0
+      AND trip_date ~ '^\\d{4}-\\d{2}-\\d{2}$'
+      AND trip_time ~ '^\\d{2}:\\d{2}$'
+      AND (to_timestamp(trip_date || ' ' || trip_time, 'YYYY-MM-DD HH24:MI') - interval '4 hours') < now()
+  `;
 }

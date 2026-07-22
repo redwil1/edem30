@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 
-import { getAdminStats, requireAdmin } from "@/lib/admin";
+import { getAdminAccounts, getAdminStats, getVisitStats, requireAdmin } from "@/lib/admin";
 
 export const runtime = "nodejs";
 
@@ -11,7 +11,14 @@ export async function GET() {
     return NextResponse.json({ error: "Доступ запрещён" }, { status: 403 });
   }
 
-  return NextResponse.json(await getAdminStats(), {
-    headers: { "Cache-Control": "no-store" },
-  });
+  const [stats, visits, admins] = await Promise.all([
+    getAdminStats(),
+    getVisitStats(),
+    getAdminAccounts(),
+  ]);
+
+  return NextResponse.json(
+    { ...stats, visits, admins },
+    { headers: { "Cache-Control": "no-store" } }
+  );
 }

@@ -11,27 +11,119 @@ export async function requireAdmin() {
   return user;
 }
 
+export type TripTypeCounts = {
+  intercity: number;
+  city: number;
+};
+
 export type AdminStats = {
   usersCount: number;
   tripsCount: number;
+  tripsByType: TripTypeCounts;
   reviewsCount: number;
+  reviewsByType: TripTypeCounts;
   newReportsCount: number;
 };
 
 export async function getAdminStats(): Promise<AdminStats> {
-  const [users, trips, reviews, reports] = await Promise.all([
-    sql<{ c: string }[]>`SELECT COUNT(*) as c FROM users`,
-    sql<{ c: string }[]>`SELECT COUNT(*) as c FROM trips`,
-    sql<{ c: string }[]>`SELECT COUNT(*) as c FROM reviews`,
-    sql<{ c: string }[]>`SELECT COUNT(*) as c FROM trip_reports WHERE status = 'new'`,
-  ]);
+  const [users, trips, tripsByTypeRows, reviews, reviewsByTypeRows, reports] =
+    await Promise.all([
+      sql<{ c: string }[]>`SELECT COUNT(*) as c FROM users`,
+      sql<{ c: string }[]>`SELECT COUNT(*) as c FROM trips`,
+      sql<{ type: string; c: string }[]>`
+        SELECT type, COUNT(*) as c FROM trips GROUP BY type
+      `,
+      sql<{ c: string }[]>`SELECT COUNT(*) as c FROM reviews`,
+      sql<{ type: string; c: string }[]>`
+        SELECT trips.type as type, COUNT(*) as c
+        FROM reviews
+        JOIN trips ON trips.id = reviews.trip_id
+        GROUP BY trips.type
+      `,
+      sql<{ c: string }[]>`SELECT COUNT(*) as c FROM trip_reports WHERE status = 'new'`,
+    ]);
+
+  function toTypeCounts(rows: { type: string; c: string }[]): TripTypeCounts {
+    const counts: TripTypeCounts = { intercity: 0, city: 0 };
+
+    for (const row of rows) {
+      if (row.type === "intercity" || row.type === "city") {
+        counts[row.type] = Number(row.c);
+      }
+    }
+
+    return counts;
+  }
 
   return {
     usersCount: Number(users[0].c),
     tripsCount: Number(trips[0].c),
+    tripsByType: toTypeCounts(tripsByTypeRows),
     reviewsCount: Number(reviews[0].c),
+    reviewsByType: toTypeCounts(reviewsByTypeRows),
     newReportsCount: Number(reports[0].c),
   };
+}
+
+export type VisitPeriodStats = {
+  registered: number;
+  guest: number;
+};
+
+export type VisitStats = {
+  day: VisitPeriodStats;
+  week: VisitPeriodStats;
+  month: VisitPeriodStats;
+};
+
+async function visitCountsSince(interval: string): Promise<VisitPeriodStats> {
+  const rows = await sql<{ registered: string; guest: string }[]>`
+    SELECT
+      COUNT(*) FILTER (WHERE user_id IS NOT NULL) as registered,
+      COUNT(*) FILTER (WHERE user_id IS NULL) as guest
+    FROM site_visits
+    WHERE created_at::timestamptz >= now() - ${interval}::interval
+  `;
+
+  return {
+    registered: Number(rows[0]?.registered ?? 0),
+    guest: Number(rows[0]?.guest ?? 0),
+  };
+}
+
+export async function getVisitStats(): Promise<VisitStats> {
+  const [day, week, month] = await Promise.all([
+    visitCountsSince("1 day"),
+    visitCountsSince("7 days"),
+    visitCountsSince("30 days"),
+  ]);
+
+  return { day, week, month };
+}
+
+export type AdminAccountInfo = {
+  id: number;
+  name: string;
+  lastLoginIp: string | null;
+  lastLoginAt: string | null;
+};
+
+export async function getAdminAccounts(): Promise<AdminAccountInfo[]> {
+  const rows = await sql<
+    { id: number; name: string; last_login_ip: string | null; last_login_at: string | null }[]
+  >`
+    SELECT id, name, last_login_ip, last_login_at
+    FROM users
+    WHERE role = 'admin'
+    ORDER BY id ASC
+  `;
+
+  return rows.map((r) => ({
+    id: r.id,
+    name: r.name,
+    lastLoginIp: r.last_login_ip,
+    lastLoginAt: r.last_login_at,
+  }));
 }
 
 export type AdminUser = {
@@ -197,6 +289,7 @@ export type AdminReview = {
   comment: string | null;
   tripRoute: string;
   tripId: number;
+  tripType: "intercity" | "city";
 };
 
 type AdminReviewRow = {
@@ -207,17 +300,24 @@ type AdminReviewRow = {
   trip_id: number;
   from_city: string;
   to_city: string;
+  trip_type: "intercity" | "city";
 };
 
-export async function listAdminReviews(minRating?: number): Promise<AdminReview[]> {
+export async function listAdminReviews(
+  minRating?: number,
+  tripType?: "intercity" | "city"
+): Promise<AdminReview[]> {
   const rows = await sql<AdminReviewRow[]>`
     SELECT reviews.id as id, users.name as author_name, reviews.rating as rating,
            reviews.comment as comment, reviews.trip_id as trip_id,
-           trips.from_city as from_city, trips.to_city as to_city
+           trips.from_city as from_city, trips.to_city as to_city,
+           trips.type as trip_type
     FROM reviews
     JOIN users ON users.id = reviews.reviewer_id
     JOIN trips ON trips.id = reviews.trip_id
-    ${minRating ? sql`WHERE reviews.rating >= ${minRating}` : sql``}
+    WHERE 1=1
+    ${minRating ? sql`AND reviews.rating >= ${minRating}` : sql``}
+    ${tripType ? sql`AND trips.type = ${tripType}` : sql``}
     ORDER BY reviews.id DESC
   `;
 
@@ -228,6 +328,7 @@ export async function listAdminReviews(minRating?: number): Promise<AdminReview[
     comment: r.comment,
     tripId: r.trip_id,
     tripRoute: `${r.from_city} → ${r.to_city}`,
+    tripType: r.trip_type,
   }));
 }
 
