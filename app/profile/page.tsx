@@ -7,7 +7,6 @@ import DriverCard from "@/components/driver/DriverCard";
 import VehicleSetup from "@/components/profile/VehicleSetup";
 import DriverVerification from "@/components/profile/DriverVerification";
 import EarningsChart from "@/components/profile/EarningsChart";
-import IdentitySettings from "@/components/profile/IdentitySettings";
 import PushSubscribeButton from "@/components/PushSubscribeButton";
 import FavoriteAddressesManager from "@/components/profile/FavoriteAddressesManager";
 import ProfileTabs from "@/components/profile/ProfileTabs";
@@ -23,6 +22,7 @@ import {
   getUserTripHistory,
 } from "@/lib/trips";
 import { getUserRatingStats, listUserReviews } from "@/lib/reviews";
+import { getVerificationStatus } from "@/lib/verification";
 import { formatPrice, formatRating } from "@/lib/utils";
 
 function reviewsWord(count: number) {
@@ -62,7 +62,7 @@ export default async function ProfilePage() {
     );
   }
 
-  const [asDriver, asPassenger, ratingStats, earnings, earningsHistory, userRow, reviews, history] =
+  const [asDriver, asPassenger, ratingStats, earnings, earningsHistory, userRow, reviews, history, verificationStatus] =
     await Promise.all([
       countTripsAsDriver(user.id),
       countTripsAsPassenger(user.id),
@@ -72,6 +72,7 @@ export default async function ProfilePage() {
       sql<{ created_at: string }[]>`SELECT created_at FROM users WHERE id = ${user.id}`,
       listUserReviews(user.id),
       getUserTripHistory(user.id),
+      getVerificationStatus(user.id),
     ]);
 
   const memberSince = new Date(userRow[0].created_at).toLocaleDateString("ru-RU", {
@@ -94,11 +95,9 @@ export default async function ProfilePage() {
               content: (
                 <>
                   <DriverCard
-                    driver={user.name}
                     rating={ratingStats.average}
-                    verified={false}
+                    verified={verificationStatus === "approved"}
                     tripsCount={asDriver}
-                    gender={user.gender}
                   />
 
                   <div className="text-sm text-gray-500 mt-4 space-y-1">
@@ -147,8 +146,6 @@ export default async function ProfilePage() {
                       <div className="text-2xl font-bold">{formatPrice(earnings)}</div>
                     </div>
                   </div>
-
-                  <IdentitySettings />
 
                   <div className="bg-[#12121c] border border-white/5 rounded-3xl p-4 sm:p-6 mt-6">
                     <PushSubscribeButton />
