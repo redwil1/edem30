@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { Bus, Loader2, Plus } from "lucide-react";
+import { Bus, Loader2, Plus, Repeat } from "lucide-react";
 
 import { formatDate, formatPrice, formatSeats } from "@/lib/utils";
 
@@ -17,9 +17,28 @@ type OwnedTrip = {
   seats: number;
   totalSeats: number;
   transport: string;
+  transportCategory: string | null;
+  carModel: string | null;
+  licensePlate: string | null;
   cancelled: boolean;
   completed: boolean;
 };
+
+function repeatHref(trip: OwnedTrip) {
+  const params = new URLSearchParams({
+    type: trip.type,
+    from: trip.from,
+    to: trip.to,
+    price: String(trip.price),
+    totalSeats: String(trip.totalSeats),
+  });
+
+  if (trip.transportCategory) params.set("transportCategory", trip.transportCategory);
+  if (trip.carModel) params.set("carModel", trip.carModel);
+  if (trip.licensePlate) params.set("licensePlate", trip.licensePlate);
+
+  return `/create-trip?${params.toString()}`;
+}
 
 export default function DriverTripsPanel() {
   const [trips, setTrips] = useState<OwnedTrip[] | null>(null);
@@ -67,45 +86,58 @@ export default function DriverTripsPanel() {
       ) : (
         <div className="space-y-4">
           {trips.map((trip) => (
-            <Link
+            <div
               key={trip.id}
-              href={`/trip/${trip.id}`}
-              className="block bg-[#12121c] border border-white/5 hover:border-violet-500/40 rounded-3xl p-5 transition"
+              className="bg-[#12121c] border border-white/5 hover:border-violet-500/40 rounded-3xl p-5 transition"
             >
-              <div className="flex items-start justify-between gap-4">
-                <div className="min-w-0">
-                  <div className="font-bold">
-                    {trip.from} → {trip.to}
+              <Link href={`/trip/${trip.id}`} className="block">
+                <div className="flex items-start justify-between gap-4">
+                  <div className="min-w-0">
+                    <div className="font-bold">
+                      {trip.from} → {trip.to}
+                    </div>
+
+                    <div className="text-sm text-gray-500 mt-1">
+                      {formatDate(trip.date)} · {trip.time} · {trip.transport}
+                    </div>
                   </div>
 
-                  <div className="text-sm text-gray-500 mt-1">
-                    {formatDate(trip.date)} · {trip.time} · {trip.transport}
+                  <div className="text-right shrink-0">
+                    <div className="text-violet-400 font-bold">
+                      {formatPrice(trip.price)}
+                    </div>
+
+                    <div className="text-xs text-gray-500 mt-1">
+                      {formatSeats(trip.seats)}
+                    </div>
                   </div>
                 </div>
+              </Link>
 
-                <div className="text-right shrink-0">
-                  <div className="text-violet-400 font-bold">
-                    {formatPrice(trip.price)}
-                  </div>
+              <div className="flex items-center justify-between gap-3 mt-3">
+                {trip.cancelled || trip.completed ? (
+                  <span
+                    className={`inline-block text-xs font-medium px-2.5 py-1 rounded-full ${
+                      trip.cancelled
+                        ? "bg-red-500/10 text-red-400"
+                        : "bg-green-500/10 text-green-400"
+                    }`}
+                  >
+                    {trip.cancelled ? "Отменена" : "Завершена"}
+                  </span>
+                ) : (
+                  <span />
+                )}
 
-                  <div className="text-xs text-gray-500 mt-1">
-                    {formatSeats(trip.seats)}
-                  </div>
-                </div>
-              </div>
-
-              {(trip.cancelled || trip.completed) && (
-                <span
-                  className={`inline-block mt-3 text-xs font-medium px-2.5 py-1 rounded-full ${
-                    trip.cancelled
-                      ? "bg-red-500/10 text-red-400"
-                      : "bg-green-500/10 text-green-400"
-                  }`}
+                <Link
+                  href={repeatHref(trip)}
+                  className="flex items-center gap-1.5 text-xs font-medium text-violet-400 hover:text-violet-300 transition"
                 >
-                  {trip.cancelled ? "Отменена" : "Завершена"}
-                </span>
-              )}
-            </Link>
+                  <Repeat size={12} />
+                  Повторить
+                </Link>
+              </div>
+            </div>
           ))}
         </div>
       )}

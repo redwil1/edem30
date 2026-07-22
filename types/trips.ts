@@ -29,6 +29,8 @@ export interface Trip {
 
   transport: string;
 
+  transportCategory: string | null;
+
   totalSeats: number;
 
   carModel: string | null;

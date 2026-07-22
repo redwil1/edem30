@@ -8,6 +8,7 @@ import DriverOrderNotifier from "@/components/taxi/DriverOrderNotifier";
 import TripReminderNotifier from "@/components/trip/TripReminderNotifier";
 import EmptyTripNotifier from "@/components/trip/EmptyTripNotifier";
 import NewTripNotifier from "@/components/NewTripNotifier";
+import ComplaintNoticeNotifier from "@/components/ComplaintNoticeNotifier";
 import VisitTracker from "@/components/VisitTracker";
 import BottomNav from "@/components/layout/BottomNav";
 
@@ -48,6 +49,7 @@ export default function RootLayout({
             <TripReminderNotifier />
             <EmptyTripNotifier />
             <NewTripNotifier />
+            <ComplaintNoticeNotifier />
             {children}
             <BottomNav />
           </AuthProvider>

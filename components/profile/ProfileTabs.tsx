@@ -2,44 +2,35 @@
 
 import { ReactNode, useState } from "react";
 
-type Props = {
-  overview: ReactNode;
-  reviews: ReactNode;
-  reviewsCount: number;
+export type ProfileTab = {
+  key: string;
+  label: string;
+  content: ReactNode;
 };
 
-export default function ProfileTabs({ overview, reviews, reviewsCount }: Props) {
-  const [tab, setTab] = useState<"overview" | "reviews">("overview");
+export default function ProfileTabs({ tabs }: { tabs: ProfileTab[] }) {
+  const [active, setActive] = useState(tabs[0]?.key);
 
   return (
     <div>
       <div className="flex items-center gap-1 bg-[#171723] rounded-2xl p-1 mb-6">
-        <button
-          type="button"
-          onClick={() => setTab("overview")}
-          className={`flex-1 rounded-xl py-2.5 text-sm font-medium transition ${
-            tab === "overview"
-              ? "bg-violet-600 text-white"
-              : "text-gray-300 hover:text-white"
-          }`}
-        >
-          Профиль
-        </button>
-
-        <button
-          type="button"
-          onClick={() => setTab("reviews")}
-          className={`flex-1 rounded-xl py-2.5 text-sm font-medium transition ${
-            tab === "reviews"
-              ? "bg-violet-600 text-white"
-              : "text-gray-300 hover:text-white"
-          }`}
-        >
-          Отзывы{reviewsCount > 0 ? ` (${reviewsCount})` : ""}
-        </button>
+        {tabs.map((tab) => (
+          <button
+            key={tab.key}
+            type="button"
+            onClick={() => setActive(tab.key)}
+            className={`flex-1 rounded-xl py-2.5 text-sm font-medium transition ${
+              active === tab.key
+                ? "bg-violet-600 text-white"
+                : "text-gray-300 hover:text-white"
+            }`}
+          >
+            {tab.label}
+          </button>
+        ))}
       </div>
 
-      {tab === "overview" ? overview : reviews}
+      {tabs.find((tab) => tab.key === active)?.content}
     </div>
   );
 }

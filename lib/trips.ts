@@ -26,6 +26,7 @@ type TripRow = {
   owner_reviews_count: string | null;
   car_model: string | null;
   license_plate: string | null;
+  transport_category: string | null;
   owner_avatar_url: string | null;
   owner_avatar_preset: string | null;
 };
@@ -44,6 +45,7 @@ function toTrip(row: TripRow): Trip {
     totalSeats: row.total_seats,
     seats: Math.max(row.total_seats - takenSeats, 0),
     transport: row.transport,
+    transportCategory: row.transport_category,
     driver: row.driver_name,
     driverId: row.owner_id,
     rating: row.owner_rating ? Math.round(row.owner_rating * 10) / 10 : 0,
@@ -108,6 +110,68 @@ export async function listTripsByOwner(ownerId: number): Promise<OwnedTrip[]> {
     cancelled: !!row.cancelled_at,
     completed: !!row.driver_completed_at && !!row.passenger_completed_at,
   }));
+}
+
+export type TripHistoryEntry = {
+  id: number;
+  type: TripType;
+  from: string;
+  to: string;
+  date: string;
+  time: string;
+  price: number;
+  transport: string;
+  role: "driver" | "passenger";
+  status: "cancelled" | "completed" | "active";
+};
+
+type TripHistoryRow = {
+  id: number;
+  type: TripType;
+  from_city: string;
+  to_city: string;
+  trip_date: string;
+  trip_time: string;
+  price: number;
+  transport: string;
+  is_owner: boolean;
+  cancelled_at: string | null;
+  driver_completed_at: string | null;
+  passenger_completed_at: string | null;
+};
+
+export async function getUserTripHistory(userId: number): Promise<TripHistoryEntry[]> {
+  const rows = await sql<TripHistoryRow[]>`
+    SELECT trips.id, trips.type, trips.from_city, trips.to_city,
+           trips.trip_date, trips.trip_time, trips.price, trips.transport,
+           (trips.owner_id = ${userId}) as is_owner,
+           trips.cancelled_at, trips.driver_completed_at, trips.passenger_completed_at
+    FROM trips
+    WHERE trips.owner_id = ${userId}
+       OR trips.id IN (SELECT trip_id FROM trip_participants WHERE user_id = ${userId})
+    ORDER BY trips.trip_date DESC, trips.trip_time DESC
+  `;
+
+  return rows.map((row) => {
+    const status: TripHistoryEntry["status"] = row.cancelled_at
+      ? "cancelled"
+      : row.driver_completed_at && row.passenger_completed_at
+      ? "completed"
+      : "active";
+
+    return {
+      id: row.id,
+      type: row.type,
+      from: row.from_city,
+      to: row.to_city,
+      date: row.trip_date,
+      time: row.trip_time,
+      price: row.price,
+      transport: row.transport,
+      role: row.is_owner ? "driver" : "passenger",
+      status,
+    };
+  });
 }
 
 export async function getTripById(id: number): Promise<Trip | undefined> {

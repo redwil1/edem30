@@ -1,8 +1,8 @@
 "use client";
 
-import { FormEvent, useState } from "react";
+import { FormEvent, Suspense, useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { ChevronDown, MapPin } from "lucide-react";
 
 import { useAuth } from "@/components/auth/AuthProvider";
@@ -29,20 +29,33 @@ function today() {
 }
 
 export default function CreateTripPage() {
+  return (
+    <Suspense fallback={null}>
+      <CreateTripForm />
+    </Suspense>
+  );
+}
+
+function CreateTripForm() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { user, loading, setRole } = useAuth();
   const [selectedCity, setSelectedCity] = useSelectedCity();
 
-  const [type, setType] = useState<TripType>("intercity");
-  const [from, setFrom] = useState("");
-  const [to, setTo] = useState("");
+  const [type, setType] = useState<TripType>(
+    searchParams.get("type") === "city" ? "city" : "intercity"
+  );
+  const [from, setFrom] = useState(searchParams.get("from") ?? "");
+  const [to, setTo] = useState(searchParams.get("to") ?? "");
   const [date, setDate] = useState(today());
   const [time, setTime] = useState("");
-  const [price, setPrice] = useState("");
-  const [totalSeats, setTotalSeats] = useState("");
-  const [transportCategory, setTransportCategory] = useState("");
-  const [carModel, setCarModel] = useState("");
-  const [licensePlate, setLicensePlate] = useState("");
+  const [price, setPrice] = useState(searchParams.get("price") ?? "");
+  const [totalSeats, setTotalSeats] = useState(searchParams.get("totalSeats") ?? "");
+  const [transportCategory, setTransportCategory] = useState(
+    searchParams.get("transportCategory") ?? ""
+  );
+  const [carModel, setCarModel] = useState(searchParams.get("carModel") ?? "");
+  const [licensePlate, setLicensePlate] = useState(searchParams.get("licensePlate") ?? "");
 
   const [error, setError] = useState("");
   const [submitting, setSubmitting] = useState(false);

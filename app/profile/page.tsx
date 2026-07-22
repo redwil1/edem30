@@ -8,12 +8,14 @@ import VehicleSetup from "@/components/profile/VehicleSetup";
 import IdentitySettings from "@/components/profile/IdentitySettings";
 import ProfileTabs from "@/components/profile/ProfileTabs";
 import ReviewsList from "@/components/profile/ReviewsList";
+import TripHistoryList from "@/components/profile/TripHistoryList";
 import { getCurrentUser } from "@/lib/auth";
 import { sql } from "@/lib/db";
 import {
   countTripsAsDriver,
   countTripsAsPassenger,
   getDriverEarnings,
+  getUserTripHistory,
 } from "@/lib/trips";
 import { getUserRatingStats, listUserReviews } from "@/lib/reviews";
 import { formatPrice, formatRating } from "@/lib/utils";
@@ -55,14 +57,16 @@ export default async function ProfilePage() {
     );
   }
 
-  const [asDriver, asPassenger, ratingStats, earnings, userRow, reviews] = await Promise.all([
-    countTripsAsDriver(user.id),
-    countTripsAsPassenger(user.id),
-    getUserRatingStats(user.id),
-    getDriverEarnings(user.id),
-    sql<{ created_at: string }[]>`SELECT created_at FROM users WHERE id = ${user.id}`,
-    listUserReviews(user.id),
-  ]);
+  const [asDriver, asPassenger, ratingStats, earnings, userRow, reviews, history] =
+    await Promise.all([
+      countTripsAsDriver(user.id),
+      countTripsAsPassenger(user.id),
+      getUserRatingStats(user.id),
+      getDriverEarnings(user.id),
+      sql<{ created_at: string }[]>`SELECT created_at FROM users WHERE id = ${user.id}`,
+      listUserReviews(user.id),
+      getUserTripHistory(user.id),
+    ]);
 
   const memberSince = new Date(userRow[0].created_at).toLocaleDateString("ru-RU", {
     year: "numeric",
@@ -77,74 +81,88 @@ export default async function ProfilePage() {
         <h1 className="text-3xl font-bold mb-6">Профиль</h1>
 
         <ProfileTabs
-          reviewsCount={ratingStats.count}
-          overview={
-            <>
-              <DriverCard
-                driver={user.name}
-                rating={ratingStats.average}
-                verified={false}
-                tripsCount={asDriver}
-                gender={user.gender}
-              />
+          tabs={[
+            {
+              key: "overview",
+              label: "Профиль",
+              content: (
+                <>
+                  <DriverCard
+                    driver={user.name}
+                    rating={ratingStats.average}
+                    verified={false}
+                    tripsCount={asDriver}
+                    gender={user.gender}
+                  />
 
-              <div className="text-sm text-gray-500 mt-4 space-y-1">
-                <div>+{user.phone}</div>
-                <div>
-                  {user.role === "driver" ? "Режим: водитель" : "Режим: пассажир"} ·
-                  {" "}На сайте с {memberSince}
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-4 mt-6">
-                <div className="bg-[#12121c] border border-white/5 rounded-2xl p-4">
-                  <div className="flex items-center gap-2 text-gray-500 text-xs mb-2">
-                    <Users size={14} />
-                    Поездок как пассажир
+                  <div className="text-sm text-gray-500 mt-4 space-y-1">
+                    <div>+{user.phone}</div>
+                    <div>
+                      {user.role === "driver" ? "Режим: водитель" : "Режим: пассажир"} ·
+                      {" "}На сайте с {memberSince}
+                    </div>
                   </div>
 
-                  <div className="text-2xl font-bold">{asPassenger}</div>
-                </div>
+                  <div className="grid grid-cols-2 gap-4 mt-6">
+                    <div className="bg-[#12121c] border border-white/5 rounded-2xl p-4">
+                      <div className="flex items-center gap-2 text-gray-500 text-xs mb-2">
+                        <Users size={14} />
+                        Поездок как пассажир
+                      </div>
 
-                <div className="bg-[#12121c] border border-white/5 rounded-2xl p-4">
-                  <div className="text-gray-500 text-xs mb-2">Рейтинг</div>
+                      <div className="text-2xl font-bold">{asPassenger}</div>
+                    </div>
 
-                  <div className="text-2xl font-bold">
-                    {ratingStats.count > 0 ? (
-                      <>
-                        {formatRating(ratingStats.average)}{" "}
-                        <span className="text-sm font-normal text-gray-500">
-                          ({ratingStats.count} {reviewsWord(ratingStats.count)})
-                        </span>
-                      </>
-                    ) : (
-                      <span className="text-base font-normal text-gray-500">
-                        Пока нет отзывов
-                      </span>
-                    )}
+                    <div className="bg-[#12121c] border border-white/5 rounded-2xl p-4">
+                      <div className="text-gray-500 text-xs mb-2">Рейтинг</div>
+
+                      <div className="text-2xl font-bold">
+                        {ratingStats.count > 0 ? (
+                          <>
+                            {formatRating(ratingStats.average)}{" "}
+                            <span className="text-sm font-normal text-gray-500">
+                              ({ratingStats.count} {reviewsWord(ratingStats.count)})
+                            </span>
+                          </>
+                        ) : (
+                          <span className="text-base font-normal text-gray-500">
+                            Пока нет отзывов
+                          </span>
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="bg-[#12121c] border border-white/5 rounded-2xl p-4 col-span-2">
+                      <div className="flex items-center gap-2 text-gray-500 text-xs mb-2">
+                        <Wallet size={14} />
+                        Заработано как водитель
+                      </div>
+
+                      <div className="text-2xl font-bold">{formatPrice(earnings)}</div>
+                    </div>
                   </div>
-                </div>
 
-                <div className="bg-[#12121c] border border-white/5 rounded-2xl p-4 col-span-2">
-                  <div className="flex items-center gap-2 text-gray-500 text-xs mb-2">
-                    <Wallet size={14} />
-                    Заработано как водитель
-                  </div>
+                  <IdentitySettings />
 
-                  <div className="text-2xl font-bold">{formatPrice(earnings)}</div>
-                </div>
-              </div>
-
-              <IdentitySettings />
-
-              {user.role === "driver" && (
-                <div className="mt-6">
-                  <VehicleSetup />
-                </div>
-              )}
-            </>
-          }
-          reviews={<ReviewsList reviews={reviews} />}
+                  {user.role === "driver" && (
+                    <div className="mt-6">
+                      <VehicleSetup />
+                    </div>
+                  )}
+                </>
+              ),
+            },
+            {
+              key: "history",
+              label: "История",
+              content: <TripHistoryList trips={history} />,
+            },
+            {
+              key: "reviews",
+              label: ratingStats.count > 0 ? `Отзывы (${ratingStats.count})` : "Отзывы",
+              content: <ReviewsList reviews={reviews} />,
+            },
+          ]}
         />
       </div>
 

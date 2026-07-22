@@ -95,10 +95,13 @@ export default async function PublicProfilePage({ params }: Props) {
         </Link>
 
         <ProfileTabs
-          reviewsCount={ratingStats.count}
-          overview={
-            <>
-              <div className="bg-[#171726] rounded-3xl p-5 border border-violet-500/10">
+          tabs={[
+            {
+              key: "overview",
+              label: "Профиль",
+              content: (
+                <>
+                  <div className="bg-[#171726] rounded-3xl p-5 border border-violet-500/10">
                 <div className="flex items-center gap-4">
                   <Avatar
                     name={target.name}
@@ -163,9 +166,15 @@ export default async function PublicProfilePage({ params }: Props) {
                   </div>
                 </div>
               </div>
-            </>
-          }
-          reviews={<ReviewsList reviews={reviews} />}
+                </>
+              ),
+            },
+            {
+              key: "reviews",
+              label: ratingStats.count > 0 ? `Отзывы (${ratingStats.count})` : "Отзывы",
+              content: <ReviewsList reviews={reviews} />,
+            },
+          ]}
         />
       </div>
 

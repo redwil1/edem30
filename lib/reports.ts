@@ -10,9 +10,74 @@ export type CreateReportInput = {
   description?: string;
 };
 
+async function getReportedUserId(
+  tripId: number,
+  reporterId: number
+): Promise<number | null> {
+  const [ownerRows, participants] = await Promise.all([
+    sql<{ owner_id: number | null }[]>`SELECT owner_id FROM trips WHERE id = ${tripId}`,
+    sql<{ user_id: number }[]>`SELECT user_id FROM trip_participants WHERE trip_id = ${tripId}`,
+  ]);
+
+  const ownerId = ownerRows[0]?.owner_id ?? null;
+
+  if (ownerId !== null && ownerId !== reporterId) {
+    return ownerId;
+  }
+
+  if (ownerId === reporterId && participants.length === 1) {
+    return participants[0].user_id;
+  }
+
+  return null;
+}
+
 export async function createReport(input: CreateReportInput): Promise<void> {
+  const reportedUserId = await getReportedUserId(input.tripId, input.reporterId);
+
   await sql`
-    INSERT INTO trip_reports (trip_id, reporter_id, category, description)
-    VALUES (${input.tripId}, ${input.reporterId}, ${input.category}, ${input.description ?? null})
+    INSERT INTO trip_reports (trip_id, reporter_id, reported_user_id, category, description)
+    VALUES (${input.tripId}, ${input.reporterId}, ${reportedUserId}, ${input.category}, ${input.description ?? null})
+  `;
+}
+
+export type PendingComplaintNotice = {
+  reportId: number;
+  tripRoute: string;
+  tripId: number;
+};
+
+export async function getPendingComplaintNotices(
+  userId: number
+): Promise<PendingComplaintNotice[]> {
+  const rows = await sql<
+    { id: number; trip_id: number; from_city: string; to_city: string }[]
+  >`
+    SELECT trip_reports.id as id, trip_reports.trip_id as trip_id,
+           trips.from_city as from_city, trips.to_city as to_city
+    FROM trip_reports
+    JOIN trips ON trips.id = trip_reports.trip_id
+    WHERE trip_reports.reported_user_id = ${userId}
+      AND trip_reports.seen_at IS NULL
+    ORDER BY trip_reports.id ASC
+  `;
+
+  return rows.map((r) => ({
+    reportId: r.id,
+    tripId: r.trip_id,
+    tripRoute: `${r.from_city} → ${r.to_city}`,
+  }));
+}
+
+export async function markComplaintNoticesSeen(
+  userId: number,
+  reportIds: number[]
+): Promise<void> {
+  if (reportIds.length === 0) return;
+
+  await sql`
+    UPDATE trip_reports
+    SET seen_at = to_char(now() AT TIME ZONE 'utc', 'YYYY-MM-DD"T"HH24:MI:SS"Z"')
+    WHERE reported_user_id = ${userId} AND id = ANY(${reportIds})
   `;
 }
