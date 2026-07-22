@@ -22,9 +22,9 @@ export default function CityModal({ open, onClose, onSelect, title }: Props) {
   );
 
   return (
-    <div className="fixed inset-0 bg-black/70 flex items-end sm:items-center justify-center z-50">
-      <div className="bg-[#171726] w-full max-w-md rounded-t-3xl sm:rounded-3xl p-6 max-h-[80vh] flex flex-col">
-        <div className="flex items-center justify-between mb-5">
+    <div className="fixed inset-0 h-[100dvh] bg-black/70 flex items-end sm:items-center justify-center z-50">
+      <div className="bg-[#171726] w-full max-w-md rounded-t-3xl sm:rounded-3xl p-6 max-h-[85dvh] sm:max-h-[80vh] flex flex-col min-h-0">
+        <div className="flex items-center justify-between mb-5 shrink-0">
           <h2 className="text-2xl font-bold">{title ?? "Выберите город"}</h2>
 
           <button
@@ -48,7 +48,7 @@ export default function CityModal({ open, onClose, onSelect, title }: Props) {
           />
         </div>
 
-        <div className="space-y-2 overflow-y-auto">
+        <div className="space-y-2 overflow-y-auto flex-1 min-h-0">
           {filtered.map((city) => (
             <button
               key={city}
