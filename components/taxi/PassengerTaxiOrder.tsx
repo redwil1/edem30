@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { Car, Check, Loader2, MapPin, X } from "lucide-react";
 
 import AddressInput from "@/components/taxi/AddressInput";
+import FavoriteAddressChips from "@/components/taxi/FavoriteAddressChips";
 import CitySwitch from "@/components/home/CitySwitch";
 import { useSelectedCity } from "@/hooks/useSelectedCity";
 import { formatPrice, formatSeats } from "@/lib/utils";
@@ -248,7 +249,10 @@ export default function PassengerTaxiOrder({ initialFrom, initialTo }: Props = {
         <CitySwitch city={city} onChange={setCity} />
       </div>
 
+      <FavoriteAddressChips onSelect={setFrom} />
       <AddressInput value={from} onChange={setFrom} placeholder="📍 Точка А" city={city} />
+
+      <FavoriteAddressChips onSelect={setTo} />
       <AddressInput value={to} onChange={setTo} placeholder="🏁 Точка Б" city={city} />
 
       <input

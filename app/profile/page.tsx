@@ -6,8 +6,10 @@ import Footer from "@/components/layout/Footer";
 import DriverCard from "@/components/driver/DriverCard";
 import VehicleSetup from "@/components/profile/VehicleSetup";
 import DriverVerification from "@/components/profile/DriverVerification";
+import EarningsChart from "@/components/profile/EarningsChart";
 import IdentitySettings from "@/components/profile/IdentitySettings";
 import PushSubscribeButton from "@/components/PushSubscribeButton";
+import FavoriteAddressesManager from "@/components/profile/FavoriteAddressesManager";
 import ProfileTabs from "@/components/profile/ProfileTabs";
 import ReviewsList from "@/components/profile/ReviewsList";
 import TripHistoryList from "@/components/profile/TripHistoryList";
@@ -17,6 +19,7 @@ import {
   countTripsAsDriver,
   countTripsAsPassenger,
   getDriverEarnings,
+  getDriverEarningsHistory,
   getUserTripHistory,
 } from "@/lib/trips";
 import { getUserRatingStats, listUserReviews } from "@/lib/reviews";
@@ -59,12 +62,13 @@ export default async function ProfilePage() {
     );
   }
 
-  const [asDriver, asPassenger, ratingStats, earnings, userRow, reviews, history] =
+  const [asDriver, asPassenger, ratingStats, earnings, earningsHistory, userRow, reviews, history] =
     await Promise.all([
       countTripsAsDriver(user.id),
       countTripsAsPassenger(user.id),
       getUserRatingStats(user.id),
       getDriverEarnings(user.id),
+      getDriverEarningsHistory(user.id),
       sql<{ created_at: string }[]>`SELECT created_at FROM users WHERE id = ${user.id}`,
       listUserReviews(user.id),
       getUserTripHistory(user.id),
@@ -150,6 +154,8 @@ export default async function ProfilePage() {
                     <PushSubscribeButton />
                   </div>
 
+                  <FavoriteAddressesManager />
+
                   {user.role === "driver" && (
                     <div className="mt-6">
                       <VehicleSetup />
@@ -157,6 +163,8 @@ export default async function ProfilePage() {
                   )}
 
                   {user.role === "driver" && <DriverVerification />}
+
+                  {user.role === "driver" && <EarningsChart weeks={earningsHistory} />}
                 </>
               ),
             },

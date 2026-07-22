@@ -789,6 +789,48 @@ export async function getDriverEarnings(userId: number): Promise<number> {
   return Number(rows[0].total);
 }
 
+export type EarningsWeek = {
+  weekStart: string;
+  total: number;
+};
+
+export async function getDriverEarningsHistory(
+  userId: number,
+  weeks = 8
+): Promise<EarningsWeek[]> {
+  const rows = await sql<{ week_start: string; total: string }[]>`
+    SELECT
+      to_char(date_trunc('week', GREATEST(driver_completed_at, passenger_completed_at)::timestamptz), 'YYYY-MM-DD') as week_start,
+      SUM(trips.price * (
+        SELECT COUNT(*) FROM trip_participants WHERE trip_participants.trip_id = trips.id
+      )) as total
+    FROM trips
+    WHERE trips.owner_id = ${userId} AND ${COMPLETED_CLAUSE}
+      AND GREATEST(driver_completed_at, passenger_completed_at)::timestamptz >= now() - (${weeks}::text || ' weeks')::interval
+    GROUP BY week_start
+  `;
+
+  const totalsByWeek = new Map(rows.map((r) => [r.week_start, Number(r.total)]));
+
+  const result: EarningsWeek[] = [];
+  const now = new Date();
+
+  for (let i = weeks - 1; i >= 0; i--) {
+    const d = new Date(now);
+    d.setDate(d.getDate() - i * 7);
+
+    const day = d.getDay();
+    const mondayOffset = day === 0 ? -6 : 1 - day;
+    d.setDate(d.getDate() + mondayOffset);
+
+    const weekStart = d.toISOString().slice(0, 10);
+
+    result.push({ weekStart, total: totalsByWeek.get(weekStart) ?? 0 });
+  }
+
+  return result;
+}
+
 export async function countActiveTripsByOwner(ownerId: number): Promise<number> {
   const rows = await sql<{ count: string }[]>`
     SELECT COUNT(*) as count FROM trips WHERE owner_id = ${ownerId} AND ${ACTIVE_CLAUSE}
