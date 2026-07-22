@@ -134,6 +134,7 @@ export type AdminUser = {
   phone: string;
   role: UserRole;
   createdAt: string;
+  reportsAgainst: number;
 };
 
 type AdminUserRow = {
@@ -142,11 +143,14 @@ type AdminUserRow = {
   phone: string;
   role: UserRole;
   createdat: string;
+  reports_against: string;
 };
 
 export async function listAdminUsers(search?: string): Promise<AdminUser[]> {
   const rows = await sql<AdminUserRow[]>`
-    SELECT id, name, phone, role, created_at as createdAt
+    SELECT users.id as id, users.name as name, users.phone as phone,
+           users.role as role, users.created_at as createdAt,
+           (SELECT COUNT(*) FROM trip_reports WHERE trip_reports.reported_user_id = users.id) as reports_against
     FROM users
     ${search ? sql`WHERE name ILIKE ${`%${search}%`}` : sql``}
     ORDER BY id DESC
@@ -158,6 +162,7 @@ export async function listAdminUsers(search?: string): Promise<AdminUser[]> {
     phone: r.phone,
     role: r.role,
     createdAt: r.createdat,
+    reportsAgainst: Number(r.reports_against),
   }));
 }
 

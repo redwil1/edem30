@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Check, Copy, KeyRound, Loader2, Search, Trash2, X } from "lucide-react";
+import { AlertTriangle, Check, Copy, KeyRound, Loader2, Search, Trash2, X } from "lucide-react";
 
 type Role = "passenger" | "driver" | "admin";
 
@@ -11,7 +11,18 @@ type User = {
   phone: string;
   role: Role;
   createdAt: string;
+  reportsAgainst: number;
 };
+
+function riskBadge(count: number) {
+  if (count === 0) return null;
+
+  if (count >= 3) {
+    return { label: `${count} жалоб`, className: "bg-red-500/15 text-red-400" };
+  }
+
+  return { label: `${count} жалоб${count === 1 ? "а" : "ы"}`, className: "bg-yellow-500/15 text-yellow-300" };
+}
 
 const ROLE_LABELS: Record<Role, string> = {
   passenger: "Пассажир",
@@ -151,7 +162,21 @@ export default function AdminUsersTable() {
               {users.map((u) => (
                 <tr key={u.id} className="border-b border-white/5 last:border-0">
                   <td className="px-4 py-3 text-gray-500">{u.id}</td>
-                  <td className="px-4 py-3 font-medium">{u.name}</td>
+                  <td className="px-4 py-3 font-medium">
+                    <div className="flex items-center gap-2">
+                      {u.name}
+
+                      {riskBadge(u.reportsAgainst) && (
+                        <span
+                          className={`inline-flex items-center gap-1 text-[10px] font-medium px-1.5 py-0.5 rounded-full whitespace-nowrap ${riskBadge(u.reportsAgainst)!.className}`}
+                          title="Количество жалоб на этого пользователя"
+                        >
+                          <AlertTriangle size={10} />
+                          {riskBadge(u.reportsAgainst)!.label}
+                        </span>
+                      )}
+                    </div>
+                  </td>
                   <td className="px-4 py-3 text-gray-400">+{u.phone}</td>
                   <td className="px-4 py-3">
                     <select
