@@ -6,7 +6,7 @@ import { checkChatMessage } from "@/lib/moderation";
 import { rateLimit } from "@/lib/rateLimit";
 import { isTrustedOrigin } from "@/lib/security";
 import { publicStorageUrl } from "@/lib/storage";
-import { getTripOwnerId, isTripPartyMember } from "@/lib/trips";
+import { getTripLifecycle, getTripOwnerId, isChatLocked, isTripPartyMember } from "@/lib/trips";
 
 export const runtime = "nodejs";
 
@@ -36,9 +36,10 @@ export async function GET(_req: Request, { params }: Props) {
     return NextResponse.json({ error: "Некорректная поездка" }, { status: 400 });
   }
 
-  const [user, ownerId, rows] = await Promise.all([
+  const [user, ownerId, lifecycle, rows] = await Promise.all([
     getCurrentUser(),
     getTripOwnerId(tripId),
+    getTripLifecycle(tripId),
     sql<MessageRow[]>`
       SELECT chat_messages.id as id, chat_messages.user_id as user_id,
              users.name as name, users.avatar_url as avatar_url,
@@ -67,7 +68,11 @@ export async function GET(_req: Request, { params }: Props) {
         isYou: user ? r.user_id === user.id : false,
         isDriver: r.user_id === ownerId,
       })),
-      canPost: user ? await isTripPartyMember(tripId, user.id) : false,
+      canPost:
+        (user ? await isTripPartyMember(tripId, user.id) : false) &&
+        !isChatLocked(lifecycle.completedAt),
+      completedAt: lifecycle.completedAt,
+      chatLocked: isChatLocked(lifecycle.completedAt),
     },
     { headers: { "Cache-Control": "no-store" } }
   );
@@ -100,6 +105,15 @@ export async function POST(req: NextRequest, { params }: Props) {
   if (!(await isTripPartyMember(tripId, user.id))) {
     return NextResponse.json(
       { error: "Присоединитесь к поездке, чтобы писать в чат" },
+      { status: 403 }
+    );
+  }
+
+  const lifecycle = await getTripLifecycle(tripId);
+
+  if (isChatLocked(lifecycle.completedAt)) {
+    return NextResponse.json(
+      { error: "Чат закрыт — поездка завершена больше минуты назад" },
       { status: 403 }
     );
   }

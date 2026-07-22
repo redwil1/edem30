@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Paperclip, Send, Check, Lock, LogOut, Loader2 } from "lucide-react";
+import { Paperclip, Send, Check, Clock, Lock, LogOut, Loader2 } from "lucide-react";
 
 import { useAuth } from "@/components/auth/AuthProvider";
 import { compressImage } from "@/lib/imageCompress";
@@ -92,6 +92,9 @@ export default function ChatPanel({ tripId }: Props) {
 
   const [messages, setMessages] = useState<Message[]>([]);
   const [canPost, setCanPost] = useState(false);
+  const [completedAt, setCompletedAt] = useState<string | null>(null);
+  const [chatLocked, setChatLocked] = useState(false);
+  const [now, setNow] = useState(() => Date.now());
   const [value, setValue] = useState("");
   const [error, setError] = useState("");
   const [joining, setJoining] = useState(false);
@@ -108,6 +111,8 @@ export default function ChatPanel({ tripId }: Props) {
 
     setMessages(data.messages);
     setCanPost(data.canPost);
+    setCompletedAt(data.completedAt ?? null);
+    setChatLocked(!!data.chatLocked);
   }
 
   useEffect(() => {
@@ -122,6 +127,18 @@ export default function ChatPanel({ tripId }: Props) {
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight });
   }, [messages]);
+
+  useEffect(() => {
+    if (!completedAt || chatLocked) return;
+
+    const tick = setInterval(() => setNow(Date.now()), 1000);
+
+    return () => clearInterval(tick);
+  }, [completedAt, chatLocked]);
+
+  const secondsLeft = completedAt
+    ? Math.max(0, 60 - Math.floor((now - new Date(completedAt).getTime()) / 1000))
+    : null;
 
   async function send() {
     const text = value.trim();
@@ -332,8 +349,21 @@ export default function ChatPanel({ tripId }: Props) {
         )}
       </div>
 
-      {canPost ? (
+      {chatLocked ? (
+        <div className="flex items-center gap-2.5 text-sm text-gray-400 mt-5 bg-[#1c1c2b] rounded-2xl px-4 py-3.5">
+          <Lock size={15} className="shrink-0" />
+          Чат закрыт — поездка завершена
+        </div>
+      ) : canPost ? (
         <div className="mt-5">
+          {secondsLeft !== null && (
+            <div className="flex items-center gap-2.5 text-xs text-amber-300 bg-amber-500/10 border border-amber-500/20 rounded-xl px-3.5 py-2.5 mb-3">
+              <Clock size={14} className="shrink-0" />
+              Поездка завершена. Если что-то забыли в машине — напишите
+              прямо сейчас, чат закроется через {secondsLeft} с.
+            </div>
+          )}
+
           {error && <p className="text-red-400 text-xs mb-2">{error}</p>}
 
           <div className="flex items-center gap-2 bg-[#1c1c2b] rounded-2xl px-3 py-2">

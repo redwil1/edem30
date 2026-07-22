@@ -137,6 +137,14 @@ export async function isTripParticipant(
   return rows.length > 0;
 }
 
+export const CHAT_LOCK_GRACE_MS = 60_000;
+
+export function isChatLocked(completedAt: string | null): boolean {
+  if (!completedAt) return false;
+
+  return Date.now() - new Date(completedAt).getTime() > CHAT_LOCK_GRACE_MS;
+}
+
 export async function isTripPartyMember(
   tripId: number,
   userId: number
