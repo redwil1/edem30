@@ -6,7 +6,14 @@ import { checkChatMessage } from "@/lib/moderation";
 import { rateLimit } from "@/lib/rateLimit";
 import { isTrustedOrigin } from "@/lib/security";
 import { publicStorageUrl } from "@/lib/storage";
-import { getTripLifecycle, getTripOwnerId, isChatLocked, isTripPartyMember } from "@/lib/trips";
+import {
+  getTripLifecycle,
+  getTripOwnerId,
+  getTripPartyMemberIds,
+  isChatLocked,
+  isTripPartyMember,
+} from "@/lib/trips";
+import { sendPushToUser } from "@/lib/push";
 
 export const runtime = "nodejs";
 
@@ -185,6 +192,20 @@ export async function POST(req: NextRequest, { params }: Props) {
       RETURNING id, created_at
     `,
   ]);
+
+  getTripPartyMemberIds(tripId, user.id).then((recipients) => {
+    const preview = text || (attachmentUrl ? "Вложение" : "");
+
+    return Promise.all(
+      recipients.map((recipientId) =>
+        sendPushToUser(recipientId, {
+          title: `${user.name}: новое сообщение`,
+          body: preview.slice(0, 120),
+          url: `/trip/${tripId}`,
+        })
+      )
+    );
+  });
 
   return NextResponse.json({
     id: inserted[0].id,

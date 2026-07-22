@@ -1,7 +1,9 @@
 import "server-only";
 
+import crypto from "crypto";
+
 import { sql } from "@/lib/db";
-import { getCurrentUser, UserRole } from "@/lib/auth";
+import { getCurrentUser, hashPassword, UserRole } from "@/lib/auth";
 
 export async function requireAdmin() {
   const user = await getCurrentUser();
@@ -396,6 +398,30 @@ export async function resolveReport(reportId: number): Promise<boolean> {
   `;
 
   return result.count > 0;
+}
+
+const PASSWORD_ALPHABET = "abcdefghjkmnpqrstuvwxyzABCDEFGHJKMNPQRSTUVWXYZ23456789";
+
+function generateTempPassword(length = 10): string {
+  const bytes = crypto.randomBytes(length);
+  let password = "";
+
+  for (let i = 0; i < length; i++) {
+    password += PASSWORD_ALPHABET[bytes[i] % PASSWORD_ALPHABET.length];
+  }
+
+  return password;
+}
+
+export async function resetUserPassword(userId: number): Promise<string | null> {
+  const password = generateTempPassword();
+  const passwordHash = await hashPassword(password);
+
+  const result = await sql`
+    UPDATE users SET password_hash = ${passwordHash} WHERE id = ${userId}
+  `;
+
+  return result.count > 0 ? password : null;
 }
 
 export async function deleteAdminUser(userId: number): Promise<boolean> {

@@ -6,6 +6,7 @@ import Footer from "@/components/layout/Footer";
 import DriverCard from "@/components/driver/DriverCard";
 import VehicleSetup from "@/components/profile/VehicleSetup";
 import IdentitySettings from "@/components/profile/IdentitySettings";
+import PushSubscribeButton from "@/components/PushSubscribeButton";
 import ProfileTabs from "@/components/profile/ProfileTabs";
 import ReviewsList from "@/components/profile/ReviewsList";
 import TripHistoryList from "@/components/profile/TripHistoryList";
@@ -143,6 +144,10 @@ export default async function ProfilePage() {
                   </div>
 
                   <IdentitySettings />
+
+                  <div className="bg-[#12121c] border border-white/5 rounded-3xl p-4 sm:p-6 mt-6">
+                    <PushSubscribeButton />
+                  </div>
 
                   {user.role === "driver" && (
                     <div className="mt-6">

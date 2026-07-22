@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Loader2, Search, Trash2 } from "lucide-react";
+import { Check, Copy, KeyRound, Loader2, Search, Trash2, X } from "lucide-react";
 
 type Role = "passenger" | "driver" | "admin";
 
@@ -24,6 +24,11 @@ export default function AdminUsersTable() {
   const [search, setSearch] = useState("");
   const [savingId, setSavingId] = useState<number | null>(null);
   const [deletingId, setDeletingId] = useState<number | null>(null);
+  const [resettingId, setResettingId] = useState<number | null>(null);
+  const [newPassword, setNewPassword] = useState<{ user: User; password: string } | null>(
+    null
+  );
+  const [copied, setCopied] = useState(false);
   const [error, setError] = useState("");
 
   async function load(query: string) {
@@ -76,6 +81,32 @@ export default function AdminUsersTable() {
       await load(search);
     } finally {
       setDeletingId(null);
+    }
+  }
+
+  async function resetPassword(user: User) {
+    if (!confirm(`Сбросить пароль пользователя «${user.name}»? Старый пароль перестанет работать.`)) {
+      return;
+    }
+
+    setError("");
+    setResettingId(user.id);
+
+    try {
+      const res = await fetch(`/api/admin/users/${user.id}/reset-password`, {
+        method: "POST",
+      });
+      const data = await res.json().catch(() => null);
+
+      if (!res.ok) {
+        setError(data?.error || "Не удалось сбросить пароль");
+        return;
+      }
+
+      setNewPassword({ user, password: data.password });
+      setCopied(false);
+    } finally {
+      setResettingId(null);
     }
   }
 
@@ -139,7 +170,21 @@ export default function AdminUsersTable() {
                   <td className="px-4 py-3 text-gray-500 whitespace-nowrap">
                     {u.createdAt}
                   </td>
-                  <td className="px-4 py-3 text-right">
+                  <td className="px-4 py-3 text-right whitespace-nowrap">
+                    <button
+                      type="button"
+                      onClick={() => resetPassword(u)}
+                      disabled={resettingId === u.id}
+                      title="Сбросить пароль"
+                      className="inline-flex items-center justify-center w-8 h-8 rounded-lg text-violet-400 hover:bg-violet-500/10 disabled:opacity-30 transition"
+                    >
+                      {resettingId === u.id ? (
+                        <Loader2 size={15} className="animate-spin" />
+                      ) : (
+                        <KeyRound size={15} />
+                      )}
+                    </button>
+
                     <button
                       type="button"
                       onClick={() => deleteUser(u)}
@@ -174,6 +219,66 @@ export default function AdminUsersTable() {
       )}
 
       {error && <p className="text-red-400 text-sm mt-3">{error}</p>}
+
+      {newPassword && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 px-5"
+          onClick={() => setNewPassword(null)}
+        >
+          <div
+            className="bg-[#171726] border border-white/10 rounded-3xl p-6 w-full max-w-sm"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between mb-4">
+              <div className="font-display font-bold">Новый пароль</div>
+
+              <button
+                type="button"
+                onClick={() => setNewPassword(null)}
+                className="w-8 h-8 rounded-full flex items-center justify-center text-gray-400 hover:bg-white/5 transition"
+                aria-label="Закрыть"
+              >
+                <X size={16} />
+              </button>
+            </div>
+
+            <p className="text-sm text-gray-500 mb-4">
+              Для «{newPassword.user.name}» (+{newPassword.user.phone}). Сообщите
+              его пользователю — повторно посмотреть будет нельзя.
+            </p>
+
+            <div className="flex items-center gap-2 bg-[#1c1c2b] rounded-xl px-4 py-3">
+              <span className="font-mono text-lg flex-1 tracking-wide">
+                {newPassword.password}
+              </span>
+
+              <button
+                type="button"
+                onClick={() => {
+                  navigator.clipboard.writeText(newPassword.password);
+                  setCopied(true);
+                }}
+                className="text-gray-400 hover:text-white transition shrink-0"
+                aria-label="Скопировать"
+              >
+                {copied ? (
+                  <Check size={16} className="text-green-400" />
+                ) : (
+                  <Copy size={16} />
+                )}
+              </button>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => setNewPassword(null)}
+              className="btn-gradient w-full mt-5 rounded-xl py-3 text-sm font-bold"
+            >
+              Готово
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -6,6 +6,7 @@ import { normalizePhone } from "@/lib/phone";
 import { rateLimit } from "@/lib/rateLimit";
 import { getClientIp, isTrustedOrigin } from "@/lib/security";
 import { verifyCaptcha } from "@/lib/captcha";
+import { isPlaceholderName } from "@/lib/nameValidation";
 
 export const runtime = "nodejs";
 
@@ -47,6 +48,13 @@ export async function POST(req: NextRequest) {
 
   if (!name || name.length < 2) {
     return NextResponse.json({ error: "Укажите имя" }, { status: 400 });
+  }
+
+  if (isPlaceholderName(name)) {
+    return NextResponse.json(
+      { error: "Укажите настоящее имя, а не «аноним» или похожее" },
+      { status: 400 }
+    );
   }
 
   if (phone.length !== 11) {

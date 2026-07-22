@@ -223,6 +223,27 @@ export async function isTripPartyMember(
   return owner === userId || participant;
 }
 
+export async function getTripPartyMemberIds(
+  tripId: number,
+  excludeUserId?: number
+): Promise<number[]> {
+  const [ownerId, participants] = await Promise.all([
+    getTripOwnerId(tripId),
+    sql<{ user_id: number }[]>`
+      SELECT user_id FROM trip_participants WHERE trip_id = ${tripId}
+    `,
+  ]);
+
+  const ids = new Set<number>();
+
+  if (ownerId !== null) ids.add(ownerId);
+  for (const p of participants) ids.add(p.user_id);
+
+  if (excludeUserId !== undefined) ids.delete(excludeUserId);
+
+  return [...ids];
+}
+
 export async function isInstantTaxiTrip(tripId: number): Promise<boolean> {
   const rows = await sql`SELECT 1 FROM taxi_orders WHERE trip_id = ${tripId}`;
 

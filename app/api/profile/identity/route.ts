@@ -5,6 +5,7 @@ import { sql } from "@/lib/db";
 import { rateLimit } from "@/lib/rateLimit";
 import { isTrustedOrigin } from "@/lib/security";
 import { isValidAvatarPreset, isValidGender } from "@/lib/avatarPresets";
+import { isPlaceholderName } from "@/lib/nameValidation";
 
 export const runtime = "nodejs";
 
@@ -32,6 +33,23 @@ export async function POST(req: NextRequest) {
   }
 
   const body = await req.json().catch(() => null);
+
+  if (body?.name !== undefined) {
+    const name = typeof body.name === "string" ? body.name.trim().slice(0, 60) : "";
+
+    if (!name || name.length < 2) {
+      return NextResponse.json({ error: "Укажите имя" }, { status: 400 });
+    }
+
+    if (isPlaceholderName(name)) {
+      return NextResponse.json(
+        { error: "Укажите настоящее имя, а не «аноним» или похожее" },
+        { status: 400 }
+      );
+    }
+
+    await sql`UPDATE users SET name = ${name} WHERE id = ${user.id}`;
+  }
 
   if (body?.gender !== undefined) {
     if (body.gender !== null && !isValidGender(body.gender)) {

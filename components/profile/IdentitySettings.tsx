@@ -9,13 +9,14 @@ import { GENDERS } from "@/lib/avatarPresets";
 export default function IdentitySettings() {
   const { user, refresh } = useAuth();
   const [gender, setGender] = useState(user?.gender ?? "");
+  const [name, setName] = useState(user?.name ?? "");
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [error, setError] = useState("");
 
   if (!user) return null;
 
-  async function save(patch: { gender?: string | null }) {
+  async function save(patch: { gender?: string | null; name?: string }) {
     setSaving(true);
     setError("");
 
@@ -46,6 +47,29 @@ export default function IdentitySettings() {
   return (
     <div className="bg-[#12121c] border border-white/5 rounded-3xl p-4 sm:p-6 mt-6">
       <div className="font-display font-bold mb-4">Профиль</div>
+
+      <div className="mb-5">
+        <div className="text-xs text-gray-500 mb-2">Имя</div>
+
+        <div className="flex gap-2">
+          <input
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            maxLength={60}
+            disabled={saving}
+            className="flex-1 bg-[#171726] border border-white/10 focus:border-violet-500 rounded-xl px-3.5 py-2.5 text-sm outline-none disabled:opacity-60 transition"
+          />
+
+          <button
+            type="button"
+            onClick={() => save({ name: name.trim() })}
+            disabled={saving || !name.trim() || name.trim() === user.name}
+            className="btn-gradient rounded-xl px-4 py-2.5 text-sm font-bold disabled:opacity-40 transition"
+          >
+            Сохранить
+          </button>
+        </div>
+      </div>
 
       <div>
         <div className="text-xs text-gray-500 mb-2">Пол</div>

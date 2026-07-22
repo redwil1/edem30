@@ -3,6 +3,7 @@ import "server-only";
 import { sql } from "@/lib/db";
 import { createTrip } from "@/lib/trips";
 import { carBodyTypeLabel, isVehicleComplete, Vehicle } from "@/lib/vehicle";
+import { sendPushToDrivers, sendPushToUser } from "@/lib/push";
 
 export type TaxiOrderStatus = "open" | "accepted" | "cancelled";
 
@@ -78,6 +79,12 @@ export async function createOrder(
     VALUES (${passenger.id}, ${input.from}, ${input.to}, ${input.price}, ${input.seats})
     RETURNING id
   `;
+
+  sendPushToDrivers({
+    title: "Новый заказ такси",
+    body: `${input.from} → ${input.to} · ${input.price} ₽`,
+    url: "/taxi",
+  });
 
   return rows[0].id;
 }
@@ -232,6 +239,12 @@ export async function acceptOrder(
     `;
 
     return id;
+  });
+
+  sendPushToUser(order.passenger_id, {
+    title: "Водитель найден",
+    body: `${carBodyTypeLabel(vehicle.bodyType)} ${vehicle.model} едет к вам`,
+    url: `/trip/${tripId}`,
   });
 
   return { ok: true, tripId };

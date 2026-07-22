@@ -2,6 +2,7 @@ import "server-only";
 
 import { sql } from "@/lib/db";
 import { ReportCategory } from "@/lib/reportCategories";
+import { sendPushToUser } from "@/lib/push";
 
 export type CreateReportInput = {
   tripId: number;
@@ -34,6 +35,14 @@ async function getReportedUserId(
 
 export async function createReport(input: CreateReportInput): Promise<void> {
   const reportedUserId = await getReportedUserId(input.tripId, input.reporterId);
+
+  if (reportedUserId !== null) {
+    sendPushToUser(reportedUserId, {
+      title: "На вас поступила жалоба",
+      body: "Администрация рассмотрит обращение по одной из ваших поездок",
+      url: "/profile",
+    });
+  }
 
   await sql`
     INSERT INTO trip_reports (trip_id, reporter_id, reported_user_id, category, description)
