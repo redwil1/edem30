@@ -1,7 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { ChevronDown, MapPin, X } from "lucide-react";
+import Link from "next/link";
+import { ChevronDown, MapPin, Plus, X } from "lucide-react";
 
 import CityModal from "./CityModal";
 import TripsList from "./TripsList";
@@ -85,6 +86,14 @@ export default function TripSearch({ trips, emptyText }: Props) {
         }}
         title={cityModalField === "from" ? "Откуда вы едете?" : "Куда вы едете?"}
       />
+
+      <Link
+        href="/create-trip"
+        className="btn-gradient w-full mt-5 flex items-center justify-center gap-2 rounded-2xl py-3.5 text-sm font-bold transition"
+      >
+        <Plus size={16} />
+        Добавить поездку
+      </Link>
 
       <div className="mt-8">
         <TripsList trips={filteredTrips} emptyText={emptyText} />
