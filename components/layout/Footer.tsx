@@ -24,6 +24,10 @@ export default function Footer() {
             О сервисе
           </Link>
 
+          <Link href="/faq" className="hover:text-white transition">
+            Вопросы и ответы
+          </Link>
+
           <Link href="/terms" className="hover:text-white transition">
             Пользовательское соглашение
           </Link>
