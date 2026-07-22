@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 
@@ -22,6 +23,10 @@ type Props = {
   params: Promise<{
     id: string;
   }>;
+};
+
+export const metadata: Metadata = {
+  robots: { index: false, follow: false },
 };
 
 export default async function TripPage({ params }: Props) {

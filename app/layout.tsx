@@ -27,8 +27,18 @@ const unbounded = Unbounded({
 });
 
 export const metadata: Metadata = {
-  title: "Едем30 — по городу и межгороду",
-  description: "Расписание рейсов, поиск попутчиков и заказ такси в одном месте",
+  metadataBase: new URL("https://edem30.ru"),
+  title: {
+    default: "Едем30 — такси и попутчики по Астраханской области",
+    template: "%s · Едем30",
+  },
+  description:
+    "Заказ такси и поиск попутчиков в Астрахани, Харабали и других городах Астраханской области. Расписание межгородних поездок, чат с водителем, отзывы.",
+  openGraph: {
+    siteName: "Едем30",
+    locale: "ru_RU",
+    type: "website",
+  },
 };
 
 export default function RootLayout({

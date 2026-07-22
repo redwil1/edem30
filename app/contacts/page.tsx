@@ -1,7 +1,13 @@
+import type { Metadata } from "next";
 import { Building2, Clock, Mail, MapPin, MessageCircle, Phone } from "lucide-react";
 
 import Navbar from "@/components/layout/Navbar";
 import Footer from "@/components/layout/Footer";
+
+export const metadata: Metadata = {
+  title: "Контакты",
+  description: "Свяжитесь с поддержкой сервиса Едем30 — телефон, почта, чат и адрес.",
+};
 
 const contactCards = [
   {

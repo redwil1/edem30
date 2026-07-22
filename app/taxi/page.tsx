@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { Car } from "lucide-react";
 
@@ -5,6 +6,12 @@ import Navbar from "@/components/layout/Navbar";
 import Footer from "@/components/layout/Footer";
 import TaxiDashboard from "@/components/taxi/TaxiDashboard";
 import { listTrips } from "@/lib/trips";
+
+export const metadata: Metadata = {
+  title: "Такси по городу",
+  description:
+    "Закажите такси в Астрахани, Харабали и других городах области — назовите цену, и свободные водители примут заказ в реальном времени.",
+};
 
 type Props = {
   searchParams: Promise<{ from?: string; to?: string }>;

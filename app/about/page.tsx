@@ -1,8 +1,15 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { Bus, Car, MessageCircle, ShieldCheck, Star, Users } from "lucide-react";
 
 import Navbar from "@/components/layout/Navbar";
 import Footer from "@/components/layout/Footer";
+
+export const metadata: Metadata = {
+  title: "О сервисе",
+  description:
+    "Едем30 — сервис поиска попутчиков и заказа такси по Астраханской области: Астрахань, Харабали и другие города и посёлки.",
+};
 
 const steps = [
   {

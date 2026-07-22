@@ -1,6 +1,14 @@
+import type { Metadata } from "next";
+
 import Navbar from "@/components/layout/Navbar";
 import Footer from "@/components/layout/Footer";
 import FaqAccordion, { FaqSection } from "@/components/faq/FaqAccordion";
+
+export const metadata: Metadata = {
+  title: "Вопросы и ответы",
+  description:
+    "Как создать поездку, найти такси, оплатить и пользоваться сервисом Едем30 — подробные ответы по шагам.",
+};
 
 const sections: FaqSection[] = [
   {

@@ -1,5 +1,12 @@
+import type { Metadata } from "next";
+
 import Navbar from "@/components/layout/Navbar";
 import Footer from "@/components/layout/Footer";
+
+export const metadata: Metadata = {
+  title: "Пользовательское соглашение",
+  description: "Условия использования сервиса Едем30.",
+};
 
 const sections = [
   {

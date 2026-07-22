@@ -1,9 +1,17 @@
+import type { Metadata } from "next";
+
 import Navbar from "@/components/layout/Navbar";
 import Footer from "@/components/layout/Footer";
 import TripSearch from "@/components/TripSearch";
 import { listTrips } from "@/lib/trips";
 
 export const dynamic = "force-dynamic";
+
+export const metadata: Metadata = {
+  title: "Межгородние поездки и попутчики",
+  description:
+    "Расписание поездок между Астраханью, Харабали и другими городами области. Найдите попутчиков или предложите свою поездку.",
+};
 
 export default async function SearchPage() {
   const trips = await listTrips("intercity");
