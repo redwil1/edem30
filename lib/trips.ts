@@ -29,6 +29,7 @@ type TripRow = {
   transport_category: string | null;
   owner_avatar_url: string | null;
   owner_avatar_preset: string | null;
+  owner_verified: boolean | null;
 };
 
 function toTrip(row: TripRow): Trip {
@@ -50,7 +51,7 @@ function toTrip(row: TripRow): Trip {
     driverId: row.owner_id,
     rating: row.owner_rating ? Math.round(row.owner_rating * 10) / 10 : 0,
     tripsCount: row.owner_reviews_count ? Number(row.owner_reviews_count) : 0,
-    verified: !!row.verified,
+    verified: !!row.owner_verified,
     carModel: row.car_model,
     licensePlate: row.license_plate,
     driverAvatarUrl: row.owner_avatar_url,
@@ -64,7 +65,8 @@ const TRIP_SELECT = sql`
   (SELECT AVG(rating) FROM reviews WHERE reviews.reviewee_id = trips.owner_id) as owner_rating,
   (SELECT COUNT(*) FROM reviews WHERE reviews.reviewee_id = trips.owner_id) as owner_reviews_count,
   (SELECT avatar_url FROM users WHERE users.id = trips.owner_id) as owner_avatar_url,
-  (SELECT avatar_preset FROM users WHERE users.id = trips.owner_id) as owner_avatar_preset
+  (SELECT avatar_preset FROM users WHERE users.id = trips.owner_id) as owner_avatar_preset,
+  (SELECT verification_status = 'approved' FROM users WHERE users.id = trips.owner_id) as owner_verified
 `;
 
 const ACTIVE_CLAUSE = sql`

@@ -5,6 +5,7 @@ import Navbar from "@/components/layout/Navbar";
 import Footer from "@/components/layout/Footer";
 import DriverCard from "@/components/driver/DriverCard";
 import VehicleSetup from "@/components/profile/VehicleSetup";
+import DriverVerification from "@/components/profile/DriverVerification";
 import IdentitySettings from "@/components/profile/IdentitySettings";
 import PushSubscribeButton from "@/components/PushSubscribeButton";
 import ProfileTabs from "@/components/profile/ProfileTabs";
@@ -154,6 +155,8 @@ export default async function ProfilePage() {
                       <VehicleSetup />
                     </div>
                   )}
+
+                  {user.role === "driver" && <DriverVerification />}
                 </>
               ),
             },

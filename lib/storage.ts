@@ -31,6 +31,33 @@ export async function uploadToStorage(
   return publicStorageUrl(bucket, path);
 }
 
+export async function createSignedDownloadUrl(
+  bucket: string,
+  path: string,
+  expiresInSeconds = 300
+): Promise<string> {
+  const res = await fetch(
+    `${SUPABASE_URL}/storage/v1/object/sign/${bucket}/${path}`,
+    {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${SERVICE_KEY}`,
+        apikey: SERVICE_KEY,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ expiresIn: expiresInSeconds }),
+    }
+  );
+
+  if (!res.ok) {
+    throw new Error(`Storage sign failed: ${res.status} ${await res.text()}`);
+  }
+
+  const data = (await res.json()) as { signedURL: string };
+
+  return `${SUPABASE_URL}/storage/v1${data.signedURL}`;
+}
+
 export type SignedUpload = {
   path: string;
   uploadUrl: string;
