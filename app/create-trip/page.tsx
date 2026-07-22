@@ -11,6 +11,8 @@ import CategorySwitch from "@/components/CategorySwitch";
 import CityModal from "@/components/CityModal";
 import CarModelInput from "@/components/CarModelInput";
 import AddressInput from "@/components/taxi/AddressInput";
+import CitySwitch from "@/components/home/CitySwitch";
+import { useSelectedCity } from "@/hooks/useSelectedCity";
 import { TripType } from "@/types/trips";
 
 type CityField = "from" | "to" | null;
@@ -29,6 +31,7 @@ function today() {
 export default function CreateTripPage() {
   const router = useRouter();
   const { user, loading, setRole } = useAuth();
+  const [selectedCity, setSelectedCity] = useSelectedCity();
 
   const [type, setType] = useState<TripType>("intercity");
   const [from, setFrom] = useState("");
@@ -49,6 +52,11 @@ export default function CreateTripPage() {
   async function submit(e: FormEvent) {
     e.preventDefault();
     setError("");
+
+    if (type === "city" && !selectedCity) {
+      setError("Сначала выберите город");
+      return;
+    }
 
     if (!from.trim() || !to.trim()) {
       setError("Укажите откуда и куда едем");
@@ -234,8 +242,23 @@ export default function CreateTripPage() {
             </>
           ) : (
             <>
-              <AddressInput value={from} onChange={setFrom} placeholder="📍 Откуда" />
-              <AddressInput value={to} onChange={setTo} placeholder="🏁 Куда" />
+              <div className="flex items-center justify-between gap-2">
+                <span className="text-sm text-gray-500">Город поездки</span>
+                <CitySwitch city={selectedCity} onChange={setSelectedCity} />
+              </div>
+
+              <AddressInput
+                value={from}
+                onChange={setFrom}
+                placeholder="📍 Откуда"
+                city={selectedCity}
+              />
+              <AddressInput
+                value={to}
+                onChange={setTo}
+                placeholder="🏁 Куда"
+                city={selectedCity}
+              />
             </>
           )}
 

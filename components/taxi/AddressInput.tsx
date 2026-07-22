@@ -1,26 +1,35 @@
 "use client";
 
 import { useState } from "react";
-import { harabaliStreets } from "@/data/harabaliStreets";
+import { getOtherCitiesStreets, getStreetsForCity } from "@/data/streetsByCity";
 
 type Props = {
   value: string;
   onChange: (value: string) => void;
   placeholder: string;
   inputClassName?: string;
+  city?: string | null;
 };
 
 const HOUSE_MARKER = ", д. ";
 const HOUSE_NUMBERS = Array.from({ length: 150 }, (_, i) => String(i + 1));
+const MAX_LOCAL_MATCHES = 6;
+const MAX_OTHER_MATCHES = 4;
 
 const DEFAULT_INPUT_CLASSNAME =
   "w-full bg-[#171726] border border-white/10 focus:border-violet-500 rounded-2xl p-4 outline-none transition";
+
+type StreetMatch = {
+  label: string;
+  value: string;
+};
 
 export default function AddressInput({
   value,
   onChange,
   placeholder,
   inputClassName,
+  city,
 }: Props) {
   const [open, setOpen] = useState(false);
 
@@ -33,12 +42,28 @@ export default function AddressInput({
 
   const streetQuery = value.trim().toLowerCase();
 
-  const streetMatches =
+  const localStreets = getStreetsForCity(city ?? null);
+
+  const localMatches: StreetMatch[] =
     !inHouseMode && streetQuery.length > 0
-      ? harabaliStreets
+      ? localStreets
           .filter((street) => street.toLowerCase().includes(streetQuery))
-          .slice(0, 6)
+          .slice(0, MAX_LOCAL_MATCHES)
+          .map((street) => ({ label: street, value: street }))
       : [];
+
+  const otherMatches: StreetMatch[] =
+    !inHouseMode && streetQuery.length > 0 && localMatches.length < MAX_LOCAL_MATCHES
+      ? getOtherCitiesStreets(city ?? null)
+          .filter(({ street }) => street.toLowerCase().includes(streetQuery))
+          .slice(0, MAX_OTHER_MATCHES)
+          .map(({ city: otherCity, street }) => ({
+            label: `г. ${otherCity}, ${street}`,
+            value: `г. ${otherCity}, ${street}`,
+          }))
+      : [];
+
+  const streetMatches = [...localMatches, ...otherMatches];
 
   const houseMatches = inHouseMode
     ? HOUSE_NUMBERS.filter((n) => n.startsWith(housePrefix)).slice(0, 8)
@@ -73,17 +98,17 @@ export default function AddressInput({
       />
 
       {showDropdown && (
-        <div className="absolute z-10 w-full mt-2 bg-[#171726] border border-violet-500/20 rounded-2xl overflow-hidden shadow-xl">
+        <div className="absolute z-10 w-full mt-2 bg-[#171726] border border-violet-500/20 rounded-2xl overflow-hidden shadow-xl max-h-72 overflow-y-auto">
           {!inHouseMode &&
-            streetMatches.map((street) => (
+            streetMatches.map((match) => (
               <button
-                key={street}
+                key={match.value}
                 type="button"
                 onMouseDown={(e) => e.preventDefault()}
-                onClick={() => selectStreet(street)}
+                onClick={() => selectStreet(match.value)}
                 className="w-full text-left px-4 py-3 hover:bg-violet-600 transition text-sm"
               >
-                {street}
+                {match.label}
               </button>
             ))}
 

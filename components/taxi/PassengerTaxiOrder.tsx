@@ -2,9 +2,11 @@
 
 import { FormEvent, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Car, Check, Loader2, X } from "lucide-react";
+import { Car, Check, Loader2, MapPin, X } from "lucide-react";
 
 import AddressInput from "@/components/taxi/AddressInput";
+import CitySwitch from "@/components/home/CitySwitch";
+import { useSelectedCity } from "@/hooks/useSelectedCity";
 import { formatPrice, formatSeats } from "@/lib/utils";
 
 type Order = {
@@ -33,6 +35,7 @@ type Props = {
 
 export default function PassengerTaxiOrder({ initialFrom, initialTo }: Props = {}) {
   const router = useRouter();
+  const [city, setCity] = useSelectedCity();
 
   const [order, setOrder] = useState<Order | null>(null);
   const [dismissed, setDismissed] = useState(false);
@@ -82,6 +85,11 @@ export default function PassengerTaxiOrder({ initialFrom, initialTo }: Props = {
   async function submit(e: FormEvent) {
     e.preventDefault();
     setError("");
+
+    if (!city) {
+      setError("Сначала выберите город");
+      return;
+    }
 
     if (!from.trim() || !to.trim()) {
       setError("Укажите откуда и куда едем");
@@ -206,18 +214,42 @@ export default function PassengerTaxiOrder({ initialFrom, initialTo }: Props = {
     );
   }
 
+  if (!city) {
+    return (
+      <div className="bg-[#12121c] border border-white/5 rounded-3xl p-5 sm:p-6 text-center">
+        <div className="w-11 h-11 rounded-xl bg-violet-600/15 flex items-center justify-center mx-auto mb-3">
+          <MapPin size={20} className="text-violet-400" />
+        </div>
+
+        <div className="font-display font-bold mb-1">Выберите город</div>
+
+        <p className="text-sm text-gray-500 mb-4">
+          Это нужно, чтобы правильно подсказывать улицы при заказе такси
+        </p>
+
+        <div className="flex justify-center">
+          <CitySwitch city={city} onChange={setCity} />
+        </div>
+      </div>
+    );
+  }
+
   return (
     <form
       onSubmit={submit}
       className="bg-[#12121c] border border-white/5 rounded-3xl p-5 sm:p-6 space-y-3"
     >
-      <div className="font-display flex items-center gap-2 font-bold text-lg mb-2">
-        <Car size={18} className="text-violet-400" />
-        Заказ такси
+      <div className="flex items-center justify-between gap-2 mb-2">
+        <div className="font-display flex items-center gap-2 font-bold text-lg">
+          <Car size={18} className="text-violet-400" />
+          Заказ такси
+        </div>
+
+        <CitySwitch city={city} onChange={setCity} />
       </div>
 
-      <AddressInput value={from} onChange={setFrom} placeholder="📍 Точка А" />
-      <AddressInput value={to} onChange={setTo} placeholder="🏁 Точка Б" />
+      <AddressInput value={from} onChange={setFrom} placeholder="📍 Точка А" city={city} />
+      <AddressInput value={to} onChange={setTo} placeholder="🏁 Точка Б" city={city} />
 
       <input
         type="number"

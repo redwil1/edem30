@@ -37,7 +37,7 @@ export default function WelcomeGate({ trips, city, onCityChange }: Props) {
       ? loginHref(`/trip/${selectedId}`)
       : null;
 
-  const cityReady = from.trim().length > 0 && to.trim().length > 0;
+  const cityReady = !!city && from.trim().length > 0 && to.trim().length > 0;
 
   const cityHref = cityReady
     ? loginHref(`/taxi?${new URLSearchParams({ from: from.trim(), to: to.trim() })}`)
@@ -164,11 +164,17 @@ export default function WelcomeGate({ trips, city, onCityChange }: Props) {
         ) : (
           <>
             <div className="space-y-3">
-              <AddressInput value={from} onChange={setFrom} placeholder="📍 Откуда" />
-              <AddressInput value={to} onChange={setTo} placeholder="🏁 Куда" />
+              <AddressInput value={from} onChange={setFrom} placeholder="📍 Откуда" city={city} />
+              <AddressInput value={to} onChange={setTo} placeholder="🏁 Куда" city={city} />
             </div>
 
-            {touched && !cityReady && (
+            {touched && !city && (
+              <p className="text-red-400 text-sm mt-3">
+                Сначала выберите город — кнопка выше
+              </p>
+            )}
+
+            {touched && city && !cityReady && (
               <p className="text-red-400 text-sm mt-3">
                 Укажите откуда и куда едем
               </p>
