@@ -6,9 +6,10 @@ const cspHeader = `
     default-src 'self';
     script-src 'self' 'unsafe-inline'${isDev ? " 'unsafe-eval'" : ""};
     style-src 'self' 'unsafe-inline';
-    img-src 'self' blob: data:;
+    img-src 'self' blob: data: https://*.supabase.co;
+    media-src 'self' blob: https://*.supabase.co;
     font-src 'self' data:;
-    connect-src 'self';
+    connect-src 'self' https://*.supabase.co;
     object-src 'none';
     base-uri 'self';
     form-action 'self';
