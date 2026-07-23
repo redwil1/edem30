@@ -1,7 +1,7 @@
 "use client";
 
 import { FormEvent, useEffect, useRef, useState } from "react";
-import { Bot, Loader2, MessageCircleQuestion, Send, X } from "lucide-react";
+import { Bot, Loader2, MessageCircle, Send, X } from "lucide-react";
 
 type ChatMessage = {
   role: "user" | "assistant";
@@ -32,9 +32,7 @@ export default function SupportChatWidget() {
     if (!text || sending) return;
 
     setError("");
-    const history = [...messages, { role: "user" as const, text }];
-
-    setMessages(history);
+    setMessages((prev) => [...prev, { role: "user", text }]);
     setInput("");
     setSending(true);
 
@@ -42,11 +40,7 @@ export default function SupportChatWidget() {
       const res = await fetch("/api/support-chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          messages: history
-            .filter((m) => m !== GREETING)
-            .map((m) => ({ role: m.role, text: m.text })),
-        }),
+        body: JSON.stringify({ message: text }),
       });
       const data = await res.json().catch(() => null);
 
@@ -129,13 +123,26 @@ export default function SupportChatWidget() {
         </div>
       )}
 
-      <button
-        onClick={() => setOpen((v) => !v)}
-        className="btn-gradient w-14 h-14 rounded-full flex items-center justify-center shadow-xl"
-        aria-label="Чат поддержки"
-      >
-        {open ? <X size={22} /> : <MessageCircleQuestion size={22} />}
-      </button>
+      {!open && (
+        <button
+          onClick={() => setOpen(true)}
+          className="btn-gradient flex items-center gap-2 rounded-full pl-4 pr-5 py-3.5 shadow-xl relative"
+        >
+          <MessageCircle size={20} />
+          <span className="text-sm font-bold whitespace-nowrap">Поддержка</span>
+          <span className="absolute -top-1 -right-1 w-3.5 h-3.5 rounded-full bg-green-400 border-2 border-[#0b0b13]" />
+        </button>
+      )}
+
+      {open && (
+        <button
+          onClick={() => setOpen(false)}
+          className="btn-gradient w-14 h-14 rounded-full flex items-center justify-center shadow-xl ml-auto"
+          aria-label="Закрыть чат поддержки"
+        >
+          <X size={22} />
+        </button>
+      )}
     </div>
   );
 }
