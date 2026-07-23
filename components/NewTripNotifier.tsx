@@ -4,6 +4,8 @@ import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { Bus, X } from "lucide-react";
 
+import { playNotificationDing } from "@/lib/notificationSound";
+
 type ActivityItem = {
   id: string;
   tripId: number;
@@ -41,6 +43,7 @@ export default function NewTripNotifier() {
 
       if (fresh.length > 0) {
         setToasts((prev) => [...fresh, ...prev].slice(0, 3));
+        playNotificationDing();
 
         for (const c of fresh) {
           setTimeout(() => {

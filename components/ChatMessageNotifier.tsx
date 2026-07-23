@@ -6,6 +6,7 @@ import { usePathname } from "next/navigation";
 import { MessageCircle, X } from "lucide-react";
 
 import { useAuth } from "@/components/auth/AuthProvider";
+import { playNotificationDing } from "@/lib/notificationSound";
 
 type ChatMessageNotice = {
   id: number;
@@ -53,6 +54,7 @@ export default function ChatMessageNotifier() {
 
       if (fresh.length > 0) {
         setToasts((prev) => [...fresh, ...prev].slice(0, 4));
+        playNotificationDing();
 
         for (const m of fresh) {
           setTimeout(() => {

@@ -1,10 +1,11 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { Bell, MessageCircle, AlertTriangle, Star, Car, Flag } from "lucide-react";
 
 import { useAuth } from "@/components/auth/AuthProvider";
+import { playNotificationDing } from "@/lib/notificationSound";
 
 type FeedItem = {
   id: string;
@@ -49,10 +50,12 @@ export default function NotificationBell() {
   const [open, setOpen] = useState(false);
 
   const seen = user ? loadSeen(user.id) : new Set<string>();
+  const knownIds = useRef<Set<string> | null>(null);
 
   useEffect(() => {
     if (!user) return;
 
+    knownIds.current = null;
     let cancelled = false;
 
     async function poll() {
@@ -60,7 +63,15 @@ export default function NotificationBell() {
       if (!res.ok || cancelled) return;
 
       const data = await res.json();
-      setItems(data.items ?? []);
+      const nextItems: FeedItem[] = data.items ?? [];
+
+      if (knownIds.current !== null) {
+        const hasNew = nextItems.some((i) => !knownIds.current!.has(i.id));
+        if (hasNew) playNotificationDing();
+      }
+
+      knownIds.current = new Set(nextItems.map((i) => i.id));
+      setItems(nextItems);
     }
 
     poll();
