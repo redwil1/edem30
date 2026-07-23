@@ -8,6 +8,7 @@ import DriverOrderNotifier from "@/components/taxi/DriverOrderNotifier";
 import TripReminderNotifier from "@/components/trip/TripReminderNotifier";
 import EmptyTripNotifier from "@/components/trip/EmptyTripNotifier";
 import NewTripNotifier from "@/components/NewTripNotifier";
+import ChatMessageNotifier from "@/components/ChatMessageNotifier";
 import ComplaintNoticeNotifier from "@/components/ComplaintNoticeNotifier";
 import RealNameNotifier from "@/components/RealNameNotifier";
 import PendingReviewNotifier from "@/components/PendingReviewNotifier";
@@ -61,6 +62,7 @@ export default function RootLayout({
             <TripReminderNotifier />
             <EmptyTripNotifier />
             <NewTripNotifier />
+            <ChatMessageNotifier />
             <ComplaintNoticeNotifier />
             <RealNameNotifier />
             <PendingReviewNotifier />

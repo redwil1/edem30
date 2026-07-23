@@ -1,10 +1,12 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import Link from "next/link";
 import { Bus, X } from "lucide-react";
 
 type ActivityItem = {
   id: string;
+  tripId: number;
   kind: "joined" | "created" | "started";
   name: string;
   routeLabel: string;
@@ -67,9 +69,11 @@ export default function NewTripNotifier() {
   return (
     <div className="fixed bottom-20 lg:bottom-4 left-4 z-50 flex flex-col gap-2 max-w-sm w-[calc(100%-2rem)]">
       {toasts.map((t) => (
-        <div
+        <Link
           key={t.id}
-          className="bg-[#171726] border border-violet-500/30 rounded-2xl p-3.5 shadow-xl flex items-start gap-3"
+          href={`/trip/${t.tripId}`}
+          onClick={() => dismiss(t.id)}
+          className="bg-[#171726] border border-violet-500/30 hover:border-violet-500 rounded-2xl p-3.5 shadow-xl flex items-start gap-3 transition"
         >
           <div className="w-8 h-8 rounded-xl bg-violet-600/20 flex items-center justify-center shrink-0">
             <Bus size={15} className="text-violet-400" />
@@ -81,13 +85,17 @@ export default function NewTripNotifier() {
           </div>
 
           <button
-            onClick={() => dismiss(t.id)}
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              dismiss(t.id);
+            }}
             className="text-gray-500 hover:text-white transition shrink-0"
             aria-label="Скрыть"
           >
             <X size={14} />
           </button>
-        </div>
+        </Link>
       ))}
     </div>
   );

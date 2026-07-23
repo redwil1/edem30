@@ -46,6 +46,7 @@ export async function getLiveStats(): Promise<LiveStats> {
 
 export type ActivityItem = {
   id: string;
+  tripId: number;
   kind: "joined" | "created" | "started";
   name: string;
   routeLabel: string;
@@ -91,6 +92,7 @@ export async function getRecentActivity(limit = 8): Promise<ActivityItem[]> {
   const merged: ActivityItem[] = [
     ...joins.map((r) => ({
       id: `joined-${r.id}-${r.name}-${r.at}`,
+      tripId: r.id,
       kind: "joined" as const,
       name: r.name,
       routeLabel: `${r.from_city} → ${r.to_city}`,
@@ -98,6 +100,7 @@ export async function getRecentActivity(limit = 8): Promise<ActivityItem[]> {
     })),
     ...creations.map((r) => ({
       id: `created-${r.id}`,
+      tripId: r.id,
       kind: "created" as const,
       name: r.name,
       routeLabel: `${r.from_city} → ${r.to_city}`,
@@ -105,6 +108,7 @@ export async function getRecentActivity(limit = 8): Promise<ActivityItem[]> {
     })),
     ...starts.map((r) => ({
       id: `started-${r.id}`,
+      tripId: r.id,
       kind: "started" as const,
       name: r.name,
       routeLabel: `${r.from_city} → ${r.to_city}`,

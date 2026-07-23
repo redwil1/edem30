@@ -494,6 +494,62 @@ export async function getPendingReviewPrompt(
   };
 }
 
+export type ChatMessageNotice = {
+  id: number;
+  tripId: number;
+  senderName: string;
+  preview: string;
+  routeLabel: string;
+  createdAt: string;
+};
+
+export async function getRecentChatMessagesForUser(
+  userId: number,
+  limit = 20
+): Promise<ChatMessageNotice[]> {
+  const rows = await sql<
+    {
+      id: number;
+      trip_id: number;
+      sender_name: string;
+      text: string;
+      attachment_type: string | null;
+      from_city: string;
+      to_city: string;
+      created_at: string;
+    }[]
+  >`
+    SELECT chat_messages.id as id, chat_messages.trip_id as trip_id,
+           users.name as sender_name, chat_messages.text as text,
+           chat_messages.attachment_type as attachment_type,
+           trips.from_city as from_city, trips.to_city as to_city,
+           chat_messages.created_at as created_at
+    FROM chat_messages
+    JOIN trips ON trips.id = chat_messages.trip_id
+    JOIN users ON users.id = chat_messages.user_id
+    WHERE chat_messages.user_id != ${userId}
+      AND chat_messages.created_at::timestamptz > now() - interval '2 hours'
+      AND (
+        trips.owner_id = ${userId}
+        OR EXISTS (
+          SELECT 1 FROM trip_participants
+          WHERE trip_participants.trip_id = trips.id AND trip_participants.user_id = ${userId}
+        )
+      )
+    ORDER BY chat_messages.created_at DESC
+    LIMIT ${limit}
+  `;
+
+  return rows.map((r) => ({
+    id: r.id,
+    tripId: r.trip_id,
+    senderName: r.sender_name,
+    preview: r.text || (r.attachment_type ? "Вложение" : ""),
+    routeLabel: `${r.from_city} → ${r.to_city}`,
+    createdAt: r.created_at,
+  }));
+}
+
 export type TripStartDetail = TripLifecycle & {
   isDriver: boolean;
   isPassenger: boolean;
