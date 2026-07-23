@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import { Paperclip, Send, Check, Clock, Lock, LogOut, Loader2 } from "lucide-react";
 
 import { useAuth } from "@/components/auth/AuthProvider";
-import { compressImage } from "@/lib/imageCompress";
+import { compressImage, ImageCompressError } from "@/lib/imageCompress";
 import Avatar from "./Avatar";
 
 type Message = {
@@ -237,8 +237,12 @@ export default function ChatPanel({ tripId }: Props) {
       }
 
       setMessages((prev) => [...prev, msgData]);
-    } catch {
-      setError("Не удалось подключиться к серверу");
+    } catch (err) {
+      setError(
+        err instanceof ImageCompressError
+          ? err.message
+          : "Не удалось подключиться к серверу"
+      );
     } finally {
       setUploading(false);
     }

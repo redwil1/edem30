@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { Camera, Check, Loader2, X } from "lucide-react";
 
 import { useAuth } from "@/components/auth/AuthProvider";
-import { compressImage } from "@/lib/imageCompress";
+import { compressImage, ImageCompressError } from "@/lib/imageCompress";
 import AvatarPresetIcon from "@/components/avatar/AvatarPresetIcon";
 import { AVATAR_PRESETS } from "@/lib/avatarPresets";
 
@@ -65,8 +65,12 @@ export default function AvatarUploader() {
 
       await refresh();
       setOpen(false);
-    } catch {
-      setError("Не удалось подключиться к серверу");
+    } catch (err) {
+      setError(
+        err instanceof ImageCompressError
+          ? err.message
+          : "Не удалось подключиться к серверу"
+      );
     } finally {
       setUploading(false);
     }
