@@ -231,6 +231,12 @@ function LoginForm() {
 
           {mode === "register" && (
             <div className="bg-[#171726] border border-white/5 rounded-2xl p-4 space-y-3">
+              <p className="text-xs text-gray-500 leading-relaxed">
+                Чтобы подтвердить, что номер действительно ваш, мы присылаем
+                код в Telegram-бот вместо платного SMS. Заполните номер выше
+                полностью — тогда кнопка станет активной.
+              </p>
+
               {!codeRequested ? (
                 <>
                   <button
@@ -239,7 +245,11 @@ function LoginForm() {
                     disabled={phoneDigits.length !== 11 || sendingCode}
                     className="w-full bg-[#222233] hover:bg-[#2a2a40] disabled:opacity-50 transition rounded-xl py-3 text-sm font-medium"
                   >
-                    {sendingCode ? "Отправляем..." : "Подтвердить номер кодом из Telegram"}
+                    {sendingCode
+                      ? "Отправляем..."
+                      : phoneDigits.length !== 11
+                      ? "Сначала введите номер полностью"
+                      : "Подтвердить номер кодом из Telegram"}
                   </button>
 
                   {notLinked && (
