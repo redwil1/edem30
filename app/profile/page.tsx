@@ -5,7 +5,6 @@ import Navbar from "@/components/layout/Navbar";
 import Footer from "@/components/layout/Footer";
 import DriverCard from "@/components/driver/DriverCard";
 import VehicleSetup from "@/components/profile/VehicleSetup";
-import DriverVerification from "@/components/profile/DriverVerification";
 import EarningsChart from "@/components/profile/EarningsChart";
 import PushSubscribeButton from "@/components/PushSubscribeButton";
 import FavoriteAddressesManager from "@/components/profile/FavoriteAddressesManager";
@@ -158,8 +157,6 @@ export default async function ProfilePage() {
                       <VehicleSetup />
                     </div>
                   )}
-
-                  {user.role === "driver" && <DriverVerification />}
 
                   {user.role === "driver" && <EarningsChart weeks={earningsHistory} />}
                 </>

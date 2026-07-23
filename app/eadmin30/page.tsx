@@ -1,16 +1,15 @@
 "use client";
 
 import { useState } from "react";
-import { LayoutDashboard, Users, Car, Star, Flag, ShieldCheck } from "lucide-react";
+import { LayoutDashboard, Users, Car, Star, Flag } from "lucide-react";
 
 import AdminDashboard from "@/components/admin/AdminDashboard";
 import AdminUsersTable from "@/components/admin/AdminUsersTable";
 import AdminTripsTable from "@/components/admin/AdminTripsTable";
 import AdminReviewsTable from "@/components/admin/AdminReviewsTable";
 import AdminReportsTable from "@/components/admin/AdminReportsTable";
-import AdminVerificationsTable from "@/components/admin/AdminVerificationsTable";
 
-type Tab = "dashboard" | "users" | "trips" | "reviews" | "reports" | "verifications";
+type Tab = "dashboard" | "users" | "trips" | "reviews" | "reports";
 
 const TABS: { id: Tab; label: string; icon: typeof LayoutDashboard }[] = [
   { id: "dashboard", label: "📊 Дашборд", icon: LayoutDashboard },
@@ -18,7 +17,6 @@ const TABS: { id: Tab; label: string; icon: typeof LayoutDashboard }[] = [
   { id: "trips", label: "🚗 Поездки", icon: Car },
   { id: "reviews", label: "⭐ Отзывы", icon: Star },
   { id: "reports", label: "🚩 Жалобы", icon: Flag },
-  { id: "verifications", label: "🛡 Верификация", icon: ShieldCheck },
 ];
 
 export default function AdminPage() {
@@ -49,7 +47,6 @@ export default function AdminPage() {
       {tab === "trips" && <AdminTripsTable />}
       {tab === "reviews" && <AdminReviewsTable />}
       {tab === "reports" && <AdminReportsTable />}
-      {tab === "verifications" && <AdminVerificationsTable />}
     </div>
   );
 }
