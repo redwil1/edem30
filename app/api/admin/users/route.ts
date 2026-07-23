@@ -1,13 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 
-import { AdminUserFilter, listAdminUsers, requireAdmin } from "@/lib/admin";
+import { AdminUserFilter, listAdminUsers, requireStaff } from "@/lib/admin";
 
 export const runtime = "nodejs";
 
 const VALID_FILTERS: AdminUserFilter[] = ["all", "driver", "passenger", "blocked", "noname"];
 
 export async function GET(req: NextRequest) {
-  const admin = await requireAdmin();
+  const admin = await requireStaff();
 
   if (!admin) {
     return NextResponse.json({ error: "Доступ запрещён" }, { status: 403 });

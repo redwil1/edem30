@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 
-import { requireAdmin } from "@/lib/admin";
+import { requireStaff } from "@/lib/admin";
 import { isTrustedOrigin } from "@/lib/security";
 import { setVerificationDecision } from "@/lib/verification";
 import { sendPushToUser } from "@/lib/push";
@@ -19,7 +19,7 @@ export async function POST(req: NextRequest, { params }: Props) {
     );
   }
 
-  const admin = await requireAdmin();
+  const admin = await requireStaff();
 
   if (!admin) {
     return NextResponse.json({ error: "Доступ запрещён" }, { status: 403 });

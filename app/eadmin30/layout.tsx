@@ -10,7 +10,7 @@ export default async function AdminLayout({
 }) {
   const user = await getCurrentUser();
 
-  if (!user || user.role !== "admin") {
+  if (!user || (user.role !== "admin" && user.role !== "moderator")) {
     return (
       <main className="min-h-screen bg-[#0b0b13] text-white flex flex-col">
         <Navbar />

@@ -20,6 +20,7 @@ type Message = {
   createdAt: string;
   isYou: boolean;
   isDriver: boolean;
+  isStaff: boolean;
 };
 
 const MAX_IMAGE_SIZE = 5 * 1024 * 1024;
@@ -34,7 +35,15 @@ const ALLOWED_ATTACHMENT_TYPES = [
   "video/quicktime",
 ];
 
-function RoleBadge({ isDriver }: { isDriver: boolean }) {
+function RoleBadge({ isDriver, isStaff }: { isDriver: boolean; isStaff: boolean }) {
+  if (isStaff) {
+    return (
+      <span className="text-[10px] font-medium px-1.5 py-0.5 rounded-full bg-red-500/20 text-red-300">
+        Поддержка
+      </span>
+    );
+  }
+
   return (
     <span
       className={`text-[10px] font-medium px-1.5 py-0.5 rounded-full ${
@@ -306,7 +315,7 @@ export default function ChatPanel({ tripId }: Props) {
               <div className="max-w-[75%]">
                 <div className="flex items-center justify-end gap-1.5 mb-1">
                   <span className="text-xs text-gray-500">Вы</span>
-                  <RoleBadge isDriver={m.isDriver} />
+                  <RoleBadge isDriver={m.isDriver} isStaff={m.isStaff} />
                 </div>
 
                 <div className="bubble-gradient rounded-2xl rounded-tr-sm px-4 py-2.5 text-sm break-words">
@@ -334,7 +343,7 @@ export default function ChatPanel({ tripId }: Props) {
               <div className="max-w-[75%]">
                 <div className="flex items-center gap-1.5 mb-1">
                   <span className="text-xs text-gray-500">{m.authorName}</span>
-                  <RoleBadge isDriver={m.isDriver} />
+                  <RoleBadge isDriver={m.isDriver} isStaff={m.isStaff} />
                 </div>
 
                 <div className="bg-[#1c1c2b] rounded-2xl rounded-tl-sm px-4 py-2.5 text-sm break-words">

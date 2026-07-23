@@ -14,7 +14,9 @@ import {
   X,
 } from "lucide-react";
 
-type Role = "passenger" | "driver" | "admin";
+import { useAuth } from "@/components/auth/AuthProvider";
+
+type Role = "passenger" | "driver" | "admin" | "moderator";
 type Filter = "all" | "driver" | "passenger" | "blocked" | "noname";
 
 type User = {
@@ -49,9 +51,13 @@ const ROLE_LABELS: Record<Role, string> = {
   passenger: "Пассажир",
   driver: "Водитель",
   admin: "Админ",
+  moderator: "Модератор",
 };
 
 export default function AdminUsersTable() {
+  const { user: me } = useAuth();
+  const isAdmin = me?.role === "admin";
+
   const [users, setUsers] = useState<User[] | null>(null);
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState<Filter>("all");
@@ -267,18 +273,22 @@ export default function AdminUsersTable() {
                   </td>
                   <td className="px-4 py-3 text-gray-400">+{u.phone}</td>
                   <td className="px-4 py-3">
-                    <select
-                      value={u.role}
-                      disabled={savingId === u.id}
-                      onChange={(e) => changeRole(u.id, e.target.value as Role)}
-                      className="bg-[#1c1c2b] rounded-lg px-2.5 py-1.5 outline-none disabled:opacity-60"
-                    >
-                      {(Object.keys(ROLE_LABELS) as Role[]).map((r) => (
-                        <option key={r} value={r}>
-                          {ROLE_LABELS[r]}
-                        </option>
-                      ))}
-                    </select>
+                    {isAdmin ? (
+                      <select
+                        value={u.role}
+                        disabled={savingId === u.id}
+                        onChange={(e) => changeRole(u.id, e.target.value as Role)}
+                        className="bg-[#1c1c2b] rounded-lg px-2.5 py-1.5 outline-none disabled:opacity-60"
+                      >
+                        {(Object.keys(ROLE_LABELS) as Role[]).map((r) => (
+                          <option key={r} value={r}>
+                            {ROLE_LABELS[r]}
+                          </option>
+                        ))}
+                      </select>
+                    ) : (
+                      <span className="text-gray-400">{ROLE_LABELS[u.role]}</span>
+                    )}
                   </td>
                   <td className="px-4 py-3">
                     <span
@@ -299,10 +309,10 @@ export default function AdminUsersTable() {
                     <button
                       type="button"
                       onClick={() => toggleBlock(u)}
-                      disabled={blockingId === u.id || u.role === "admin"}
+                      disabled={blockingId === u.id || u.role === "admin" || u.role === "moderator"}
                       title={
-                        u.role === "admin"
-                          ? "Нельзя заблокировать администратора"
+                        u.role === "admin" || u.role === "moderator"
+                          ? "Нельзя заблокировать сотрудника"
                           : u.isBlocked
                           ? "Разблокировать"
                           : "Заблокировать"
@@ -322,20 +332,23 @@ export default function AdminUsersTable() {
                       )}
                     </button>
 
-                    <button
-                      type="button"
-                      onClick={() => resetPassword(u)}
-                      disabled={resettingId === u.id}
-                      title="Сбросить пароль"
-                      className="inline-flex items-center justify-center w-8 h-8 rounded-lg text-violet-400 hover:bg-violet-500/10 disabled:opacity-30 transition"
-                    >
-                      {resettingId === u.id ? (
-                        <Loader2 size={15} className="animate-spin" />
-                      ) : (
-                        <KeyRound size={15} />
-                      )}
-                    </button>
+                    {isAdmin && (
+                      <button
+                        type="button"
+                        onClick={() => resetPassword(u)}
+                        disabled={resettingId === u.id}
+                        title="Сбросить пароль"
+                        className="inline-flex items-center justify-center w-8 h-8 rounded-lg text-violet-400 hover:bg-violet-500/10 disabled:opacity-30 transition"
+                      >
+                        {resettingId === u.id ? (
+                          <Loader2 size={15} className="animate-spin" />
+                        ) : (
+                          <KeyRound size={15} />
+                        )}
+                      </button>
+                    )}
 
+                    {isAdmin && (
                     <button
                       type="button"
                       onClick={() => deleteUser(u)}
@@ -353,6 +366,7 @@ export default function AdminUsersTable() {
                         <Trash2 size={15} />
                       )}
                     </button>
+                    )}
                   </td>
                 </tr>
               ))}

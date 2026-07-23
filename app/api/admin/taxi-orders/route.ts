@@ -1,13 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 
-import { listAdminTaxiOrders, requireAdmin } from "@/lib/admin";
+import { listAdminTaxiOrders, requireStaff } from "@/lib/admin";
 
 export const runtime = "nodejs";
 
 const VALID_STATUSES = ["open", "accepted", "cancelled"];
 
 export async function GET(req: NextRequest) {
-  const admin = await requireAdmin();
+  const admin = await requireStaff();
 
   if (!admin) {
     return NextResponse.json({ error: "Доступ запрещён" }, { status: 403 });

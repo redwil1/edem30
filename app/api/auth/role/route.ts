@@ -21,9 +21,9 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Войдите в аккаунт" }, { status: 401 });
   }
 
-  if (user.role === "admin") {
+  if (user.role === "admin" || user.role === "moderator") {
     return NextResponse.json(
-      { error: "Роль администратора нельзя изменить здесь" },
+      { error: "Эту роль нельзя изменить здесь" },
       { status: 403 }
     );
   }

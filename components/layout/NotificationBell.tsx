@@ -2,13 +2,13 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { Bell, MessageCircle, AlertTriangle, Star, Car } from "lucide-react";
+import { Bell, MessageCircle, AlertTriangle, Star, Car, Flag } from "lucide-react";
 
 import { useAuth } from "@/components/auth/AuthProvider";
 
 type FeedItem = {
   id: string;
-  type: "message" | "complaint" | "review" | "order";
+  type: "message" | "complaint" | "review" | "order" | "staffReport";
   title: string;
   body: string;
   url: string;
@@ -20,6 +20,7 @@ const ICONS = {
   complaint: AlertTriangle,
   review: Star,
   order: Car,
+  staffReport: Flag,
 };
 
 function seenKey(userId: number) {

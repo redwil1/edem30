@@ -3,8 +3,9 @@ import "server-only";
 import { getRecentChatMessagesForUser, getPendingReviewPrompt } from "@/lib/trips";
 import { getPendingComplaintNotices } from "@/lib/reports";
 import { listOpenOrders } from "@/lib/taxiOrders";
+import { listAdminReports } from "@/lib/admin";
 
-export type FeedItemType = "message" | "complaint" | "review" | "order";
+export type FeedItemType = "message" | "complaint" | "review" | "order" | "staffReport";
 
 export type FeedItem = {
   id: string;
@@ -19,11 +20,14 @@ export async function getNotificationFeed(
   userId: number,
   role: string
 ): Promise<FeedItem[]> {
-  const [messages, complaints, review, orders] = await Promise.all([
+  const isStaff = role === "admin" || role === "moderator";
+
+  const [messages, complaints, review, orders, staffReports] = await Promise.all([
     getRecentChatMessagesForUser(userId),
     getPendingComplaintNotices(userId),
     getPendingReviewPrompt(userId),
     role === "driver" ? listOpenOrders(userId) : Promise.resolve([]),
+    isStaff ? listAdminReports("new") : Promise.resolve([]),
   ]);
 
   const items: FeedItem[] = [];
@@ -58,6 +62,17 @@ export async function getNotificationFeed(
       body: `Оцените ${review.revieweeName} по завершённой поездке`,
       url: `/trip/${review.tripId}`,
       createdAt: new Date().toISOString(),
+    });
+  }
+
+  for (const r of staffReports.slice(0, 10)) {
+    items.push({
+      id: `staffReport-${r.id}`,
+      type: "staffReport",
+      title: "Новая жалоба",
+      body: `${r.tripRoute} · ${r.reporterName}`,
+      url: "/eadmin30",
+      createdAt: r.createdAt,
     });
   }
 

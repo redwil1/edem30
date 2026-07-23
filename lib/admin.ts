@@ -15,6 +15,15 @@ export async function requireAdmin() {
   return user;
 }
 
+/** Админ или модератор — для разделов модерации (жалобы, отзывы, чаты, верификации). */
+export async function requireStaff() {
+  const user = await getCurrentUser();
+
+  if (!user || (user.role !== "admin" && user.role !== "moderator")) return null;
+
+  return user;
+}
+
 export type TripTypeCounts = {
   intercity: number;
   city: number;
@@ -221,7 +230,7 @@ export async function listAdminUsers(
   return users;
 }
 
-const ASSIGNABLE_ROLES: UserRole[] = ["passenger", "driver", "admin"];
+const ASSIGNABLE_ROLES: UserRole[] = ["passenger", "driver", "admin", "moderator"];
 
 export async function setAdminUserRole(
   userId: number,

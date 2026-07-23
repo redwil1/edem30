@@ -27,6 +27,8 @@ export default function Navbar() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [roleError, setRoleError] = useState("");
 
+  const isStaff = user?.role === "admin" || user?.role === "moderator";
+
   async function handleLogout() {
     setMenuOpen(false);
     await logout();
@@ -110,7 +112,7 @@ export default function Navbar() {
                   />
 
                   <div className="absolute right-0 top-full mt-2 w-52 bg-[#171726] border border-white/10 rounded-2xl p-1.5 z-40 shadow-xl">
-                    {user.role !== "admin" && (
+                    {!isStaff && (
                       <div className="flex bg-[#0f0f18] rounded-xl p-1 mb-1.5">
                         <button
                           onClick={() => handleRoleChange("passenger")}
@@ -144,7 +146,7 @@ export default function Navbar() {
                       </p>
                     )}
 
-                    {user.role === "admin" && (
+                    {isStaff && (
                       <Link
                         href="/eadmin30"
                         onClick={() => setMenuOpen(false)}
@@ -255,7 +257,7 @@ export default function Navbar() {
                   </button>
                 </div>
 
-                {user.role !== "admin" ? (
+                {!isStaff ? (
                   <div className="flex bg-[#171726] rounded-xl p-1 mt-3">
                     <button
                       onClick={() => handleRoleChange("passenger")}
@@ -283,11 +285,11 @@ export default function Navbar() {
                   </div>
                 ) : null}
 
-                {roleError && user.role !== "admin" && (
+                {roleError && !isStaff && (
                   <p className="text-red-400 text-xs mt-2 leading-snug">{roleError}</p>
                 )}
 
-                {user.role === "admin" && (
+                {isStaff && (
                   <Link
                     href="/eadmin30"
                     onClick={() => setMobileOpen(false)}

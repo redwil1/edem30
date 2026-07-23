@@ -1,8 +1,8 @@
 import "server-only";
 
 import { sql } from "@/lib/db";
-import { ReportCategory } from "@/lib/reportCategories";
-import { sendPushToUser } from "@/lib/push";
+import { ReportCategory, reportCategoryLabel } from "@/lib/reportCategories";
+import { sendPushToStaff, sendPushToUser } from "@/lib/push";
 
 export type CreateReportInput = {
   tripId: number;
@@ -48,6 +48,12 @@ export async function createReport(input: CreateReportInput): Promise<void> {
     INSERT INTO trip_reports (trip_id, reporter_id, reported_user_id, category, description)
     VALUES (${input.tripId}, ${input.reporterId}, ${reportedUserId}, ${input.category}, ${input.description ?? null})
   `;
+
+  sendPushToStaff({
+    title: "Новая жалоба",
+    body: reportCategoryLabel(input.category),
+    url: "/eadmin30",
+  });
 }
 
 export type PendingComplaintNotice = {

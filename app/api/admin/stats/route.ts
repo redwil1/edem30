@@ -1,11 +1,11 @@
 import { NextResponse } from "next/server";
 
-import { getAdminAccounts, getAdminStats, getVisitStats, requireAdmin } from "@/lib/admin";
+import { getAdminAccounts, getAdminStats, getVisitStats, requireStaff } from "@/lib/admin";
 
 export const runtime = "nodejs";
 
 export async function GET() {
-  const admin = await requireAdmin();
+  const admin = await requireStaff();
 
   if (!admin) {
     return NextResponse.json({ error: "Доступ запрещён" }, { status: 403 });

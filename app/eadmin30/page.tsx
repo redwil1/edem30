@@ -14,10 +14,12 @@ import {
   Tag,
   Megaphone,
   Settings,
+  MessageCircle,
   Menu,
   X,
 } from "lucide-react";
 
+import { useAuth } from "@/components/auth/AuthProvider";
 import AdminDashboard from "@/components/admin/AdminDashboard";
 import AdminUsersTable from "@/components/admin/AdminUsersTable";
 import AdminTripsTable from "@/components/admin/AdminTripsTable";
@@ -25,6 +27,7 @@ import AdminTaxiOrdersTable from "@/components/admin/AdminTaxiOrdersTable";
 import AdminReviewsTable from "@/components/admin/AdminReviewsTable";
 import AdminReportsTable from "@/components/admin/AdminReportsTable";
 import AdminVerificationsTable from "@/components/admin/AdminVerificationsTable";
+import AdminChatModeration from "@/components/admin/AdminChatModeration";
 import AdminSubscriptionPlansTable from "@/components/admin/AdminSubscriptionPlansTable";
 import AdminPromoCodesTable from "@/components/admin/AdminPromoCodesTable";
 import AdminNewsletterPanel from "@/components/admin/AdminNewsletterPanel";
@@ -35,6 +38,7 @@ type Tab =
   | "users"
   | "trips"
   | "taxiOrders"
+  | "chats"
   | "reports"
   | "reviews"
   | "verifications"
@@ -43,13 +47,16 @@ type Tab =
   | "newsletter"
   | "settings";
 
+const ADMIN_ONLY_TABS: Tab[] = ["subscriptions", "promoCodes", "newsletter", "settings"];
+
 const TABS: { id: Tab; label: string; icon: typeof LayoutDashboard }[] = [
   { id: "dashboard", label: "📊 Дашборд", icon: LayoutDashboard },
   { id: "users", label: "👥 Пользователи", icon: Users },
   { id: "trips", label: "🚗 Поездки", icon: Car },
   { id: "taxiOrders", label: "🚕 Заказы такси", icon: Car },
+  { id: "chats", label: "💬 Чаты", icon: MessageCircle },
   { id: "verifications", label: "✅ Верификации", icon: ShieldCheck },
-  { id: "reports", label: "💬 Жалобы", icon: Flag },
+  { id: "reports", label: "🚩 Жалобы", icon: Flag },
   { id: "reviews", label: "⭐ Отзывы", icon: Star },
   { id: "subscriptions", label: "💰 Подписки", icon: CreditCard },
   { id: "promoCodes", label: "🎁 Промокоды", icon: Tag },
@@ -62,6 +69,11 @@ const TAB_LABELS: Record<Tab, string> = Object.fromEntries(
 ) as Record<Tab, string>;
 
 export default function AdminPage() {
+  const { user } = useAuth();
+  const isAdmin = user?.role === "admin";
+
+  const visibleTabs = TABS.filter((t) => isAdmin || !ADMIN_ONLY_TABS.includes(t.id));
+
   const [tab, setTab] = useState<Tab>("dashboard");
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
 
@@ -92,12 +104,15 @@ export default function AdminPage() {
           </button>
         </div>
 
-        <h1 className="hidden lg:block text-2xl font-bold mb-5">Админ-панель</h1>
+        <h1 className="hidden lg:block text-2xl font-bold mb-1">Админ-панель</h1>
+        {!isAdmin && (
+          <p className="hidden lg:block text-xs text-gray-500 mb-4">Режим модератора</p>
+        )}
 
         <nav
-          className={`${mobileNavOpen ? "flex" : "hidden"} lg:flex flex-col gap-1 bg-[#12121c] border border-white/5 rounded-2xl p-2`}
+          className={`${mobileNavOpen ? "flex" : "hidden"} lg:flex flex-col gap-1 bg-[#12121c] border border-white/5 rounded-2xl p-2 mt-4 lg:mt-0`}
         >
-          {TABS.map((t) => (
+          {visibleTabs.map((t) => (
             <button
               key={t.id}
               onClick={() => selectTab(t.id)}
@@ -123,13 +138,14 @@ export default function AdminPage() {
         {tab === "users" && <AdminUsersTable />}
         {tab === "trips" && <AdminTripsTable />}
         {tab === "taxiOrders" && <AdminTaxiOrdersTable />}
+        {tab === "chats" && <AdminChatModeration />}
         {tab === "verifications" && <AdminVerificationsTable />}
         {tab === "reports" && <AdminReportsTable />}
         {tab === "reviews" && <AdminReviewsTable />}
-        {tab === "subscriptions" && <AdminSubscriptionPlansTable />}
-        {tab === "promoCodes" && <AdminPromoCodesTable />}
-        {tab === "newsletter" && <AdminNewsletterPanel />}
-        {tab === "settings" && <AdminSettingsPanel />}
+        {isAdmin && tab === "subscriptions" && <AdminSubscriptionPlansTable />}
+        {isAdmin && tab === "promoCodes" && <AdminPromoCodesTable />}
+        {isAdmin && tab === "newsletter" && <AdminNewsletterPanel />}
+        {isAdmin && tab === "settings" && <AdminSettingsPanel />}
       </div>
     </div>
   );

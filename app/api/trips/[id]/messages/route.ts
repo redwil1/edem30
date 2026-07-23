@@ -27,6 +27,7 @@ type MessageRow = {
   name: string;
   avatar_url: string | null;
   avatar_preset: string | null;
+  role: string;
   text: string;
   attachment_url: string | null;
   attachment_type: string | null;
@@ -34,6 +35,7 @@ type MessageRow = {
 };
 
 const ATTACHMENT_TYPES = new Set(["image", "video"]);
+const STAFF_ROLES = new Set(["admin", "moderator"]);
 
 export async function GET(_req: Request, { params }: Props) {
   const { id } = await params;
@@ -50,7 +52,7 @@ export async function GET(_req: Request, { params }: Props) {
     sql<MessageRow[]>`
       SELECT chat_messages.id as id, chat_messages.user_id as user_id,
              users.name as name, users.avatar_url as avatar_url,
-             users.avatar_preset as avatar_preset,
+             users.avatar_preset as avatar_preset, users.role as role,
              chat_messages.text as text, chat_messages.attachment_url as attachment_url,
              chat_messages.attachment_type as attachment_type,
              chat_messages.created_at as created_at
@@ -60,6 +62,9 @@ export async function GET(_req: Request, { params }: Props) {
       ORDER BY chat_messages.created_at ASC
     `,
   ]);
+
+  const isStaffViewer = user ? STAFF_ROLES.has(user.role) : false;
+  const isPartyMember = user ? await isTripPartyMember(tripId, user.id) : false;
 
   return NextResponse.json(
     {
@@ -74,10 +79,9 @@ export async function GET(_req: Request, { params }: Props) {
         createdAt: r.created_at,
         isYou: user ? r.user_id === user.id : false,
         isDriver: r.user_id === ownerId,
+        isStaff: STAFF_ROLES.has(r.role),
       })),
-      canPost:
-        (user ? await isTripPartyMember(tripId, user.id) : false) &&
-        !isChatLocked(lifecycle.completedAt),
+      canPost: (isPartyMember || isStaffViewer) && !isChatLocked(lifecycle.completedAt),
       completedAt: lifecycle.completedAt,
       chatLocked: isChatLocked(lifecycle.completedAt),
     },
@@ -109,7 +113,9 @@ export async function POST(req: NextRequest, { params }: Props) {
     return NextResponse.json({ error: "Некорректная поездка" }, { status: 400 });
   }
 
-  if (!(await isTripPartyMember(tripId, user.id))) {
+  const isStaffSender = STAFF_ROLES.has(user.role);
+
+  if (!isStaffSender && !(await isTripPartyMember(tripId, user.id))) {
     return NextResponse.json(
       { error: "Присоединитесь к поездке, чтобы писать в чат" },
       { status: 403 }
@@ -199,7 +205,9 @@ export async function POST(req: NextRequest, { params }: Props) {
     return Promise.all(
       recipients.map((recipientId) =>
         sendPushToUser(recipientId, {
-          title: `${user.name}: новое сообщение`,
+          title: isStaffSender
+            ? `Поддержка (${user.name}): новое сообщение`
+            : `${user.name}: новое сообщение`,
           body: preview.slice(0, 120),
           url: `/trip/${tripId}`,
         })
@@ -218,5 +226,6 @@ export async function POST(req: NextRequest, { params }: Props) {
     createdAt: inserted[0].created_at,
     isYou: true,
     isDriver: ownerId === user.id,
+    isStaff: isStaffSender,
   });
 }

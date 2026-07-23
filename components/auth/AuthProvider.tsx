@@ -8,7 +8,7 @@ import {
   useState,
 } from "react";
 
-type UserRole = "passenger" | "driver" | "admin";
+type UserRole = "passenger" | "driver" | "admin" | "moderator";
 
 type AuthUser = {
   id: number;

@@ -72,6 +72,20 @@ export async function sendPushToDrivers(payload: PushPayload): Promise<void> {
   await Promise.all(rows.map((row) => sendToSubscription(row, payload)));
 }
 
+export async function sendPushToStaff(payload: PushPayload): Promise<void> {
+  if (!vapidPublicKey || !vapidPrivateKey) return;
+
+  const rows = await sql<SubscriptionRow[]>`
+    SELECT push_subscriptions.endpoint as endpoint, push_subscriptions.p256dh as p256dh,
+           push_subscriptions.auth as auth
+    FROM push_subscriptions
+    JOIN users ON users.id = push_subscriptions.user_id
+    WHERE users.role IN ('admin', 'moderator')
+  `;
+
+  await Promise.all(rows.map((row) => sendToSubscription(row, payload)));
+}
+
 export type BroadcastSegment = "all" | "driver" | "passenger";
 
 export async function sendPushToSegment(
