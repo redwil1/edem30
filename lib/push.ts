@@ -72,6 +72,27 @@ export async function sendPushToDrivers(payload: PushPayload): Promise<void> {
   await Promise.all(rows.map((row) => sendToSubscription(row, payload)));
 }
 
+export type BroadcastSegment = "all" | "driver" | "passenger";
+
+export async function sendPushToSegment(
+  segment: BroadcastSegment,
+  payload: PushPayload
+): Promise<number> {
+  if (!vapidPublicKey || !vapidPrivateKey) return 0;
+
+  const rows = await sql<SubscriptionRow[]>`
+    SELECT push_subscriptions.endpoint as endpoint, push_subscriptions.p256dh as p256dh,
+           push_subscriptions.auth as auth
+    FROM push_subscriptions
+    JOIN users ON users.id = push_subscriptions.user_id
+    WHERE ${segment === "all" ? sql`true` : sql`users.role = ${segment}`}
+  `;
+
+  await Promise.all(rows.map((row) => sendToSubscription(row, payload)));
+
+  return rows.length;
+}
+
 async function sendToSubscription(row: SubscriptionRow, payload: PushPayload) {
   try {
     await webpush.sendNotification(

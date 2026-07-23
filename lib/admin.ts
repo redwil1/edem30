@@ -523,3 +523,67 @@ export async function deleteAdminUser(userId: number): Promise<boolean> {
     return result.count > 0;
   });
 }
+
+export type AdminTaxiOrder = {
+  id: number;
+  from: string;
+  to: string;
+  price: number;
+  seats: number;
+  status: "open" | "accepted" | "cancelled";
+  passengerName: string;
+  driverName: string | null;
+  tripId: number | null;
+  createdAt: string;
+};
+
+type AdminTaxiOrderRow = {
+  id: number;
+  from_address: string;
+  to_address: string;
+  price: number;
+  seats: number;
+  status: "open" | "accepted" | "cancelled";
+  passenger_name: string;
+  driver_name: string | null;
+  trip_id: number | null;
+  created_at: string;
+};
+
+export async function listAdminTaxiOrders(status?: string): Promise<AdminTaxiOrder[]> {
+  const rows = await sql<AdminTaxiOrderRow[]>`
+    SELECT taxi_orders.id as id, taxi_orders.from_address as from_address,
+           taxi_orders.to_address as to_address, taxi_orders.price as price,
+           taxi_orders.seats as seats, taxi_orders.status as status,
+           passenger.name as passenger_name, driver.name as driver_name,
+           taxi_orders.trip_id as trip_id, taxi_orders.created_at as created_at
+    FROM taxi_orders
+    JOIN users passenger ON passenger.id = taxi_orders.passenger_id
+    LEFT JOIN users driver ON driver.id = taxi_orders.driver_id
+    ${status ? sql`WHERE taxi_orders.status = ${status}` : sql``}
+    ORDER BY taxi_orders.created_at DESC
+    LIMIT 200
+  `;
+
+  return rows.map((r) => ({
+    id: r.id,
+    from: r.from_address,
+    to: r.to_address,
+    price: r.price,
+    seats: r.seats,
+    status: r.status,
+    passengerName: r.passenger_name,
+    driverName: r.driver_name,
+    tripId: r.trip_id,
+    createdAt: r.created_at,
+  }));
+}
+
+export async function adminCancelTaxiOrder(orderId: number): Promise<boolean> {
+  const result = await sql`
+    UPDATE taxi_orders SET status = 'cancelled'
+    WHERE id = ${orderId} AND status = 'open'
+  `;
+
+  return result.count > 0;
+}

@@ -6,6 +6,7 @@ import { isTrustedOrigin } from "@/lib/security";
 import { createOrder, listOpenOrders } from "@/lib/taxiOrders";
 import { getDriverEarnings } from "@/lib/trips";
 import { isValidAddress } from "@/lib/addressValidation";
+import { getSiteSettings } from "@/lib/siteSettings";
 
 export const runtime = "nodejs";
 
@@ -79,9 +80,12 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  if (!Number.isInteger(price) || price < 20 || price > 100_000) {
+  const { min_taxi_price } = await getSiteSettings();
+  const minPrice = Number(min_taxi_price) || 20;
+
+  if (!Number.isInteger(price) || price < minPrice || price > 100_000) {
     return NextResponse.json(
-      { error: "Минимальная цена поездки — 20 ₽" },
+      { error: `Минимальная цена поездки — ${minPrice} ₽` },
       { status: 400 }
     );
   }
