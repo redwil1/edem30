@@ -7,7 +7,6 @@ import Link from "next/link";
 import { useAuth } from "@/components/auth/AuthProvider";
 import PhoneInput from "@/components/PhoneInput";
 import { subscribeToPush } from "@/lib/pushSubscribeClient";
-import VkIdOneTap from "@/components/auth/VkIdOneTap";
 
 function isSafeRedirect(path: string) {
   return /^\/(?!\/|\\)/.test(path);
@@ -24,14 +23,6 @@ function LoginForm() {
   const roleParam = searchParams.get("role");
   const requestedRole = roleParam === "driver" ? "driver" : roleParam === "passenger" ? "passenger" : null;
 
-  const oauthError = searchParams.get("oauthError");
-  const oauthErrorMessage =
-    oauthError === "notconfigured"
-      ? "Этот способ входа пока недоступен"
-      : oauthError
-      ? "Не удалось войти. Попробуйте ещё раз"
-      : "";
-
   const [mode, setMode] = useState<"login" | "register">("register");
 
   const [name, setName] = useState("");
@@ -43,46 +34,8 @@ function LoginForm() {
   const [captchaAnswer, setCaptchaAnswer] = useState("");
   const [pushConsent, setPushConsent] = useState(false);
 
-  const [telegramCode, setTelegramCode] = useState("");
-  const [codeRequested, setCodeRequested] = useState(false);
-  const [notLinked, setNotLinked] = useState(false);
-  const [sendingCode, setSendingCode] = useState(false);
-  const [codeError, setCodeError] = useState("");
-
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
-
-  const phoneDigits = phone.replace(/\D/g, "");
-
-  async function requestPhoneCode() {
-    setCodeError("");
-    setNotLinked(false);
-    setSendingCode(true);
-
-    try {
-      const res = await fetch("/api/auth/telegram-code/request", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ phone }),
-      });
-      const data = await res.json().catch(() => null);
-
-      if (!res.ok) {
-        if (data?.error?.includes("не привязан")) {
-          setNotLinked(true);
-        } else {
-          setCodeError(data?.error || "Не удалось отправить код");
-        }
-        return;
-      }
-
-      setCodeRequested(true);
-    } catch {
-      setCodeError("Не удалось подключиться к серверу");
-    } finally {
-      setSendingCode(false);
-    }
-  }
 
   async function loadCaptcha() {
     const res = await fetch("/api/captcha", { cache: "no-store" });
@@ -117,11 +70,6 @@ function LoginForm() {
         setError("Подтвердите согласие на push-уведомления, чтобы продолжить");
         return;
       }
-
-      if (!telegramCode) {
-        setError("Подтвердите номер телефона кодом из Telegram");
-        return;
-      }
     }
 
     setLoading(true);
@@ -139,7 +87,6 @@ function LoginForm() {
                 captchaToken,
                 captchaAnswer: Number(captchaAnswer),
                 pushConsent,
-                telegramCode,
               }
             : { phone, password }
         ),
@@ -228,65 +175,6 @@ function LoginForm() {
 
           <PhoneInput value={phone} onChange={setPhone} />
 
-          {mode === "register" && (
-            <div className="bg-[#171726] border border-white/5 rounded-2xl p-4 space-y-3">
-              <p className="text-xs text-gray-500 leading-relaxed">
-                Чтобы подтвердить, что номер действительно ваш, мы присылаем
-                код в Telegram-бот вместо платного SMS. Заполните номер выше
-                полностью — тогда кнопка станет активной.
-              </p>
-
-              {!codeRequested ? (
-                <>
-                  <button
-                    type="button"
-                    onClick={requestPhoneCode}
-                    disabled={phoneDigits.length !== 11 || sendingCode}
-                    className="w-full bg-[#222233] hover:bg-[#2a2a40] disabled:opacity-50 transition rounded-xl py-3 text-sm font-medium"
-                  >
-                    {sendingCode
-                      ? "Отправляем..."
-                      : phoneDigits.length !== 11
-                      ? "Сначала введите номер полностью"
-                      : "Подтвердить номер кодом из Telegram"}
-                  </button>
-
-                  {notLinked && (
-                    <div className="text-xs text-gray-400 leading-relaxed space-y-2">
-                      <p>
-                        Этот номер ещё не привязан к Telegram. Откройте бота, нажмите
-                        «Старт» и поделитесь номером телефона — потом вернитесь сюда.
-                      </p>
-                      <a
-                        href="https://t.me/edem30bot"
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="inline-block text-violet-400 hover:text-violet-300 font-medium"
-                      >
-                        Открыть @edem30bot →
-                      </a>
-                    </div>
-                  )}
-                </>
-              ) : (
-                <>
-                  <div className="text-xs text-green-400">
-                    Код отправлен в Telegram — введите его ниже
-                  </div>
-                  <input
-                    value={telegramCode}
-                    onChange={(e) => setTelegramCode(e.target.value.replace(/\D/g, "").slice(0, 6))}
-                    placeholder="Код из Telegram"
-                    inputMode="numeric"
-                    className="w-full bg-[#0f0f18] border border-white/10 focus:border-violet-500 rounded-xl p-3.5 outline-none transition"
-                  />
-                </>
-              )}
-
-              {codeError && <p className="text-red-400 text-xs">{codeError}</p>}
-            </div>
-          )}
-
           <input
             value={password}
             onChange={(e) => setPassword(e.target.value)}
@@ -339,20 +227,6 @@ function LoginForm() {
               : "Войти"}
           </button>
         </form>
-
-        {oauthErrorMessage && (
-          <p className="text-red-400 text-sm text-center mt-4">{oauthErrorMessage}</p>
-        )}
-
-        <div className="flex items-center gap-3 my-6">
-          <div className="h-px flex-1 bg-white/10" />
-          <span className="text-xs text-gray-500">или через</span>
-          <div className="h-px flex-1 bg-white/10" />
-        </div>
-
-        <div className="flex flex-col gap-3">
-          <VkIdOneTap />
-        </div>
 
         <p className="text-gray-500 text-sm mt-8 leading-6">
           Продолжая, вы принимаете условия использования и соглашаетесь на

@@ -1,14 +1,15 @@
 import type { NextConfig } from "next";
 
+const isDev = process.env.NODE_ENV === "development";
+
 const cspHeader = `
     default-src 'self';
-    script-src 'self' 'unsafe-inline' 'unsafe-eval' https://unpkg.com https://telegram.org;
+    script-src 'self' 'unsafe-inline'${isDev ? " 'unsafe-eval'" : ""};
     style-src 'self' 'unsafe-inline';
-    img-src 'self' blob: data: https://*.supabase.co https://*.vk.com https://*.vk.ru https://*.userapi.com;
+    img-src 'self' blob: data: https://*.supabase.co;
     media-src 'self' blob: https://*.supabase.co;
     font-src 'self' data:;
-    connect-src 'self' https://*.supabase.co https://*.vk.com https://*.vk.ru;
-    frame-src 'self' https://oauth.telegram.org https://*.vk.com https://*.vk.ru;
+    connect-src 'self' https://*.supabase.co;
     object-src 'none';
     base-uri 'self';
     form-action 'self';

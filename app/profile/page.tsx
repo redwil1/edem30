@@ -7,7 +7,6 @@ import DriverCard from "@/components/driver/DriverCard";
 import VehicleSetup from "@/components/profile/VehicleSetup";
 import EarningsChart from "@/components/profile/EarningsChart";
 import PushSubscribeButton from "@/components/PushSubscribeButton";
-import LinkedAccounts from "@/components/profile/LinkedAccounts";
 import FavoriteAddressesManager from "@/components/profile/FavoriteAddressesManager";
 import ProfileTabs from "@/components/profile/ProfileTabs";
 import ReviewsList from "@/components/profile/ReviewsList";
@@ -150,8 +149,6 @@ export default async function ProfilePage() {
                   <div className="bg-[#12121c] border border-white/5 rounded-3xl p-4 sm:p-6 mt-6">
                     <PushSubscribeButton />
                   </div>
-
-                  <LinkedAccounts />
 
                   <FavoriteAddressesManager />
 
