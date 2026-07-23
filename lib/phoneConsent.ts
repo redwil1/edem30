@@ -33,12 +33,13 @@ export async function getRevealedPhones(
   const myConsent = await hasConsented(tripId, userId);
   if (!myConsent) return [];
 
-  const rows = await sql<{ id: number; name: string; phone: string }[]>`
+  const rows = await sql<{ id: number; name: string; phone: string | null }[]>`
     SELECT users.id as id, users.name as name, users.phone as phone
     FROM trip_phone_consent
     JOIN users ON users.id = trip_phone_consent.user_id
     WHERE trip_phone_consent.trip_id = ${tripId} AND trip_phone_consent.user_id != ${userId}
+      AND users.phone IS NOT NULL
   `;
 
-  return rows.map((r) => ({ userId: r.id, name: r.name, phone: r.phone }));
+  return rows.map((r) => ({ userId: r.id, name: r.name, phone: r.phone as string }));
 }

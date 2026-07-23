@@ -13,7 +13,7 @@ type UserRole = "passenger" | "driver" | "admin" | "moderator";
 type AuthUser = {
   id: number;
   name: string;
-  phone: string;
+  phone: string | null;
   role: UserRole;
   avatarUrl: string | null;
   avatarPreset: string | null;

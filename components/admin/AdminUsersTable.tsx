@@ -22,7 +22,7 @@ type Filter = "all" | "driver" | "passenger" | "blocked" | "noname";
 type User = {
   id: number;
   name: string;
-  phone: string;
+  phone: string | null;
   role: Role;
   createdAt: string;
   reportsAgainst: number;
@@ -36,6 +36,10 @@ const FILTERS: { value: Filter; label: string }[] = [
   { value: "blocked", label: "Заблокированные" },
   { value: "noname", label: "Без имени" },
 ];
+
+function phoneLabel(phone: string | null) {
+  return phone ? `+${phone}` : "без телефона";
+}
 
 function riskBadge(count: number) {
   if (count === 0) return null;
@@ -115,7 +119,7 @@ export default function AdminUsersTable() {
   async function deleteUser(user: User) {
     if (
       !confirm(
-        `Удалить пользователя «${user.name}» (+${user.phone})? Будут безвозвратно удалены его поездки, сообщения в чатах, заказы такси и отзывы.`
+        `Удалить пользователя «${user.name}» (${phoneLabel(user.phone)})? Будут безвозвратно удалены его поездки, сообщения в чатах, заказы такси и отзывы.`
       )
     ) {
       return;
@@ -170,7 +174,7 @@ export default function AdminUsersTable() {
 
     if (
       nextBlocked &&
-      !confirm(`Заблокировать пользователя «${user.name}» (+${user.phone})?`)
+      !confirm(`Заблокировать пользователя «${user.name}» (${phoneLabel(user.phone)})?`)
     ) {
       return;
     }
@@ -271,7 +275,7 @@ export default function AdminUsersTable() {
                       )}
                     </div>
                   </td>
-                  <td className="px-4 py-3 text-gray-400">+{u.phone}</td>
+                  <td className="px-4 py-3 text-gray-400">{phoneLabel(u.phone)}</td>
                   <td className="px-4 py-3">
                     {isAdmin ? (
                       <select
@@ -408,7 +412,7 @@ export default function AdminUsersTable() {
             </div>
 
             <p className="text-sm text-gray-500 mb-4">
-              Для «{newPassword.user.name}» (+{newPassword.user.phone}). Сообщите
+              Для «{newPassword.user.name}» ({phoneLabel(newPassword.user.phone)}). Сообщите
               его пользователю — повторно посмотреть будет нельзя.
             </p>
 

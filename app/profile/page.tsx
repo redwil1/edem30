@@ -100,7 +100,7 @@ export default async function ProfilePage() {
                   />
 
                   <div className="text-sm text-gray-500 mt-4 space-y-1">
-                    <div>+{user.phone}</div>
+                    {user.phone && <div>+{user.phone}</div>}
                     <div>
                       {user.role === "driver" ? "Режим: водитель" : "Режим: пассажир"} ·
                       {" "}На сайте с {memberSince}

@@ -178,7 +178,7 @@ export type AdminUserFilter = "all" | "driver" | "passenger" | "blocked" | "nona
 export type AdminUser = {
   id: number;
   name: string;
-  phone: string;
+  phone: string | null;
   role: UserRole;
   createdAt: string;
   reportsAgainst: number;
@@ -188,7 +188,7 @@ export type AdminUser = {
 type AdminUserRow = {
   id: number;
   name: string;
-  phone: string;
+  phone: string | null;
   role: UserRole;
   createdat: string;
   reports_against: string;

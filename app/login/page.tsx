@@ -7,6 +7,7 @@ import Link from "next/link";
 import { useAuth } from "@/components/auth/AuthProvider";
 import PhoneInput from "@/components/PhoneInput";
 import { subscribeToPush } from "@/lib/pushSubscribeClient";
+import TelegramLoginButton from "@/components/auth/TelegramLoginButton";
 
 function isSafeRedirect(path: string) {
   return /^\/(?!\/|\\)/.test(path);
@@ -22,6 +23,14 @@ function LoginForm() {
 
   const roleParam = searchParams.get("role");
   const requestedRole = roleParam === "driver" ? "driver" : roleParam === "passenger" ? "passenger" : null;
+
+  const oauthError = searchParams.get("oauthError");
+  const oauthErrorMessage =
+    oauthError === "notconfigured"
+      ? "Этот способ входа пока недоступен"
+      : oauthError
+      ? "Не удалось войти. Попробуйте ещё раз"
+      : "";
 
   const [mode, setMode] = useState<"login" | "register">("register");
 
@@ -227,6 +236,36 @@ function LoginForm() {
               : "Войти"}
           </button>
         </form>
+
+        {oauthErrorMessage && (
+          <p className="text-red-400 text-sm text-center mt-4">{oauthErrorMessage}</p>
+        )}
+
+        <div className="flex items-center gap-3 my-6">
+          <div className="h-px flex-1 bg-white/10" />
+          <span className="text-xs text-gray-500">или через</span>
+          <div className="h-px flex-1 bg-white/10" />
+        </div>
+
+        <div className="flex flex-col gap-3">
+          <a
+            href="/api/auth/oauth/vk/start"
+            className="w-full flex items-center justify-center gap-2 bg-[#171726] hover:bg-[#222233] border border-white/5 transition rounded-2xl py-3.5 font-medium text-sm"
+          >
+            <span className="text-[#0077FF] font-bold">VK</span>
+            Войти через VK
+          </a>
+
+          <a
+            href="/api/auth/oauth/ok/start"
+            className="w-full flex items-center justify-center gap-2 bg-[#171726] hover:bg-[#222233] border border-white/5 transition rounded-2xl py-3.5 font-medium text-sm"
+          >
+            <span className="text-[#EE8208] font-bold">OK</span>
+            Войти через Одноклассники
+          </a>
+
+          <TelegramLoginButton />
+        </div>
 
         <p className="text-gray-500 text-sm mt-8 leading-6">
           Продолжая, вы принимаете условия использования и соглашаетесь на

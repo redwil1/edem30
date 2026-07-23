@@ -36,7 +36,7 @@ export type UserRole = "passenger" | "driver" | "admin" | "moderator";
 export type SafeUser = {
   id: number;
   name: string;
-  phone: string;
+  phone: string | null;
   role: UserRole;
   avatarUrl: string | null;
   avatarPreset: string | null;
