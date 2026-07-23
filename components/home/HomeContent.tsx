@@ -4,7 +4,6 @@ import Link from "next/link";
 import { Loader2, ShieldCheck } from "lucide-react";
 
 import { useAuth } from "@/components/auth/AuthProvider";
-import { useSelectedCity } from "@/hooks/useSelectedCity";
 import { Trip } from "@/types/trips";
 import LiveStats from "@/components/LiveStats";
 import DriverHome from "./DriverHome";
@@ -20,8 +19,7 @@ type Props = {
 };
 
 export default function HomeContent({ trips }: Props) {
-  const { user, loading } = useAuth();
-  const [city, setCity] = useSelectedCity();
+  const { user, loading, city, setCity } = useAuth();
 
   const visibleTrips = city
     ? trips.filter((trip) => trip.from === city || trip.to === city)

@@ -7,7 +7,7 @@ import { Car, Check, Loader2, MapPin, X } from "lucide-react";
 import AddressInput from "@/components/taxi/AddressInput";
 import FavoriteAddressChips from "@/components/taxi/FavoriteAddressChips";
 import CitySwitch from "@/components/home/CitySwitch";
-import { useSelectedCity } from "@/hooks/useSelectedCity";
+import { useAuth } from "@/components/auth/AuthProvider";
 import { formatPrice, formatSeats } from "@/lib/utils";
 
 type Order = {
@@ -36,7 +36,7 @@ type Props = {
 
 export default function PassengerTaxiOrder({ initialFrom, initialTo }: Props = {}) {
   const router = useRouter();
-  const [city, setCity] = useSelectedCity();
+  const { city, setCity } = useAuth();
 
   const [order, setOrder] = useState<Order | null>(null);
   const [dismissed, setDismissed] = useState(false);

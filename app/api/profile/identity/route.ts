@@ -6,6 +6,7 @@ import { rateLimit } from "@/lib/rateLimit";
 import { isTrustedOrigin } from "@/lib/security";
 import { isValidAvatarPreset, isValidGender } from "@/lib/avatarPresets";
 import { isPlaceholderName } from "@/lib/nameValidation";
+import { cities } from "@/lib/cities";
 
 export const runtime = "nodejs";
 
@@ -70,6 +71,14 @@ export async function POST(req: NextRequest) {
       UPDATE users SET avatar_preset = ${body.avatarPreset || null}, avatar_url = NULL
       WHERE id = ${user.id}
     `;
+  }
+
+  if (body?.selectedCity !== undefined) {
+    if (body.selectedCity !== null && !cities.includes(body.selectedCity)) {
+      return NextResponse.json({ error: "Некорректный город" }, { status: 400 });
+    }
+
+    await sql`UPDATE users SET selected_city = ${body.selectedCity || null} WHERE id = ${user.id}`;
   }
 
   return NextResponse.json({ ok: true });

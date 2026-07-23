@@ -12,7 +12,6 @@ import CityModal from "@/components/CityModal";
 import CarModelInput from "@/components/CarModelInput";
 import AddressInput from "@/components/taxi/AddressInput";
 import CitySwitch from "@/components/home/CitySwitch";
-import { useSelectedCity } from "@/hooks/useSelectedCity";
 import { TripType } from "@/types/trips";
 
 type CityField = "from" | "to" | null;
@@ -39,8 +38,7 @@ export default function CreateTripPage() {
 function CreateTripForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { user, loading, setRole } = useAuth();
-  const [selectedCity, setSelectedCity] = useSelectedCity();
+  const { user, loading, setRole, city: selectedCity, setCity: setSelectedCity } = useAuth();
 
   const [type, setType] = useState<TripType>(
     searchParams.get("type") === "city" ? "city" : "intercity"
