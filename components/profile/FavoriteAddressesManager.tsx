@@ -111,13 +111,13 @@ export default function FavoriteAddressesManager() {
         </div>
       )}
 
-      <div className="flex flex-col sm:flex-row gap-2">
+      <div className="flex flex-col gap-2">
         <input
           value={label}
           onChange={(e) => setLabel(e.target.value)}
           placeholder="Дом / Работа"
           maxLength={30}
-          className="sm:w-32 bg-[#171726] border border-white/10 focus:border-violet-500 rounded-xl px-3.5 py-2.5 text-sm outline-none transition"
+          className="w-full bg-[#171726] border border-white/10 focus:border-violet-500 rounded-xl px-3.5 py-2.5 text-sm outline-none transition"
         />
 
         <input
@@ -125,14 +125,14 @@ export default function FavoriteAddressesManager() {
           onChange={(e) => setAddress(e.target.value)}
           placeholder="Полный адрес, например: ул. Ленина, д. 10"
           maxLength={200}
-          className="flex-1 bg-[#171726] border border-white/10 focus:border-violet-500 rounded-xl px-3.5 py-2.5 text-sm outline-none transition"
+          className="w-full bg-[#171726] border border-white/10 focus:border-violet-500 rounded-xl px-3.5 py-2.5 text-sm outline-none transition"
         />
 
         <button
           type="button"
           onClick={add}
           disabled={saving}
-          className="flex items-center justify-center gap-1.5 btn-gradient rounded-xl px-4 py-2.5 text-sm font-bold disabled:opacity-60 transition shrink-0"
+          className="flex items-center justify-center gap-1.5 btn-gradient rounded-xl px-4 py-2.5 text-sm font-bold disabled:opacity-60 transition w-full"
         >
           {saving ? <Loader2 size={14} className="animate-spin" /> : <Plus size={14} />}
           Добавить
