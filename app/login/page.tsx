@@ -7,7 +7,7 @@ import Link from "next/link";
 import { useAuth } from "@/components/auth/AuthProvider";
 import PhoneInput from "@/components/PhoneInput";
 import { subscribeToPush } from "@/lib/pushSubscribeClient";
-import TelegramCodeLogin from "@/components/auth/TelegramCodeLogin";
+import TelegramLoginButton from "@/components/auth/TelegramLoginButton";
 import VkIdOneTap from "@/components/auth/VkIdOneTap";
 
 function isSafeRedirect(path: string) {
@@ -344,7 +344,7 @@ function LoginForm() {
         <div className="flex flex-col gap-3">
           <VkIdOneTap />
 
-          <TelegramCodeLogin />
+          <TelegramLoginButton />
         </div>
 
         <p className="text-gray-500 text-sm mt-8 leading-6">
