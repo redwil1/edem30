@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { Building2, Clock, Mail, MapPin, MessageCircle, Phone } from "lucide-react";
 
 import Navbar from "@/components/layout/Navbar";
@@ -25,7 +26,8 @@ const contactCards = [
   {
     icon: MessageCircle,
     title: "Чат поддержки",
-    lines: ["Telegram: @edem30_support"],
+    lines: ["Telegram: @edem30bot"],
+    href: "https://t.me/edem30bot",
     note: "Самый быстрый способ связи",
   },
   {
@@ -55,11 +57,8 @@ export default function ContactsPage() {
           {contactCards.map((card) => {
             const Icon = card.icon;
 
-            return (
-              <div
-                key={card.title}
-                className="bg-[#12121c] border border-white/5 rounded-3xl p-5 flex items-start gap-4"
-              >
+            const content = (
+              <>
                 <div className="w-11 h-11 rounded-xl bg-violet-600/15 flex items-center justify-center shrink-0">
                   <Icon size={18} className="text-violet-400" />
                 </div>
@@ -75,6 +74,25 @@ export default function ContactsPage() {
 
                   <div className="text-xs text-gray-500 mt-1">{card.note}</div>
                 </div>
+              </>
+            );
+
+            const className =
+              "bg-[#12121c] border border-white/5 rounded-3xl p-5 flex items-start gap-4";
+
+            return "href" in card && card.href ? (
+              <Link
+                key={card.title}
+                href={card.href}
+                target="_blank"
+                rel="noopener noreferrer"
+                className={`${className} hover:border-violet-500/30 transition`}
+              >
+                {content}
+              </Link>
+            ) : (
+              <div key={card.title} className={className}>
+                {content}
               </div>
             );
           })}

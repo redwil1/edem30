@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Phone, Mail } from "lucide-react";
+import { Send, Mail } from "lucide-react";
 
 export default function Footer() {
   return (
@@ -38,10 +38,15 @@ export default function Footer() {
         </div>
 
         <div className="flex flex-col gap-2 text-sm text-gray-400 md:items-end">
-          <div className="flex items-center gap-2">
-            <Phone size={14} className="text-violet-400" />
-            Поддержка: +7 (999) 123-45-67
-          </div>
+          <a
+            href="https://t.me/edem30bot"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center gap-2 hover:text-white transition"
+          >
+            <Send size={14} className="text-violet-400" />
+            Поддержка: @edem30bot
+          </a>
 
           <div className="flex items-center gap-2">
             <Mail size={14} className="text-violet-400" />

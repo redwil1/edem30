@@ -93,7 +93,7 @@ export type FaqAnswer = {
 };
 
 const FALLBACK =
-  "Не нашёл точного ответа на этот вопрос в базе знаний сайта. Напишите нам на support@edem30.ru или в Telegram @edem30_support — там подскажут подробнее.";
+  "Не нашёл точного ответа на этот вопрос в базе знаний сайта. Напишите нам на support@edem30.ru или в Telegram @edem30bot — там подскажут подробнее.";
 
 const MATCH_THRESHOLD = 0.8;
 
