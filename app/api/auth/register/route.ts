@@ -7,6 +7,7 @@ import { rateLimit } from "@/lib/rateLimit";
 import { getClientIp, isTrustedOrigin } from "@/lib/security";
 import { verifyCaptcha } from "@/lib/captcha";
 import { isPlaceholderName } from "@/lib/nameValidation";
+import { findTelegramChatIdForPhone, verifyTelegramLoginCode } from "@/lib/telegramBot";
 
 export const runtime = "nodejs";
 
@@ -37,6 +38,7 @@ export async function POST(req: NextRequest) {
     typeof body?.captchaToken === "string" ? body.captchaToken : "";
   const captchaAnswer = Number(body?.captchaAnswer);
   const pushConsent = body?.pushConsent === true;
+  const telegramCode = typeof body?.telegramCode === "string" ? body.telegramCode.trim() : "";
 
   const phone = normalizePhone(phoneRaw);
 
@@ -88,11 +90,25 @@ export async function POST(req: NextRequest) {
     );
   }
 
+  if (!telegramCode) {
+    return NextResponse.json(
+      { error: "Подтвердите номер телефона кодом из Telegram" },
+      { status: 400 }
+    );
+  }
+
+  const codeCheck = await verifyTelegramLoginCode(phone, telegramCode);
+
+  if (!codeCheck.ok) {
+    return NextResponse.json({ error: codeCheck.error }, { status: 400 });
+  }
+
   const passwordHash = await hashPassword(password);
+  const telegramChatId = await findTelegramChatIdForPhone(phone);
 
   const inserted = await sql<{ id: number }[]>`
-    INSERT INTO users (name, phone, password_hash, push_consent_at)
-    VALUES (${name}, ${phone}, ${passwordHash}, ${new Date().toISOString()})
+    INSERT INTO users (name, phone, password_hash, push_consent_at, telegram_id)
+    VALUES (${name}, ${phone}, ${passwordHash}, ${new Date().toISOString()}, ${telegramChatId})
     RETURNING id
   `;
 

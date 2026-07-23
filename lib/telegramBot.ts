@@ -198,7 +198,7 @@ export async function resolveTelegramMessage(id: number): Promise<boolean> {
 
 const CODE_TTL_MS = 5 * 60_000;
 
-async function findTelegramChatIdForPhone(phone: string): Promise<string | null> {
+export async function findTelegramChatIdForPhone(phone: string): Promise<string | null> {
   const linked = await sql<{ chat_id: string }[]>`
     SELECT chat_id FROM telegram_phone_links WHERE phone = ${phone}
   `;

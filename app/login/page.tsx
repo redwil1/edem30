@@ -44,8 +44,46 @@ function LoginForm() {
   const [captchaAnswer, setCaptchaAnswer] = useState("");
   const [pushConsent, setPushConsent] = useState(false);
 
+  const [telegramCode, setTelegramCode] = useState("");
+  const [codeRequested, setCodeRequested] = useState(false);
+  const [notLinked, setNotLinked] = useState(false);
+  const [sendingCode, setSendingCode] = useState(false);
+  const [codeError, setCodeError] = useState("");
+
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+
+  const phoneDigits = phone.replace(/\D/g, "");
+
+  async function requestPhoneCode() {
+    setCodeError("");
+    setNotLinked(false);
+    setSendingCode(true);
+
+    try {
+      const res = await fetch("/api/auth/telegram-code/request", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ phone }),
+      });
+      const data = await res.json().catch(() => null);
+
+      if (!res.ok) {
+        if (data?.error?.includes("не привязан")) {
+          setNotLinked(true);
+        } else {
+          setCodeError(data?.error || "Не удалось отправить код");
+        }
+        return;
+      }
+
+      setCodeRequested(true);
+    } catch {
+      setCodeError("Не удалось подключиться к серверу");
+    } finally {
+      setSendingCode(false);
+    }
+  }
 
   async function loadCaptcha() {
     const res = await fetch("/api/captcha", { cache: "no-store" });
@@ -80,6 +118,11 @@ function LoginForm() {
         setError("Подтвердите согласие на push-уведомления, чтобы продолжить");
         return;
       }
+
+      if (!telegramCode) {
+        setError("Подтвердите номер телефона кодом из Telegram");
+        return;
+      }
     }
 
     setLoading(true);
@@ -97,6 +140,7 @@ function LoginForm() {
                 captchaToken,
                 captchaAnswer: Number(captchaAnswer),
                 pushConsent,
+                telegramCode,
               }
             : { phone, password }
         ),
@@ -184,6 +228,55 @@ function LoginForm() {
           )}
 
           <PhoneInput value={phone} onChange={setPhone} />
+
+          {mode === "register" && (
+            <div className="bg-[#171726] border border-white/5 rounded-2xl p-4 space-y-3">
+              {!codeRequested ? (
+                <>
+                  <button
+                    type="button"
+                    onClick={requestPhoneCode}
+                    disabled={phoneDigits.length !== 11 || sendingCode}
+                    className="w-full bg-[#222233] hover:bg-[#2a2a40] disabled:opacity-50 transition rounded-xl py-3 text-sm font-medium"
+                  >
+                    {sendingCode ? "Отправляем..." : "Подтвердить номер кодом из Telegram"}
+                  </button>
+
+                  {notLinked && (
+                    <div className="text-xs text-gray-400 leading-relaxed space-y-2">
+                      <p>
+                        Этот номер ещё не привязан к Telegram. Откройте бота, нажмите
+                        «Старт» и поделитесь номером телефона — потом вернитесь сюда.
+                      </p>
+                      <a
+                        href="https://t.me/edem30bot"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-block text-violet-400 hover:text-violet-300 font-medium"
+                      >
+                        Открыть @edem30bot →
+                      </a>
+                    </div>
+                  )}
+                </>
+              ) : (
+                <>
+                  <div className="text-xs text-green-400">
+                    Код отправлен в Telegram — введите его ниже
+                  </div>
+                  <input
+                    value={telegramCode}
+                    onChange={(e) => setTelegramCode(e.target.value.replace(/\D/g, "").slice(0, 6))}
+                    placeholder="Код из Telegram"
+                    inputMode="numeric"
+                    className="w-full bg-[#0f0f18] border border-white/10 focus:border-violet-500 rounded-xl p-3.5 outline-none transition"
+                  />
+                </>
+              )}
+
+              {codeError && <p className="text-red-400 text-xs">{codeError}</p>}
+            </div>
+          )}
 
           <input
             value={password}
