@@ -1,36 +1,18 @@
 import "server-only";
 
-const VK_API_VERSION = "5.199";
-
 export function isVkConfigured(): boolean {
-  return Boolean(process.env.VK_CLIENT_ID && process.env.VK_CLIENT_SECRET);
+  return Boolean(process.env.NEXT_PUBLIC_VK_APP_ID);
 }
 
-export function getVkAuthorizeUrl(redirectUri: string, state: string): string {
-  const params = new URLSearchParams({
-    client_id: process.env.VK_CLIENT_ID!,
-    redirect_uri: redirectUri,
-    display: "page",
-    response_type: "code",
-    v: VK_API_VERSION,
-    state,
-  });
-
-  return `https://oauth.vk.com/authorize?${params.toString()}`;
-}
-
-type VkTokenResponse = {
-  access_token?: string;
-  user_id?: number;
+type VkUserInfoResponse = {
+  user?: {
+    user_id: string;
+    first_name: string;
+    last_name: string;
+    avatar?: string;
+  };
   error?: string;
   error_description?: string;
-};
-
-type VkUser = {
-  id: number;
-  first_name: string;
-  last_name: string;
-  photo_200?: string;
 };
 
 export type VkProfile = {
@@ -39,38 +21,27 @@ export type VkProfile = {
   avatarUrl: string | null;
 };
 
-export async function exchangeVkCode(
-  code: string,
-  redirectUri: string
-): Promise<VkProfile | null> {
-  const tokenParams = new URLSearchParams({
-    client_id: process.env.VK_CLIENT_ID!,
-    client_secret: process.env.VK_CLIENT_SECRET!,
-    redirect_uri: redirectUri,
-    code,
+/** Проверяет access_token, полученный от VK ID SDK на клиенте, и возвращает профиль. */
+export async function getVkUserInfo(accessToken: string): Promise<VkProfile | null> {
+  const appId = process.env.NEXT_PUBLIC_VK_APP_ID;
+  if (!appId) return null;
+
+  const res = await fetch("https://id.vk.com/oauth2/user_info", {
+    method: "POST",
+    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    body: new URLSearchParams({
+      client_id: appId,
+      access_token: accessToken,
+    }),
   });
 
-  const tokenRes = await fetch(`https://oauth.vk.com/access_token?${tokenParams.toString()}`);
-  const tokenData: VkTokenResponse = await tokenRes.json().catch(() => ({}));
+  const data: VkUserInfoResponse = await res.json().catch(() => ({}));
 
-  if (!tokenData.access_token || !tokenData.user_id) return null;
-
-  const userParams = new URLSearchParams({
-    user_ids: String(tokenData.user_id),
-    fields: "photo_200",
-    access_token: tokenData.access_token,
-    v: VK_API_VERSION,
-  });
-
-  const userRes = await fetch(`https://api.vk.com/method/users.get?${userParams.toString()}`);
-  const userData: { response?: VkUser[] } = await userRes.json().catch(() => ({}));
-
-  const vkUser = userData.response?.[0];
-  if (!vkUser) return null;
+  if (!data.user) return null;
 
   return {
-    providerId: String(vkUser.id),
-    name: `${vkUser.first_name} ${vkUser.last_name}`.trim(),
-    avatarUrl: vkUser.photo_200 ?? null,
+    providerId: data.user.user_id,
+    name: `${data.user.first_name} ${data.user.last_name}`.trim(),
+    avatarUrl: data.user.avatar ?? null,
   };
 }

@@ -8,6 +8,7 @@ import { useAuth } from "@/components/auth/AuthProvider";
 import PhoneInput from "@/components/PhoneInput";
 import { subscribeToPush } from "@/lib/pushSubscribeClient";
 import TelegramLoginButton from "@/components/auth/TelegramLoginButton";
+import VkIdOneTap from "@/components/auth/VkIdOneTap";
 
 function isSafeRedirect(path: string) {
   return /^\/(?!\/|\\)/.test(path);
@@ -248,13 +249,7 @@ function LoginForm() {
         </div>
 
         <div className="flex flex-col gap-3">
-          <a
-            href="/api/auth/oauth/vk/start"
-            className="w-full flex items-center justify-center gap-2 bg-[#171726] hover:bg-[#222233] border border-white/5 transition rounded-2xl py-3.5 font-medium text-sm"
-          >
-            <span className="text-[#0077FF] font-bold">VK</span>
-            Войти через VK
-          </a>
+          <VkIdOneTap />
 
           <a
             href="/api/auth/oauth/ok/start"
