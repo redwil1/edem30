@@ -14,6 +14,7 @@ import RealNameNotifier from "@/components/RealNameNotifier";
 import PendingReviewNotifier from "@/components/PendingReviewNotifier";
 import VisitTracker from "@/components/VisitTracker";
 import OnlineHeartbeat from "@/components/OnlineHeartbeat";
+import SupportChatWidget from "@/components/support/SupportChatWidget";
 import BottomNav from "@/components/layout/BottomNav";
 
 const manrope = Manrope({
@@ -68,6 +69,7 @@ export default function RootLayout({
             <ComplaintNoticeNotifier />
             <RealNameNotifier />
             <PendingReviewNotifier />
+            <SupportChatWidget />
             {children}
             <BottomNav />
           </AuthProvider>
