@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { X } from "lucide-react";
 
 import { REPORT_CATEGORIES } from "@/lib/reportCategories";
@@ -18,8 +18,6 @@ export default function ReportModal({ tripId, open, onClose }: Props) {
   const [error, setError] = useState("");
   const [done, setDone] = useState(false);
 
-  if (!open) return null;
-
   function close() {
     onClose();
     setTimeout(() => {
@@ -29,6 +27,20 @@ export default function ReportModal({ tripId, open, onClose }: Props) {
       setDone(false);
     }, 200);
   }
+
+  useEffect(() => {
+    if (!open) return;
+
+    function onKey(e: KeyboardEvent) {
+      if (e.key === "Escape") close();
+    }
+
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open]);
+
+  if (!open) return null;
 
   async function submit() {
     if (!category) {
@@ -63,8 +75,14 @@ export default function ReportModal({ tripId, open, onClose }: Props) {
   }
 
   return (
-    <div className="fixed inset-0 bg-black/70 flex items-end sm:items-center justify-center z-50">
-      <div className="bg-[#171726] w-full max-w-md rounded-t-3xl sm:rounded-3xl p-6">
+    <div
+      className="fixed inset-0 bg-black/70 flex items-end sm:items-center justify-center z-50"
+      onClick={close}
+    >
+      <div
+        className="bg-[#171726] w-full max-w-md rounded-t-3xl sm:rounded-3xl p-6"
+        onClick={(e) => e.stopPropagation()}
+      >
         <div className="flex items-center justify-between mb-5">
           <h2 className="font-display text-2xl font-bold">
             Пожаловаться на поездку

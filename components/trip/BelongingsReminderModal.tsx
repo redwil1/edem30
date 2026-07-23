@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect } from "react";
 import { Backpack } from "lucide-react";
 
 type Props = {
@@ -7,6 +8,15 @@ type Props = {
 };
 
 export default function BelongingsReminderModal({ onContinue }: Props) {
+  useEffect(() => {
+    function onKey(e: KeyboardEvent) {
+      if (e.key === "Escape") onContinue();
+    }
+
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [onContinue]);
+
   return (
     <div
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 px-5"

@@ -42,6 +42,17 @@ export default function AdminUsersTable() {
   const [copied, setCopied] = useState(false);
   const [error, setError] = useState("");
 
+  useEffect(() => {
+    if (!newPassword) return;
+
+    function onKey(e: KeyboardEvent) {
+      if (e.key === "Escape") setNewPassword(null);
+    }
+
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [newPassword]);
+
   async function load(query: string) {
     const res = await fetch(
       `/api/admin/users${query ? `?search=${encodeURIComponent(query)}` : ""}`,

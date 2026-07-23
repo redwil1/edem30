@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Search, X } from "lucide-react";
 
 import { cities } from "@/lib/cities";
@@ -15,6 +15,17 @@ type Props = {
 export default function CityModal({ open, onClose, onSelect, title }: Props) {
   const [query, setQuery] = useState("");
 
+  useEffect(() => {
+    if (!open) return;
+
+    function onKey(e: KeyboardEvent) {
+      if (e.key === "Escape") onClose();
+    }
+
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [open, onClose]);
+
   if (!open) return null;
 
   const filtered = cities.filter((city) =>
@@ -22,8 +33,14 @@ export default function CityModal({ open, onClose, onSelect, title }: Props) {
   );
 
   return (
-    <div className="fixed inset-0 h-[100dvh] bg-black/70 flex items-end sm:items-center justify-center z-50">
-      <div className="bg-[#171726] w-full max-w-md rounded-t-3xl sm:rounded-3xl p-6 max-h-[85dvh] sm:max-h-[80vh] flex flex-col min-h-0">
+    <div
+      className="fixed inset-0 h-[100dvh] bg-black/70 flex items-end sm:items-center justify-center z-50"
+      onClick={onClose}
+    >
+      <div
+        className="bg-[#171726] w-full max-w-md rounded-t-3xl sm:rounded-3xl p-6 max-h-[85dvh] sm:max-h-[80vh] flex flex-col min-h-0"
+        onClick={(e) => e.stopPropagation()}
+      >
         <div className="flex items-center justify-between mb-5 shrink-0">
           <h2 className="text-2xl font-bold">{title ?? "Выберите город"}</h2>
 
