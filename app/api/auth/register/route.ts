@@ -36,6 +36,7 @@ export async function POST(req: NextRequest) {
   const captchaToken =
     typeof body?.captchaToken === "string" ? body.captchaToken : "";
   const captchaAnswer = Number(body?.captchaAnswer);
+  const pushConsent = body?.pushConsent === true;
 
   const phone = normalizePhone(phoneRaw);
 
@@ -71,6 +72,13 @@ export async function POST(req: NextRequest) {
     );
   }
 
+  if (!pushConsent) {
+    return NextResponse.json(
+      { error: "Подтвердите согласие на push-уведомления, чтобы продолжить" },
+      { status: 400 }
+    );
+  }
+
   const existing = await sql`SELECT id FROM users WHERE phone = ${phone}`;
 
   if (existing.length > 0) {
@@ -83,8 +91,8 @@ export async function POST(req: NextRequest) {
   const passwordHash = await hashPassword(password);
 
   const inserted = await sql<{ id: number }[]>`
-    INSERT INTO users (name, phone, password_hash)
-    VALUES (${name}, ${phone}, ${passwordHash})
+    INSERT INTO users (name, phone, password_hash, push_consent_at)
+    VALUES (${name}, ${phone}, ${passwordHash}, ${new Date().toISOString()})
     RETURNING id
   `;
 

@@ -6,6 +6,7 @@ import Link from "next/link";
 
 import { useAuth } from "@/components/auth/AuthProvider";
 import PhoneInput from "@/components/PhoneInput";
+import { subscribeToPush } from "@/lib/pushSubscribeClient";
 
 function isSafeRedirect(path: string) {
   return /^\/(?!\/|\\)/.test(path);
@@ -31,6 +32,7 @@ function LoginForm() {
   const [captchaQuestion, setCaptchaQuestion] = useState("");
   const [captchaToken, setCaptchaToken] = useState("");
   const [captchaAnswer, setCaptchaAnswer] = useState("");
+  const [pushConsent, setPushConsent] = useState(false);
 
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
@@ -63,6 +65,11 @@ function LoginForm() {
         setError("Пароль должен быть не короче 7 символов");
         return;
       }
+
+      if (!pushConsent) {
+        setError("Подтвердите согласие на push-уведомления, чтобы продолжить");
+        return;
+      }
     }
 
     setLoading(true);
@@ -79,6 +86,7 @@ function LoginForm() {
                 password,
                 captchaToken,
                 captchaAnswer: Number(captchaAnswer),
+                pushConsent,
               }
             : { phone, password }
         ),
@@ -99,6 +107,10 @@ function LoginForm() {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ role: requestedRole }),
         });
+      }
+
+      if (mode === "register" && pushConsent) {
+        subscribeToPush();
       }
 
       await refresh();
@@ -186,6 +198,19 @@ function LoginForm() {
                 className="w-full bg-[#171726] border border-white/5 focus:border-violet-500 rounded-2xl p-4 outline-none transition"
               />
             </div>
+          )}
+
+          {mode === "register" && (
+            <label className="flex items-start gap-3 text-sm text-gray-400 cursor-pointer select-none">
+              <input
+                type="checkbox"
+                checked={pushConsent}
+                onChange={(e) => setPushConsent(e.target.checked)}
+                className="mt-0.5 w-4 h-4 shrink-0 accent-violet-600"
+              />
+              Согласен(на) получать push-уведомления о новых сообщениях,
+              заказах и статусе поездок
+            </label>
           )}
 
           {error && <p className="text-red-400 text-sm">{error}</p>}
