@@ -54,16 +54,18 @@ export type PendingComplaintNotice = {
   reportId: number;
   tripRoute: string;
   tripId: number;
+  createdAt: string;
 };
 
 export async function getPendingComplaintNotices(
   userId: number
 ): Promise<PendingComplaintNotice[]> {
   const rows = await sql<
-    { id: number; trip_id: number; from_city: string; to_city: string }[]
+    { id: number; trip_id: number; from_city: string; to_city: string; created_at: string }[]
   >`
     SELECT trip_reports.id as id, trip_reports.trip_id as trip_id,
-           trips.from_city as from_city, trips.to_city as to_city
+           trips.from_city as from_city, trips.to_city as to_city,
+           trip_reports.created_at as created_at
     FROM trip_reports
     JOIN trips ON trips.id = trip_reports.trip_id
     WHERE trip_reports.reported_user_id = ${userId}
@@ -75,6 +77,7 @@ export async function getPendingComplaintNotices(
     reportId: r.id,
     tripId: r.trip_id,
     tripRoute: `${r.from_city} → ${r.to_city}`,
+    createdAt: r.created_at,
   }));
 }
 

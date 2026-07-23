@@ -9,6 +9,7 @@ import { useAuth } from "@/components/auth/AuthProvider";
 import Avatar from "@/components/trip/Avatar";
 import ThemeToggle from "./ThemeToggle";
 import FavoriteAddressButton from "./FavoriteAddressButton";
+import NotificationBell from "./NotificationBell";
 
 const links = [
   { href: "/", text: "Главная" },
@@ -86,6 +87,7 @@ export default function Navbar() {
         <div className="hidden lg:flex items-center gap-3">
           <ThemeToggle />
 
+          {user && <NotificationBell />}
           {user && <FavoriteAddressButton />}
 
           {loading ? (
@@ -219,6 +221,13 @@ export default function Navbar() {
             <span className="text-sm text-gray-400">Тема</span>
             <ThemeToggle />
           </div>
+
+          {user && (
+            <div className="flex items-center justify-between px-3 mt-3 pt-3 border-t border-white/5">
+              <span className="text-sm text-gray-400">Уведомления</span>
+              <NotificationBell />
+            </div>
+          )}
 
           {user && (
             <div className="px-3">
