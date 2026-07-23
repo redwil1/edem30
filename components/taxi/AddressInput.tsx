@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { getOtherCitiesStreets, getStreetsForCity } from "@/data/streetsByCity";
+import { isValidAddress } from "@/lib/addressValidation";
 
 type Props = {
   value: string;
@@ -32,6 +33,7 @@ export default function AddressInput({
   city,
 }: Props) {
   const [open, setOpen] = useState(false);
+  const [invalid, setInvalid] = useState(false);
 
   const markerIndex = value.indexOf(HOUSE_MARKER);
   const inHouseMode = markerIndex !== -1;
@@ -71,12 +73,32 @@ export default function AddressInput({
 
   function selectStreet(street: string) {
     onChange(`${street}${HOUSE_MARKER}`);
+    setInvalid(false);
     setOpen(true);
   }
 
   function selectHouse(number: string) {
     onChange(`${value.slice(0, markerIndex + HOUSE_MARKER.length)}${number}`);
+    setInvalid(false);
     setOpen(false);
+  }
+
+  function handleBlur() {
+    setTimeout(() => {
+      setOpen(false);
+
+      if (!value.trim()) {
+        setInvalid(false);
+        return;
+      }
+
+      if (isValidAddress(value, city ?? null)) {
+        setInvalid(false);
+      } else {
+        onChange("");
+        setInvalid(true);
+      }
+    }, 150);
   }
 
   const showDropdown =
@@ -88,14 +110,21 @@ export default function AddressInput({
         value={value}
         onChange={(e) => {
           onChange(e.target.value);
+          setInvalid(false);
           setOpen(true);
         }}
         onFocus={() => setOpen(true)}
-        onBlur={() => setTimeout(() => setOpen(false), 150)}
+        onBlur={handleBlur}
         placeholder={placeholder}
         autoComplete="off"
         className={inputClassName || DEFAULT_INPUT_CLASSNAME}
       />
+
+      {invalid && !open && (
+        <p className="text-red-400 text-xs mt-1.5 px-1">
+          Выберите улицу из списка подсказок
+        </p>
+      )}
 
       {showDropdown && (
         <div className="absolute z-10 w-full mt-2 bg-[#171726] border border-violet-500/20 rounded-2xl overflow-hidden shadow-xl max-h-72 overflow-y-auto">

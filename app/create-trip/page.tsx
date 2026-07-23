@@ -114,6 +114,7 @@ function CreateTripForm() {
           type,
           from: from.trim(),
           to: to.trim(),
+          city: type === "city" ? selectedCity : null,
           date,
           time,
           price: Number(price),

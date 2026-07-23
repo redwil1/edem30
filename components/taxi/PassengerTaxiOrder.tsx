@@ -111,6 +111,7 @@ export default function PassengerTaxiOrder({ initialFrom, initialTo }: Props = {
         body: JSON.stringify({
           from: from.trim(),
           to: to.trim(),
+          city,
           price: Number(price),
           seats: Number(seats),
         }),

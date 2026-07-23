@@ -5,6 +5,8 @@ import { rateLimit } from "@/lib/rateLimit";
 import { isTrustedOrigin } from "@/lib/security";
 import { countActiveTripsByOwner, createTrip } from "@/lib/trips";
 import { TripType } from "@/types/trips";
+import { isValidAddress } from "@/lib/addressValidation";
+import { containsProfanity } from "@/lib/profanity";
 
 export const runtime = "nodejs";
 
@@ -88,6 +90,7 @@ export async function POST(req: NextRequest) {
   const from =
     typeof body?.from === "string" ? body.from.trim().slice(0, 60) : "";
   const to = typeof body?.to === "string" ? body.to.trim().slice(0, 60) : "";
+  const city = typeof body?.city === "string" ? body.city.trim() : null;
   const date = typeof body?.date === "string" ? body.date.trim() : "";
   const time = typeof body?.time === "string" ? body.time.trim() : "";
   const transportCategory =
@@ -105,6 +108,20 @@ export async function POST(req: NextRequest) {
   if (!from || !to) {
     return NextResponse.json(
       { error: "Укажите откуда и куда едем" },
+      { status: 400 }
+    );
+  }
+
+  if (type === "city") {
+    if (!isValidAddress(from, city) || !isValidAddress(to, city)) {
+      return NextResponse.json(
+        { error: "Указывайте только реальные улицы из списка подсказок" },
+        { status: 400 }
+      );
+    }
+  } else if (containsProfanity(from) || containsProfanity(to)) {
+    return NextResponse.json(
+      { error: "Недопустимый текст в маршруте" },
       { status: 400 }
     );
   }
