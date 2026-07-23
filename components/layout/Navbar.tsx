@@ -8,6 +8,7 @@ import { Menu, X, User, LogOut, Car, Users } from "lucide-react";
 import { useAuth } from "@/components/auth/AuthProvider";
 import Avatar from "@/components/trip/Avatar";
 import ThemeToggle from "./ThemeToggle";
+import FavoriteAddressButton from "./FavoriteAddressButton";
 
 const links = [
   { href: "/", text: "Главная" },
@@ -84,6 +85,8 @@ export default function Navbar() {
 
         <div className="hidden lg:flex items-center gap-3">
           <ThemeToggle />
+
+          {user && <FavoriteAddressButton />}
 
           {loading ? (
             <div className="w-24 h-10 rounded-xl bg-white/5 animate-pulse" />
@@ -216,6 +219,12 @@ export default function Navbar() {
             <span className="text-sm text-gray-400">Тема</span>
             <ThemeToggle />
           </div>
+
+          {user && (
+            <div className="px-3">
+              <FavoriteAddressButton variant="mobile" />
+            </div>
+          )}
 
           <div className="mt-3 pt-3 border-t border-white/5">
             {user ? (
