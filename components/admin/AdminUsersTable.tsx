@@ -1,9 +1,21 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { AlertTriangle, Check, Copy, KeyRound, Loader2, Search, Trash2, X } from "lucide-react";
+import {
+  AlertTriangle,
+  Ban,
+  Check,
+  CheckCircle2,
+  Copy,
+  KeyRound,
+  Loader2,
+  Search,
+  Trash2,
+  X,
+} from "lucide-react";
 
 type Role = "passenger" | "driver" | "admin";
+type Filter = "all" | "driver" | "passenger" | "blocked" | "noname";
 
 type User = {
   id: number;
@@ -12,7 +24,16 @@ type User = {
   role: Role;
   createdAt: string;
   reportsAgainst: number;
+  isBlocked: boolean;
 };
+
+const FILTERS: { value: Filter; label: string }[] = [
+  { value: "all", label: "Все" },
+  { value: "driver", label: "Только водители" },
+  { value: "passenger", label: "Только пассажиры" },
+  { value: "blocked", label: "Заблокированные" },
+  { value: "noname", label: "Без имени" },
+];
 
 function riskBadge(count: number) {
   if (count === 0) return null;
@@ -33,9 +54,11 @@ const ROLE_LABELS: Record<Role, string> = {
 export default function AdminUsersTable() {
   const [users, setUsers] = useState<User[] | null>(null);
   const [search, setSearch] = useState("");
+  const [filter, setFilter] = useState<Filter>("all");
   const [savingId, setSavingId] = useState<number | null>(null);
   const [deletingId, setDeletingId] = useState<number | null>(null);
   const [resettingId, setResettingId] = useState<number | null>(null);
+  const [blockingId, setBlockingId] = useState<number | null>(null);
   const [newPassword, setNewPassword] = useState<{ user: User; password: string } | null>(
     null
   );
@@ -53,18 +76,22 @@ export default function AdminUsersTable() {
     return () => document.removeEventListener("keydown", onKey);
   }, [newPassword]);
 
-  async function load(query: string) {
-    const res = await fetch(
-      `/api/admin/users${query ? `?search=${encodeURIComponent(query)}` : ""}`,
-      { cache: "no-store" }
-    );
+  async function load(query: string, activeFilter: Filter) {
+    const params = new URLSearchParams();
+    if (query) params.set("search", query);
+    if (activeFilter !== "all") params.set("filter", activeFilter);
+
+    const res = await fetch(`/api/admin/users?${params.toString()}`, {
+      cache: "no-store",
+    });
     const data = await res.json();
     setUsers(data.users ?? []);
   }
 
   useEffect(() => {
-    load("");
-  }, []);
+    load(search, filter);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [filter]);
 
   async function changeRole(userId: number, role: Role) {
     setSavingId(userId);
@@ -75,7 +102,7 @@ export default function AdminUsersTable() {
       body: JSON.stringify({ role }),
     });
 
-    await load(search);
+    await load(search, filter);
     setSavingId(null);
   }
 
@@ -100,7 +127,7 @@ export default function AdminUsersTable() {
         return;
       }
 
-      await load(search);
+      await load(search, filter);
     } finally {
       setDeletingId(null);
     }
@@ -132,12 +159,44 @@ export default function AdminUsersTable() {
     }
   }
 
+  async function toggleBlock(user: User) {
+    const nextBlocked = !user.isBlocked;
+
+    if (
+      nextBlocked &&
+      !confirm(`Заблокировать пользователя «${user.name}» (+${user.phone})?`)
+    ) {
+      return;
+    }
+
+    setError("");
+    setBlockingId(user.id);
+
+    try {
+      const res = await fetch(`/api/admin/users/${user.id}/block`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ blocked: nextBlocked }),
+      });
+      const data = await res.json().catch(() => null);
+
+      if (!res.ok) {
+        setError(data?.error || "Не удалось изменить статус пользователя");
+        return;
+      }
+
+      await load(search, filter);
+    } finally {
+      setBlockingId(null);
+    }
+  }
+
   return (
     <div>
       <form
         onSubmit={(e) => {
           e.preventDefault();
-          load(search);
+          load(search, filter);
         }}
         className="flex items-center gap-2 bg-[#12121c] border border-white/5 rounded-2xl px-4 py-2.5 mb-5 max-w-sm"
       >
@@ -150,6 +209,23 @@ export default function AdminUsersTable() {
           className="w-full bg-transparent outline-none text-sm placeholder:text-gray-500"
         />
       </form>
+
+      <div className="flex items-center gap-2 mb-5 overflow-x-auto pb-1">
+        {FILTERS.map((f) => (
+          <button
+            key={f.value}
+            type="button"
+            onClick={() => setFilter(f.value)}
+            className={`whitespace-nowrap rounded-xl px-3.5 py-2 text-xs font-medium transition ${
+              filter === f.value
+                ? "bg-violet-600 text-white"
+                : "bg-[#12121c] border border-white/5 text-gray-400 hover:text-white"
+            }`}
+          >
+            {f.label}
+          </button>
+        ))}
+      </div>
 
       {!users ? (
         <div className="py-16 flex items-center justify-center text-gray-500">
@@ -164,6 +240,7 @@ export default function AdminUsersTable() {
                 <th className="px-4 py-3 font-medium">Имя</th>
                 <th className="px-4 py-3 font-medium">Телефон</th>
                 <th className="px-4 py-3 font-medium">Роль</th>
+                <th className="px-4 py-3 font-medium">Статус</th>
                 <th className="px-4 py-3 font-medium">Дата</th>
                 <th className="px-4 py-3 font-medium" />
               </tr>
@@ -203,10 +280,48 @@ export default function AdminUsersTable() {
                       ))}
                     </select>
                   </td>
+                  <td className="px-4 py-3">
+                    <span
+                      className={`inline-flex items-center gap-1 text-[11px] font-medium px-2 py-1 rounded-full whitespace-nowrap ${
+                        u.isBlocked
+                          ? "bg-red-500/15 text-red-400"
+                          : "bg-green-500/15 text-green-400"
+                      }`}
+                    >
+                      {u.isBlocked ? <Ban size={10} /> : <CheckCircle2 size={10} />}
+                      {u.isBlocked ? "Заблокирован" : "Активен"}
+                    </span>
+                  </td>
                   <td className="px-4 py-3 text-gray-500 whitespace-nowrap">
                     {u.createdAt}
                   </td>
                   <td className="px-4 py-3 text-right whitespace-nowrap">
+                    <button
+                      type="button"
+                      onClick={() => toggleBlock(u)}
+                      disabled={blockingId === u.id || u.role === "admin"}
+                      title={
+                        u.role === "admin"
+                          ? "Нельзя заблокировать администратора"
+                          : u.isBlocked
+                          ? "Разблокировать"
+                          : "Заблокировать"
+                      }
+                      className={`inline-flex items-center justify-center w-8 h-8 rounded-lg disabled:opacity-30 disabled:hover:bg-transparent transition ${
+                        u.isBlocked
+                          ? "text-green-400 hover:bg-green-500/10"
+                          : "text-yellow-400 hover:bg-yellow-500/10"
+                      }`}
+                    >
+                      {blockingId === u.id ? (
+                        <Loader2 size={15} className="animate-spin" />
+                      ) : u.isBlocked ? (
+                        <CheckCircle2 size={15} />
+                      ) : (
+                        <Ban size={15} />
+                      )}
+                    </button>
+
                     <button
                       type="button"
                       onClick={() => resetPassword(u)}
@@ -244,7 +359,7 @@ export default function AdminUsersTable() {
 
               {users.length === 0 && (
                 <tr>
-                  <td colSpan={6} className="px-4 py-10 text-center text-gray-500">
+                  <td colSpan={7} className="px-4 py-10 text-center text-gray-500">
                     Никого не найдено
                   </td>
                 </tr>

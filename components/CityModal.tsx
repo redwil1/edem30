@@ -3,16 +3,23 @@
 import { useEffect, useState } from "react";
 import { Search, X } from "lucide-react";
 
-import { cities } from "@/lib/cities";
+import { cities as defaultCities } from "@/lib/cities";
 
 type Props = {
   open: boolean;
   onClose: () => void;
   onSelect: (city: string) => void;
   title?: string;
+  cities?: string[];
 };
 
-export default function CityModal({ open, onClose, onSelect, title }: Props) {
+export default function CityModal({
+  open,
+  onClose,
+  onSelect,
+  title,
+  cities = defaultCities,
+}: Props) {
   const [query, setQuery] = useState("");
 
   useEffect(() => {

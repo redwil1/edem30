@@ -13,6 +13,7 @@ import ComplaintNoticeNotifier from "@/components/ComplaintNoticeNotifier";
 import RealNameNotifier from "@/components/RealNameNotifier";
 import PendingReviewNotifier from "@/components/PendingReviewNotifier";
 import VisitTracker from "@/components/VisitTracker";
+import OnlineHeartbeat from "@/components/OnlineHeartbeat";
 import BottomNav from "@/components/layout/BottomNav";
 
 const manrope = Manrope({
@@ -58,6 +59,7 @@ export default function RootLayout({
           <AuthProvider>
             <RoleThemeSync />
             <VisitTracker />
+            <OnlineHeartbeat />
             <DriverOrderNotifier />
             <TripReminderNotifier />
             <EmptyTripNotifier />

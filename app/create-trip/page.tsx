@@ -13,6 +13,7 @@ import CarModelInput from "@/components/CarModelInput";
 import AddressInput from "@/components/taxi/AddressInput";
 import CitySwitch from "@/components/home/CitySwitch";
 import { TripType } from "@/types/trips";
+import { intercityDestinations } from "@/lib/cities";
 
 type CityField = "from" | "to" | null;
 
@@ -243,6 +244,7 @@ function CreateTripForm() {
               </button>
 
               <CityModal
+                cities={intercityDestinations}
                 open={cityModalField !== null}
                 onClose={() => setCityModalField(null)}
                 onSelect={(city) => {

@@ -2,7 +2,7 @@ import "server-only";
 
 import { sql } from "@/lib/db";
 
-const ACTIVE_TRIP_CLAUSE = sql`
+export const ACTIVE_TRIP_CLAUSE = sql`
   cancelled_at IS NULL
   AND NOT (driver_completed_at IS NOT NULL AND passenger_completed_at IS NOT NULL)
 `;

@@ -4,6 +4,8 @@ import crypto from "crypto";
 
 import { sql } from "@/lib/db";
 import { getCurrentUser, hashPassword, UserRole } from "@/lib/auth";
+import { ACTIVE_TRIP_CLAUSE } from "@/lib/liveStats";
+import { isPlaceholderName } from "@/lib/nameValidation";
 
 export async function requireAdmin() {
   const user = await getCurrentUser();
@@ -20,6 +22,12 @@ export type TripTypeCounts = {
 
 export type AdminStats = {
   usersCount: number;
+  driversCount: number;
+  passengersCount: number;
+  onlineCount: number;
+  activeTripsCount: number;
+  openTaxiOrdersCount: number;
+  registeredTodayCount: number;
   tripsCount: number;
   tripsByType: TripTypeCounts;
   reviewsCount: number;
@@ -28,22 +36,40 @@ export type AdminStats = {
 };
 
 export async function getAdminStats(): Promise<AdminStats> {
-  const [users, trips, tripsByTypeRows, reviews, reviewsByTypeRows, reports] =
-    await Promise.all([
-      sql<{ c: string }[]>`SELECT COUNT(*) as c FROM users`,
-      sql<{ c: string }[]>`SELECT COUNT(*) as c FROM trips`,
-      sql<{ type: string; c: string }[]>`
-        SELECT type, COUNT(*) as c FROM trips GROUP BY type
-      `,
-      sql<{ c: string }[]>`SELECT COUNT(*) as c FROM reviews`,
-      sql<{ type: string; c: string }[]>`
-        SELECT trips.type as type, COUNT(*) as c
-        FROM reviews
-        JOIN trips ON trips.id = reviews.trip_id
-        GROUP BY trips.type
-      `,
-      sql<{ c: string }[]>`SELECT COUNT(*) as c FROM trip_reports WHERE status = 'new'`,
-    ]);
+  const [userAgg, tripAgg, reviewsByTypeRows, openTaxiOrders, reports] = await Promise.all([
+    sql<
+      { total: string; drivers: string; passengers: string; online: string; registered_today: string }[]
+    >`
+      SELECT
+        COUNT(*) as total,
+        COUNT(*) FILTER (WHERE role = 'driver') as drivers,
+        COUNT(*) FILTER (WHERE role = 'passenger') as passengers,
+        COUNT(*) FILTER (
+          WHERE last_seen_at IS NOT NULL
+            AND last_seen_at::timestamptz > now() - interval '5 minutes'
+        ) as online,
+        COUNT(*) FILTER (WHERE created_at::timestamptz > date_trunc('day', now())) as registered_today
+      FROM users
+    `,
+    sql<
+      { total: string; intercity: string; city: string; active: string }[]
+    >`
+      SELECT
+        COUNT(*) as total,
+        COUNT(*) FILTER (WHERE type = 'intercity') as intercity,
+        COUNT(*) FILTER (WHERE type = 'city') as city,
+        COUNT(*) FILTER (WHERE ${ACTIVE_TRIP_CLAUSE}) as active
+      FROM trips
+    `,
+    sql<{ type: string; c: string }[]>`
+      SELECT trips.type as type, COUNT(*) as c
+      FROM reviews
+      JOIN trips ON trips.id = reviews.trip_id
+      GROUP BY trips.type
+    `,
+    sql<{ c: string }[]>`SELECT COUNT(*) as c FROM taxi_orders WHERE status = 'open'`,
+    sql<{ c: string }[]>`SELECT COUNT(*) as c FROM trip_reports WHERE status = 'new'`,
+  ]);
 
   function toTypeCounts(rows: { type: string; c: string }[]): TripTypeCounts {
     const counts: TripTypeCounts = { intercity: 0, city: 0 };
@@ -57,12 +83,22 @@ export async function getAdminStats(): Promise<AdminStats> {
     return counts;
   }
 
+  const u = userAgg[0];
+  const t = tripAgg[0];
+  const reviewsByType = toTypeCounts(reviewsByTypeRows);
+
   return {
-    usersCount: Number(users[0].c),
-    tripsCount: Number(trips[0].c),
-    tripsByType: toTypeCounts(tripsByTypeRows),
-    reviewsCount: Number(reviews[0].c),
-    reviewsByType: toTypeCounts(reviewsByTypeRows),
+    usersCount: Number(u.total),
+    driversCount: Number(u.drivers),
+    passengersCount: Number(u.passengers),
+    onlineCount: Number(u.online),
+    activeTripsCount: Number(t.active),
+    openTaxiOrdersCount: Number(openTaxiOrders[0].c),
+    registeredTodayCount: Number(u.registered_today),
+    tripsCount: Number(t.total),
+    tripsByType: { intercity: Number(t.intercity), city: Number(t.city) },
+    reviewsCount: reviewsByType.intercity + reviewsByType.city,
+    reviewsByType,
     newReportsCount: Number(reports[0].c),
   };
 }
@@ -128,6 +164,8 @@ export async function getAdminAccounts(): Promise<AdminAccountInfo[]> {
   }));
 }
 
+export type AdminUserFilter = "all" | "driver" | "passenger" | "blocked" | "noname";
+
 export type AdminUser = {
   id: number;
   name: string;
@@ -135,6 +173,7 @@ export type AdminUser = {
   role: UserRole;
   createdAt: string;
   reportsAgainst: number;
+  isBlocked: boolean;
 };
 
 type AdminUserRow = {
@@ -144,26 +183,42 @@ type AdminUserRow = {
   role: UserRole;
   createdat: string;
   reports_against: string;
+  is_blocked: boolean;
 };
 
-export async function listAdminUsers(search?: string): Promise<AdminUser[]> {
+export async function listAdminUsers(
+  search?: string,
+  filter: AdminUserFilter = "all"
+): Promise<AdminUser[]> {
   const rows = await sql<AdminUserRow[]>`
     SELECT users.id as id, users.name as name, users.phone as phone,
            users.role as role, users.created_at as createdAt,
+           users.is_blocked as is_blocked,
            (SELECT COUNT(*) FROM trip_reports WHERE trip_reports.reported_user_id = users.id) as reports_against
     FROM users
-    ${search ? sql`WHERE name ILIKE ${`%${search}%`}` : sql``}
+    WHERE 1 = 1
+      ${search ? sql`AND name ILIKE ${`%${search}%`}` : sql``}
+      ${filter === "driver" ? sql`AND role = 'driver'` : sql``}
+      ${filter === "passenger" ? sql`AND role = 'passenger'` : sql``}
+      ${filter === "blocked" ? sql`AND is_blocked = true` : sql``}
     ORDER BY id DESC
   `;
 
-  return rows.map((r) => ({
+  const users = rows.map((r) => ({
     id: r.id,
     name: r.name,
     phone: r.phone,
     role: r.role,
     createdAt: r.createdat,
     reportsAgainst: Number(r.reports_against),
+    isBlocked: r.is_blocked,
   }));
+
+  if (filter === "noname") {
+    return users.filter((u) => isPlaceholderName(u.name));
+  }
+
+  return users;
 }
 
 const ASSIGNABLE_ROLES: UserRole[] = ["passenger", "driver", "admin"];
@@ -175,6 +230,15 @@ export async function setAdminUserRole(
   if (!ASSIGNABLE_ROLES.includes(role as UserRole)) return false;
 
   const result = await sql`UPDATE users SET role = ${role} WHERE id = ${userId}`;
+
+  return result.count > 0;
+}
+
+export async function setUserBlocked(
+  userId: number,
+  blocked: boolean
+): Promise<boolean> {
+  const result = await sql`UPDATE users SET is_blocked = ${blocked} WHERE id = ${userId}`;
 
   return result.count > 0;
 }

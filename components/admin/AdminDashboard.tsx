@@ -1,7 +1,18 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Car, Eye, Flag, Loader2, Shield, Star, Users } from "lucide-react";
+import {
+  Car,
+  Circle,
+  Eye,
+  Flag,
+  Loader2,
+  MapPin,
+  Shield,
+  Star,
+  UserPlus,
+  Users,
+} from "lucide-react";
 
 import { formatTimeAgo } from "@/lib/utils";
 
@@ -24,6 +35,12 @@ type AdminAccount = {
 
 type Stats = {
   usersCount: number;
+  driversCount: number;
+  passengersCount: number;
+  onlineCount: number;
+  activeTripsCount: number;
+  openTaxiOrdersCount: number;
+  registeredTodayCount: number;
   tripsCount: number;
   tripsByType: TypeCounts;
   reviewsCount: number;
@@ -68,6 +85,21 @@ export default function AdminDashboard() {
     );
   }
 
+  const quickCards = [
+    { label: "Пользователей", value: stats.usersCount, icon: Users },
+    { label: "Водителей", value: stats.driversCount, icon: Car },
+    { label: "Пассажиров", value: stats.passengersCount, icon: UserPlus },
+    {
+      label: "Онлайн",
+      value: stats.onlineCount,
+      icon: Circle,
+      iconClassName: "text-green-400 fill-green-400",
+    },
+    { label: "Активных поездок", value: stats.activeTripsCount, icon: Car },
+    { label: "Такси онлайн", value: stats.openTaxiOrdersCount, icon: MapPin },
+    { label: "Сегодня регистраций", value: stats.registeredTodayCount, icon: UserPlus },
+  ];
+
   const cards = [
     { label: "Пользователи", value: stats.usersCount, icon: Users },
     {
@@ -92,6 +124,22 @@ export default function AdminDashboard() {
 
   return (
     <div className="space-y-6">
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-7 gap-3">
+        {quickCards.map((c) => (
+          <div
+            key={c.label}
+            className="bg-[#12121c] border border-white/5 rounded-2xl p-4"
+          >
+            <div className="flex items-center gap-1.5 text-gray-500 text-xs mb-2">
+              <c.icon size={13} className={c.iconClassName} />
+              {c.label}
+            </div>
+
+            <div className="text-xl font-bold">{c.value}</div>
+          </div>
+        ))}
+      </div>
+
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {cards.map((c) => (
           <div

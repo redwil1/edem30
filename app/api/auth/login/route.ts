@@ -13,6 +13,7 @@ type UserRow = {
   name: string;
   phone: string;
   password_hash: string;
+  is_blocked: boolean;
 };
 
 export async function POST(req: NextRequest) {
@@ -40,7 +41,7 @@ export async function POST(req: NextRequest) {
   const phone = normalizePhone(phoneRaw);
 
   const rows = await sql<UserRow[]>`
-    SELECT id, name, phone, password_hash FROM users WHERE phone = ${phone}
+    SELECT id, name, phone, password_hash, is_blocked FROM users WHERE phone = ${phone}
   `;
 
   const user = rows[0];
@@ -56,6 +57,13 @@ export async function POST(req: NextRequest) {
     return NextResponse.json(
       { error: "Неверный номер телефона или пароль" },
       { status: 401 }
+    );
+  }
+
+  if (user.is_blocked) {
+    return NextResponse.json(
+      { error: "Аккаунт заблокирован. Обратитесь в поддержку." },
+      { status: 403 }
     );
   }
 

@@ -4,6 +4,7 @@ import { useState } from "react";
 import CityModal from "./CityModal";
 import DateModal from "./DateModal";
 import LoadingScreen from "./LoadingScreen";
+import { intercityDestinations } from "@/lib/cities";
 
 export default function SearchCard() {
   const [mode, setMode] = useState<"intercity" | "taxi">("intercity");
@@ -112,6 +113,7 @@ export default function SearchCard() {
       </div>
 
       <CityModal
+        cities={intercityDestinations}
         open={cityOpen}
         onClose={() => setCityOpen(false)}
         onSelect={(city) => {

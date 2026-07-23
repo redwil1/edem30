@@ -109,13 +109,27 @@ export async function getCurrentUser(): Promise<SafeUser | null> {
 
   if (!payload) return null;
 
-  const rows = await sql<SafeUser[]>`
+  const rows = await sql<(SafeUser & { isBlocked: boolean })[]>`
     SELECT id, name, phone, role, avatar_url as "avatarUrl",
-           avatar_preset as "avatarPreset", gender, selected_city as "selectedCity"
+           avatar_preset as "avatarPreset", gender, selected_city as "selectedCity",
+           is_blocked as "isBlocked"
     FROM users WHERE id = ${payload.userId}
   `;
 
-  return rows[0] ?? null;
+  const row = rows[0];
+
+  if (!row || row.isBlocked) return null;
+
+  return {
+    id: row.id,
+    name: row.name,
+    phone: row.phone,
+    role: row.role,
+    avatarUrl: row.avatarUrl,
+    avatarPreset: row.avatarPreset,
+    gender: row.gender,
+    selectedCity: row.selectedCity,
+  };
 }
 
 export async function setUserRole(userId: number, role: UserRole) {

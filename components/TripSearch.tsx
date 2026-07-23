@@ -8,6 +8,7 @@ import CityModal from "./CityModal";
 import TripsList from "./TripsList";
 import { useTripSearch } from "@/hooks/useTripSearch";
 import { Trip } from "@/types/trips";
+import { intercityDestinations } from "@/lib/cities";
 
 type CityField = "from" | "to" | null;
 
@@ -78,6 +79,7 @@ export default function TripSearch({ trips, emptyText }: Props) {
       </div>
 
       <CityModal
+        cities={intercityDestinations}
         open={cityModalField !== null}
         onClose={() => setCityModalField(null)}
         onSelect={(city) => {
