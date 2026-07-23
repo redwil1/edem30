@@ -29,6 +29,7 @@ type VkIdSdk = {
     render: (options: {
       container: HTMLElement;
       showAlternativeLogin: boolean;
+      oauthList?: string[];
     }) => VkChainable;
   };
   Auth: {
@@ -70,7 +71,8 @@ export default function VkIdOneTap() {
       oneTap
         .render({
           container: containerRef.current,
-          showAlternativeLogin: false,
+          showAlternativeLogin: true,
+          oauthList: ["ok_ru", "mail_ru"],
         })
         .on(VKID.WidgetEvents.ERROR, () => {})
         .on(VKID.OneTapInternalEvents.LOGIN_SUCCESS, (payload: unknown) => {

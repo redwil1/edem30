@@ -7,7 +7,7 @@ import Link from "next/link";
 import { useAuth } from "@/components/auth/AuthProvider";
 import PhoneInput from "@/components/PhoneInput";
 import { subscribeToPush } from "@/lib/pushSubscribeClient";
-import TelegramLoginButton from "@/components/auth/TelegramLoginButton";
+import TelegramCodeLogin from "@/components/auth/TelegramCodeLogin";
 import VkIdOneTap from "@/components/auth/VkIdOneTap";
 
 function isSafeRedirect(path: string) {
@@ -251,15 +251,7 @@ function LoginForm() {
         <div className="flex flex-col gap-3">
           <VkIdOneTap />
 
-          <a
-            href="/api/auth/oauth/ok/start"
-            className="w-full flex items-center justify-center gap-2 bg-[#171726] hover:bg-[#222233] border border-white/5 transition rounded-2xl py-3.5 font-medium text-sm"
-          >
-            <span className="text-[#EE8208] font-bold">OK</span>
-            Войти через Одноклассники
-          </a>
-
-          <TelegramLoginButton />
+          <TelegramCodeLogin />
         </div>
 
         <p className="text-gray-500 text-sm mt-8 leading-6">
