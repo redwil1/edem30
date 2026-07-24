@@ -28,6 +28,7 @@ function LoginForm() {
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
   const [password, setPassword] = useState("");
+  const [email, setEmail] = useState("");
 
   const [captchaQuestion, setCaptchaQuestion] = useState("");
   const [captchaToken, setCaptchaToken] = useState("");
@@ -84,6 +85,7 @@ function LoginForm() {
                 name,
                 phone,
                 password,
+                email,
                 captchaToken,
                 captchaAnswer: Number(captchaAnswer),
                 pushConsent,
@@ -182,6 +184,30 @@ function LoginForm() {
             placeholder="Пароль"
             className="w-full bg-[#171726] border border-white/5 focus:border-violet-500 rounded-2xl p-4 outline-none transition"
           />
+
+          {mode === "login" && (
+            <div className="text-right -mt-1">
+              <Link href="/forgot-password" className="text-violet-400 text-sm hover:text-violet-300">
+                Забыли пароль?
+              </Link>
+            </div>
+          )}
+
+          {mode === "register" && (
+            <div>
+              <input
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                type="email"
+                placeholder="Почта (необязательно)"
+                className="w-full bg-[#171726] border border-white/5 focus:border-violet-500 rounded-2xl p-4 outline-none transition"
+              />
+
+              <p className="text-xs text-gray-500 mt-2 leading-relaxed">
+                Пригодится, если понадобится восстановить пароль
+              </p>
+            </div>
+          )}
 
           {mode === "register" && (
             <div className="flex items-center gap-3">

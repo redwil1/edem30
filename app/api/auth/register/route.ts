@@ -37,8 +37,15 @@ export async function POST(req: NextRequest) {
     typeof body?.captchaToken === "string" ? body.captchaToken : "";
   const captchaAnswer = Number(body?.captchaAnswer);
   const pushConsent = body?.pushConsent === true;
+  const emailRaw =
+    typeof body?.email === "string" ? body.email.trim().slice(0, 200) : "";
 
   const phone = normalizePhone(phoneRaw);
+  const email = emailRaw || null;
+
+  if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    return NextResponse.json({ error: "Некорректная почта" }, { status: 400 });
+  }
 
   if (!verifyCaptcha(captchaToken, captchaAnswer)) {
     return NextResponse.json(
@@ -90,13 +97,22 @@ export async function POST(req: NextRequest) {
 
   const passwordHash = await hashPassword(password);
 
-  const inserted = await sql<{ id: number }[]>`
-    INSERT INTO users (name, phone, password_hash, push_consent_at)
-    VALUES (${name}, ${phone}, ${passwordHash}, ${new Date().toISOString()})
-    RETURNING id
-  `;
+  let userId: number;
 
-  const userId = inserted[0].id;
+  try {
+    const inserted = await sql<{ id: number }[]>`
+      INSERT INTO users (name, phone, password_hash, email, push_consent_at)
+      VALUES (${name}, ${phone}, ${passwordHash}, ${email}, ${new Date().toISOString()})
+      RETURNING id
+    `;
+
+    userId = inserted[0].id;
+  } catch {
+    return NextResponse.json(
+      { error: "Эта почта уже привязана к другому аккаунту" },
+      { status: 409 }
+    );
+  }
 
   await createSession(userId);
 
