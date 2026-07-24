@@ -9,6 +9,7 @@ import { formatDate, formatPrice, formatRating, formatSeats } from "@/lib/utils"
 import { Trip } from "@/types/trips";
 import ActivityFeed from "@/components/ActivityFeed";
 import TripBadges from "@/components/TripBadges";
+import Avatar from "@/components/trip/Avatar";
 
 type Props = {
   trips: Trip[];
@@ -115,13 +116,12 @@ export default function SchedulePanel({ trips }: Props) {
                   </div>
 
                   <div className="flex items-center gap-2.5">
-                    <div className="w-9 h-9 rounded-full bg-violet-600/30 border border-violet-500/30 flex items-center justify-center text-xs font-bold text-violet-200 shrink-0">
-                      {trip.driver
-                        .split(" ")
-                        .map((p) => p[0])
-                        .join("")
-                        .slice(0, 2)}
-                    </div>
+                    <Avatar
+                      name={trip.driver}
+                      size={36}
+                      avatarUrl={trip.driverAvatarUrl}
+                      avatarPreset={trip.driverAvatarPreset}
+                    />
 
                     <div className="hidden xl:block leading-none">
                       <div className="text-sm font-medium whitespace-nowrap">
