@@ -122,6 +122,7 @@ body {
 
 /* текст */
 .text-white,
+.text-gray-200,
 .text-gray-300 { color: var(--text-primary) !important; }
 .text-gray-400,
 .text-gray-500,
@@ -130,9 +131,12 @@ body {
 
 /* рамки на основе белого */
 .border-white\/5,
-.border-white\/10 { border-color: var(--border-color) !important; }
-.bg-white\/5 { background-color: color-mix(in srgb, var(--text-primary) 4%, transparent) !important; }
-.bg-white\/10 { background-color: color-mix(in srgb, var(--text-primary) 6%, transparent) !important; }
+.border-white\/10,
+.border-white\/20 { border-color: var(--border-color) !important; }
+.bg-white\/5,
+.hover\:bg-white\/5:hover { background-color: color-mix(in srgb, var(--text-primary) 4%, transparent) !important; }
+.bg-white\/10,
+.hover\:bg-white\/10:hover { background-color: color-mix(in srgb, var(--text-primary) 6%, transparent) !important; }
 
 /* фиолетовый акцент */
 .text-violet-200,
@@ -148,7 +152,10 @@ body {
 .text-green-300,
 .text-green-400 { color: var(--success) !important; }
 .text-yellow-200,
-.text-yellow-400 { color: var(--warning) !important; }
+.text-yellow-300,
+.text-yellow-400,
+.text-amber-300,
+.text-amber-400 { color: var(--warning) !important; }
 .text-orange-400 { color: var(--warning) !important; }
 
 /*
