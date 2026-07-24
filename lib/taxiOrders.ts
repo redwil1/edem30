@@ -5,6 +5,9 @@ import { createTrip } from "@/lib/trips";
 import { carBodyTypeLabel, isVehicleComplete, Vehicle } from "@/lib/vehicle";
 import { sendPushToDrivers, sendPushToUser } from "@/lib/push";
 
+/** Раздел «Такси» временно закрыт для новых заказов (см. правовой риск по 580-ФЗ — диспетчерская служба такси требует включения в региональный реестр). Историю прошлых заказов и приём/отмену существующих не трогаем. */
+export const TAXI_SERVICE_ENABLED = false;
+
 export type TaxiOrderStatus = "open" | "accepted" | "cancelled";
 
 export type TaxiOrder = {

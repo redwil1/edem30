@@ -1,57 +1,37 @@
 import type { Metadata } from "next";
-import Link from "next/link";
-import { Car } from "lucide-react";
+import { Car, Wrench } from "lucide-react";
 
 import Navbar from "@/components/layout/Navbar";
 import Footer from "@/components/layout/Footer";
-import TaxiDashboard from "@/components/taxi/TaxiDashboard";
-import { listTrips } from "@/lib/trips";
 
 export const metadata: Metadata = {
   title: "Такси по городу",
-  description:
-    "Закажите такси в Астрахани, Харабали и других городах области — назовите цену, и свободные водители примут заказ в реальном времени.",
+  description: "Раздел «Такси по городу» временно в разработке.",
 };
 
-type Props = {
-  searchParams: Promise<{ from?: string; to?: string }>;
-};
-
-export default async function TaxiPage({ searchParams }: Props) {
-  const scheduledTrips = await listTrips("city");
-  const { from, to } = await searchParams;
-
+export default function TaxiPage() {
   return (
     <main className="min-h-screen bg-[#0b0b13] text-white flex flex-col">
       <Navbar />
 
-      <div className="max-w-[1400px] w-full mx-auto px-5 sm:px-6 lg:px-10 py-8 lg:py-10 flex-1">
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">
-          <div>
-            <div className="flex items-center gap-2 font-bold text-2xl sm:text-3xl">
-              <Car size={26} className="text-violet-400 shrink-0" />
-              Такси по городу
-            </div>
-
-            <p className="text-gray-400 mt-2 text-sm sm:text-base max-w-lg">
-              Пассажир называет цену — свободные водители видят заказ в
-              реальном времени и принимают его.
-            </p>
+      <div className="max-w-[720px] w-full mx-auto px-5 sm:px-6 lg:px-10 py-16 flex-1 flex items-center">
+        <div className="w-full bg-[#12121c] border border-white/5 rounded-3xl p-8 sm:p-12 text-center">
+          <div className="w-14 h-14 rounded-2xl bg-violet-600/15 flex items-center justify-center mx-auto mb-5">
+            <Wrench size={26} className="text-violet-400" />
           </div>
 
-          <Link
-            href="/create-trip"
-            className="text-sm text-violet-400 hover:text-violet-300 transition whitespace-nowrap"
-          >
-            Разместить поездку по расписанию →
-          </Link>
-        </div>
+          <div className="flex items-center justify-center gap-2 font-bold text-2xl sm:text-3xl">
+            <Car size={26} className="text-violet-400 shrink-0" />
+            Сервис в разработке
+          </div>
 
-        <TaxiDashboard
-          scheduledTrips={scheduledTrips}
-          initialFrom={from}
-          initialTo={to}
-        />
+          <p className="text-gray-400 mt-4 max-w-md mx-auto leading-relaxed">
+            Раздел «Такси по городу» временно недоступен — извините за
+            неудобство. Мы дорабатываем его, чтобы он полностью соответствовал
+            требованиям законодательства. Пока можно воспользоваться разделом
+            «Межгород» — поиском попутчиков.
+          </p>
+        </div>
       </div>
 
       <Footer />

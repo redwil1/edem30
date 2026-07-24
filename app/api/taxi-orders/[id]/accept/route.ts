@@ -3,7 +3,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import { rateLimit } from "@/lib/rateLimit";
 import { isTrustedOrigin } from "@/lib/security";
-import { acceptOrder } from "@/lib/taxiOrders";
+import { acceptOrder, TAXI_SERVICE_ENABLED } from "@/lib/taxiOrders";
 
 export const runtime = "nodejs";
 
@@ -12,6 +12,13 @@ type Props = {
 };
 
 export async function POST(req: NextRequest, { params }: Props) {
+  if (!TAXI_SERVICE_ENABLED) {
+    return NextResponse.json(
+      { error: "Сервис такси временно недоступен. Извините за неудобство." },
+      { status: 503 }
+    );
+  }
+
   if (!isTrustedOrigin(req)) {
     return NextResponse.json(
       { error: "Недопустимый источник запроса" },

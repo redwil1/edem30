@@ -18,6 +18,7 @@ import {
   Send,
   Menu,
   X,
+  TrendingUp,
 } from "lucide-react";
 
 import { useAuth } from "@/components/auth/AuthProvider";
@@ -34,6 +35,7 @@ import AdminSubscriptionPlansTable from "@/components/admin/AdminSubscriptionPla
 import AdminPromoCodesTable from "@/components/admin/AdminPromoCodesTable";
 import AdminNewsletterPanel from "@/components/admin/AdminNewsletterPanel";
 import AdminSettingsPanel from "@/components/admin/AdminSettingsPanel";
+import AdminMarketing from "@/components/admin/AdminMarketing";
 
 type Tab =
   | "dashboard"
@@ -45,12 +47,13 @@ type Tab =
   | "reports"
   | "reviews"
   | "verifications"
+  | "marketing"
   | "subscriptions"
   | "promoCodes"
   | "newsletter"
   | "settings";
 
-const ADMIN_ONLY_TABS: Tab[] = ["subscriptions", "promoCodes", "newsletter", "settings"];
+const ADMIN_ONLY_TABS: Tab[] = ["marketing", "subscriptions", "promoCodes", "newsletter", "settings"];
 
 const TABS: { id: Tab; label: string; icon: typeof LayoutDashboard }[] = [
   { id: "dashboard", label: "📊 Дашборд", icon: LayoutDashboard },
@@ -62,6 +65,7 @@ const TABS: { id: Tab; label: string; icon: typeof LayoutDashboard }[] = [
   { id: "verifications", label: "✅ Верификации", icon: ShieldCheck },
   { id: "reports", label: "🚩 Жалобы", icon: Flag },
   { id: "reviews", label: "⭐ Отзывы", icon: Star },
+  { id: "marketing", label: "📈 Маркетинг", icon: TrendingUp },
   { id: "subscriptions", label: "💰 Подписки", icon: CreditCard },
   { id: "promoCodes", label: "🎁 Промокоды", icon: Tag },
   { id: "newsletter", label: "📢 Рассылка", icon: Megaphone },
@@ -147,6 +151,7 @@ export default function AdminPage() {
         {tab === "verifications" && <AdminVerificationsTable />}
         {tab === "reports" && <AdminReportsTable />}
         {tab === "reviews" && <AdminReviewsTable />}
+        {isAdmin && tab === "marketing" && <AdminMarketing />}
         {isAdmin && tab === "subscriptions" && <AdminSubscriptionPlansTable />}
         {isAdmin && tab === "promoCodes" && <AdminPromoCodesTable />}
         {isAdmin && tab === "newsletter" && <AdminNewsletterPanel />}

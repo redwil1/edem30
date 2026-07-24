@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { cookies } from "next/headers";
 
 import { sql } from "@/lib/db";
 import { hashPassword, createSession } from "@/lib/auth";
@@ -8,6 +9,7 @@ import { getClientIp, isTrustedOrigin } from "@/lib/security";
 import { verifyCaptcha } from "@/lib/captcha";
 import { isPlaceholderName } from "@/lib/nameValidation";
 import { isValidEmail, verifyEmailCode } from "@/lib/emailVerification";
+import { parseSourceCookie, SOURCE_COOKIE_NAME } from "@/lib/traffic";
 
 export const runtime = "nodejs";
 
@@ -120,14 +122,26 @@ export async function POST(req: NextRequest) {
 
   const passwordHash = await hashPassword(password);
 
+  const cookieStore = await cookies();
+  const sourceInfo = parseSourceCookie(cookieStore.get(SOURCE_COOKIE_NAME)?.value);
+
   let userId: number;
 
   try {
     const now = new Date().toISOString();
 
     const inserted = await sql<{ id: number }[]>`
-      INSERT INTO users (name, phone, password_hash, email, push_consent_at, data_consent_at)
-      VALUES (${name}, ${phone}, ${passwordHash}, ${codeCheck.email}, ${now}, ${now})
+      INSERT INTO users (
+        name, phone, password_hash, email, push_consent_at, data_consent_at,
+        signup_source, signup_utm_source, signup_utm_medium, signup_utm_campaign,
+        signup_utm_content, signup_utm_term
+      )
+      VALUES (
+        ${name}, ${phone}, ${passwordHash}, ${codeCheck.email}, ${now}, ${now},
+        ${sourceInfo?.source ?? "direct"}, ${sourceInfo?.utmSource ?? null},
+        ${sourceInfo?.utmMedium ?? null}, ${sourceInfo?.utmCampaign ?? null},
+        ${sourceInfo?.utmContent ?? null}, ${sourceInfo?.utmTerm ?? null}
+      )
       RETURNING id
     `;
 

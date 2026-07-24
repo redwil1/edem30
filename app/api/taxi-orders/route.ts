@@ -3,7 +3,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import { rateLimit } from "@/lib/rateLimit";
 import { isTrustedOrigin } from "@/lib/security";
-import { createOrder, listOpenOrders } from "@/lib/taxiOrders";
+import { createOrder, listOpenOrders, TAXI_SERVICE_ENABLED } from "@/lib/taxiOrders";
 import { getDriverEarnings } from "@/lib/trips";
 import { isValidAddress } from "@/lib/addressValidation";
 import { getSiteSettings } from "@/lib/siteSettings";
@@ -29,6 +29,13 @@ export async function GET() {
 }
 
 export async function POST(req: NextRequest) {
+  if (!TAXI_SERVICE_ENABLED) {
+    return NextResponse.json(
+      { error: "Сервис такси временно недоступен. Извините за неудобство." },
+      { status: 503 }
+    );
+  }
+
   if (!isTrustedOrigin(req)) {
     return NextResponse.json(
       { error: "Недопустимый источник запроса" },

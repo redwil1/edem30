@@ -2,9 +2,8 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { Bus, Car, Star } from "lucide-react";
+import { Bus, Car, Star, Wrench } from "lucide-react";
 
-import AddressInput from "@/components/taxi/AddressInput";
 import LiveStats from "@/components/LiveStats";
 import TripBadges from "@/components/TripBadges";
 import { formatDate, formatPrice, formatRating, formatSeats } from "@/lib/utils";
@@ -26,9 +25,6 @@ function loginHref(redirectTo: string) {
 export default function WelcomeGate({ trips, city, onCityChange }: Props) {
   const [mode, setMode] = useState<Mode>("intercity");
   const [selectedId, setSelectedId] = useState<number | null>(null);
-  const [from, setFrom] = useState("");
-  const [to, setTo] = useState("");
-  const [touched, setTouched] = useState(false);
 
   const intercityHref =
     trips.length === 0
@@ -36,12 +32,6 @@ export default function WelcomeGate({ trips, city, onCityChange }: Props) {
       : selectedId
       ? loginHref(`/trip/${selectedId}`)
       : null;
-
-  const cityReady = !!city && from.trim().length > 0 && to.trim().length > 0;
-
-  const cityHref = cityReady
-    ? loginHref(`/taxi?${new URLSearchParams({ from: from.trim(), to: to.trim() })}`)
-    : null;
 
   return (
     <section className="max-w-[720px] mx-auto px-5 sm:px-6 pt-10 sm:pt-16 pb-14">
@@ -162,41 +152,18 @@ export default function WelcomeGate({ trips, city, onCityChange }: Props) {
             )}
           </>
         ) : (
-          <>
-            <div className="space-y-3">
-              <AddressInput value={from} onChange={setFrom} placeholder="📍 Откуда" city={city} />
-              <AddressInput value={to} onChange={setTo} placeholder="🏁 Куда" city={city} />
+          <div className="py-10 text-center">
+            <div className="w-12 h-12 rounded-2xl bg-violet-600/15 flex items-center justify-center mx-auto mb-4">
+              <Wrench size={22} className="text-violet-400" />
             </div>
 
-            {touched && !city && (
-              <p className="text-red-400 text-sm mt-3">
-                Сначала выберите город — кнопка выше
-              </p>
-            )}
+            <div className="font-bold text-lg">Сервис в разработке</div>
 
-            {touched && city && !cityReady && (
-              <p className="text-red-400 text-sm mt-3">
-                Укажите откуда и куда едем
-              </p>
-            )}
-
-            {cityHref ? (
-              <Link
-                href={cityHref}
-                className="block w-full mt-5 text-center bg-violet-600 hover:bg-violet-700 transition rounded-2xl py-4 font-bold"
-              >
-                Поехали
-              </Link>
-            ) : (
-              <button
-                type="button"
-                onClick={() => setTouched(true)}
-                className="w-full mt-5 bg-violet-600/40 text-white/60 rounded-2xl py-4 font-bold"
-              >
-                Поехали
-              </button>
-            )}
-          </>
+            <p className="text-gray-500 text-sm mt-2 max-w-xs mx-auto leading-relaxed">
+              Такси по городу временно недоступно — извините за неудобство.
+              Попробуйте раздел «Межгород».
+            </p>
+          </div>
         )}
       </div>
     </section>
