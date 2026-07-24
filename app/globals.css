@@ -123,10 +123,13 @@ body {
 /* текст */
 .text-white,
 .text-gray-200,
-.text-gray-300 { color: var(--text-primary) !important; }
+.text-gray-300,
+.hover\:text-white:hover,
+.hover\:text-gray-300:hover { color: var(--text-primary) !important; }
 .text-gray-400,
 .text-gray-500,
 .text-gray-600,
+.hover\:text-gray-400:hover,
 .placeholder\:text-gray-500::placeholder { color: var(--text-secondary) !important; }
 
 /* рамки на основе белого */
