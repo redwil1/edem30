@@ -12,6 +12,8 @@ function isSafeRedirect(path: string) {
   return /^\/(?!\/|\\)/.test(path);
 }
 
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
 function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -35,8 +37,46 @@ function LoginForm() {
   const [captchaAnswer, setCaptchaAnswer] = useState("");
   const [pushConsent, setPushConsent] = useState(false);
 
+  const [emailCode, setEmailCode] = useState("");
+  const [codeRequested, setCodeRequested] = useState(false);
+  const [sendingCode, setSendingCode] = useState(false);
+  const [codeError, setCodeError] = useState("");
+
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+
+  const emailValid = EMAIL_RE.test(email);
+
+  function onEmailChange(value: string) {
+    setEmail(value);
+    setCodeRequested(false);
+    setEmailCode("");
+  }
+
+  async function requestEmailCode() {
+    setCodeError("");
+    setSendingCode(true);
+
+    try {
+      const res = await fetch("/api/auth/email-code/request", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email }),
+      });
+      const data = await res.json().catch(() => null);
+
+      if (!res.ok) {
+        setCodeError(data?.error || "Не удалось отправить код");
+        return;
+      }
+
+      setCodeRequested(true);
+    } catch {
+      setCodeError("Не удалось подключиться к серверу");
+    } finally {
+      setSendingCode(false);
+    }
+  }
 
   async function loadCaptcha() {
     const res = await fetch("/api/captcha", { cache: "no-store" });
@@ -71,6 +111,16 @@ function LoginForm() {
         setError("Подтвердите согласие на push-уведомления, чтобы продолжить");
         return;
       }
+
+      if (!emailValid) {
+        setError("Укажите корректную почту");
+        return;
+      }
+
+      if (!emailCode) {
+        setError("Подтвердите почту кодом из письма");
+        return;
+      }
     }
 
     setLoading(true);
@@ -86,6 +136,7 @@ function LoginForm() {
                 phone,
                 password,
                 email,
+                emailCode,
                 captchaToken,
                 captchaAnswer: Number(captchaAnswer),
                 pushConsent,
@@ -194,18 +245,50 @@ function LoginForm() {
           )}
 
           {mode === "register" && (
-            <div>
+            <div className="bg-[#171726] border border-white/5 rounded-2xl p-4 space-y-3">
               <input
                 value={email}
-                onChange={(e) => setEmail(e.target.value)}
+                onChange={(e) => onEmailChange(e.target.value)}
                 type="email"
-                placeholder="Почта (необязательно)"
-                className="w-full bg-[#171726] border border-white/5 focus:border-violet-500 rounded-2xl p-4 outline-none transition"
+                placeholder="Почта (обязательно)"
+                className="w-full bg-[#0f0f18] border border-white/10 focus:border-violet-500 rounded-xl p-3.5 outline-none transition"
               />
 
-              <p className="text-xs text-gray-500 mt-2 leading-relaxed">
-                Пригодится, если понадобится восстановить пароль
+              <p className="text-xs text-gray-500 leading-relaxed">
+                Нужна, чтобы подтвердить, что аккаунт действительно ваш, и
+                чтобы вы могли восстановить пароль, если забудете его —
+                другого способа сбросить пароль на сайте нет.
               </p>
+
+              {!codeRequested ? (
+                <button
+                  type="button"
+                  onClick={requestEmailCode}
+                  disabled={!emailValid || sendingCode}
+                  className="w-full bg-[#222233] hover:bg-[#2a2a40] disabled:opacity-50 transition rounded-xl py-3 text-sm font-medium"
+                >
+                  {sendingCode
+                    ? "Отправляем..."
+                    : !emailValid
+                    ? "Введите почту полностью"
+                    : "Отправить код на почту"}
+                </button>
+              ) : (
+                <>
+                  <div className="text-xs text-green-400">
+                    Код отправлен на почту — введите его ниже
+                  </div>
+                  <input
+                    value={emailCode}
+                    onChange={(e) => setEmailCode(e.target.value.replace(/\D/g, "").slice(0, 6))}
+                    placeholder="Код из письма"
+                    inputMode="numeric"
+                    className="w-full bg-[#0f0f18] border border-white/10 focus:border-violet-500 rounded-xl p-3.5 outline-none transition"
+                  />
+                </>
+              )}
+
+              {codeError && <p className="text-red-400 text-xs">{codeError}</p>}
             </div>
           )}
 

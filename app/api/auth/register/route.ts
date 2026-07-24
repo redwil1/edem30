@@ -7,6 +7,7 @@ import { rateLimit } from "@/lib/rateLimit";
 import { getClientIp, isTrustedOrigin } from "@/lib/security";
 import { verifyCaptcha } from "@/lib/captcha";
 import { isPlaceholderName } from "@/lib/nameValidation";
+import { isValidEmail, verifyEmailCode } from "@/lib/emailVerification";
 
 export const runtime = "nodejs";
 
@@ -39,13 +40,10 @@ export async function POST(req: NextRequest) {
   const pushConsent = body?.pushConsent === true;
   const emailRaw =
     typeof body?.email === "string" ? body.email.trim().slice(0, 200) : "";
+  const emailCode =
+    typeof body?.emailCode === "string" ? body.emailCode.trim() : "";
 
   const phone = normalizePhone(phoneRaw);
-  const email = emailRaw || null;
-
-  if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-    return NextResponse.json({ error: "Некорректная почта" }, { status: 400 });
-  }
 
   if (!verifyCaptcha(captchaToken, captchaAnswer)) {
     return NextResponse.json(
@@ -86,6 +84,17 @@ export async function POST(req: NextRequest) {
     );
   }
 
+  if (!isValidEmail(emailRaw)) {
+    return NextResponse.json({ error: "Укажите корректную почту" }, { status: 400 });
+  }
+
+  if (!emailCode) {
+    return NextResponse.json(
+      { error: "Подтвердите почту кодом из письма" },
+      { status: 400 }
+    );
+  }
+
   const existing = await sql`SELECT id FROM users WHERE phone = ${phone}`;
 
   if (existing.length > 0) {
@@ -95,6 +104,12 @@ export async function POST(req: NextRequest) {
     );
   }
 
+  const codeCheck = await verifyEmailCode(emailRaw, emailCode);
+
+  if (!codeCheck.ok) {
+    return NextResponse.json({ error: codeCheck.error }, { status: 400 });
+  }
+
   const passwordHash = await hashPassword(password);
 
   let userId: number;
@@ -102,7 +117,7 @@ export async function POST(req: NextRequest) {
   try {
     const inserted = await sql<{ id: number }[]>`
       INSERT INTO users (name, phone, password_hash, email, push_consent_at)
-      VALUES (${name}, ${phone}, ${passwordHash}, ${email}, ${new Date().toISOString()})
+      VALUES (${name}, ${phone}, ${passwordHash}, ${codeCheck.email}, ${new Date().toISOString()})
       RETURNING id
     `;
 
