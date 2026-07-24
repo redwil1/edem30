@@ -90,7 +90,8 @@ export type BroadcastSegment = "all" | "driver" | "passenger";
 
 export async function sendPushToSegment(
   segment: BroadcastSegment,
-  payload: PushPayload
+  payload: PushPayload,
+  excludeUserId?: number
 ): Promise<number> {
   if (!vapidPublicKey || !vapidPrivateKey) return 0;
 
@@ -100,6 +101,7 @@ export async function sendPushToSegment(
     FROM push_subscriptions
     JOIN users ON users.id = push_subscriptions.user_id
     WHERE ${segment === "all" ? sql`true` : sql`users.role = ${segment}`}
+      AND (${excludeUserId ?? null}::int IS NULL OR push_subscriptions.user_id != ${excludeUserId ?? null})
   `;
 
   await Promise.all(rows.map((row) => sendToSubscription(row, payload)));

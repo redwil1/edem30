@@ -7,6 +7,7 @@ import { countActiveTripsByOwner, createTrip } from "@/lib/trips";
 import { TripType } from "@/types/trips";
 import { isValidAddress } from "@/lib/addressValidation";
 import { containsProfanity } from "@/lib/profanity";
+import { sendPushToSegment } from "@/lib/push";
 
 export const runtime = "nodejs";
 
@@ -192,6 +193,16 @@ export async function POST(req: NextRequest) {
       licensePlate,
     },
     { id: user.id, name: user.name }
+  );
+
+  sendPushToSegment(
+    "passenger",
+    {
+      title: "Новая поездка",
+      body: `${from} → ${to} в ${time}`,
+      url: `/trip/${id}`,
+    },
+    user.id
   );
 
   return NextResponse.json({ id });
