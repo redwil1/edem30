@@ -53,7 +53,7 @@ function LoginForm() {
     setEmailCode("");
   }
 
-  async function requestEmailCode() {
+  async function requestEmailCode(): Promise<boolean> {
     setCodeError("");
     setSendingCode(true);
 
@@ -67,12 +67,14 @@ function LoginForm() {
 
       if (!res.ok) {
         setCodeError(data?.error || "Не удалось отправить код");
-        return;
+        return false;
       }
 
       setCodeRequested(true);
+      return true;
     } catch {
       setCodeError("Не удалось подключиться к серверу");
+      return false;
     } finally {
       setSendingCode(false);
     }
@@ -117,8 +119,13 @@ function LoginForm() {
         return;
       }
 
+      if (!codeRequested) {
+        await requestEmailCode();
+        return;
+      }
+
       if (!emailCode) {
-        setError("Подтвердите почту кодом из письма");
+        setCodeError("Введите код из письма");
         return;
       }
     }
@@ -254,25 +261,13 @@ function LoginForm() {
                 className="w-full bg-[#0f0f18] border border-white/10 focus:border-violet-500 rounded-xl p-3.5 outline-none transition"
               />
 
-              <p className="text-xs text-gray-500 leading-relaxed">
-                Нужна, чтобы подтвердить, что аккаунт действительно ваш, и
-                чтобы вы могли восстановить пароль, если забудете его —
-                другого способа сбросить пароль на сайте нет.
-              </p>
-
               {!codeRequested ? (
-                <button
-                  type="button"
-                  onClick={requestEmailCode}
-                  disabled={!emailValid || sendingCode}
-                  className="w-full bg-[#222233] hover:bg-[#2a2a40] disabled:opacity-50 transition rounded-xl py-3 text-sm font-medium"
-                >
-                  {sendingCode
-                    ? "Отправляем..."
-                    : !emailValid
-                    ? "Введите почту полностью"
-                    : "Отправить код на почту"}
-                </button>
+                <p className="text-xs text-gray-500 leading-relaxed">
+                  Нужна, чтобы подтвердить, что аккаунт действительно ваш, и
+                  чтобы вы могли восстановить пароль, если забудете его —
+                  другого способа сбросить пароль на сайте нет. При нажатии
+                  «Зарегистрироваться» на неё придёт код подтверждения.
+                </p>
               ) : (
                 <>
                   <div className="text-xs text-green-400">
@@ -283,6 +278,7 @@ function LoginForm() {
                     onChange={(e) => setEmailCode(e.target.value.replace(/\D/g, "").slice(0, 6))}
                     placeholder="Код из письма"
                     inputMode="numeric"
+                    autoFocus
                     className="w-full bg-[#0f0f18] border border-white/10 focus:border-violet-500 rounded-xl p-3.5 outline-none transition"
                   />
                 </>
@@ -326,13 +322,17 @@ function LoginForm() {
 
           <button
             type="submit"
-            disabled={loading}
+            disabled={loading || sendingCode}
             className="w-full bg-violet-600 hover:bg-violet-700 disabled:opacity-60 transition rounded-2xl py-4 font-bold"
           >
-            {loading
+            {sendingCode
+              ? "Отправляем код..."
+              : loading
               ? "Секунду..."
               : mode === "register"
-              ? "Зарегистрироваться"
+              ? codeRequested
+                ? "Подтвердить и зарегистрироваться"
+                : "Зарегистрироваться"
               : "Войти"}
           </button>
         </form>
