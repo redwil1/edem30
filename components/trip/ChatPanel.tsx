@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Paperclip, Send, Check, Clock, Lock, LogOut, Loader2 } from "lucide-react";
+import { Paperclip, Send, Check, Clock, Lock, LogOut, Loader2, Trash2 } from "lucide-react";
 
 import { useAuth } from "@/components/auth/AuthProvider";
 import { compressImage, ImageCompressError } from "@/lib/imageCompress";
@@ -98,6 +98,7 @@ function formatTime(iso: string) {
 export default function ChatPanel({ tripId }: Props) {
   const { user } = useAuth();
   const router = useRouter();
+  const canModerate = user?.role === "admin" || user?.role === "moderator";
 
   const [messages, setMessages] = useState<Message[]>([]);
   const [canPost, setCanPost] = useState(false);
@@ -257,6 +258,16 @@ export default function ChatPanel({ tripId }: Props) {
     }
   }
 
+  async function deleteMessage(messageId: number) {
+    const res = await fetch(`/api/trips/${tripId}/messages/${messageId}`, {
+      method: "DELETE",
+    });
+
+    if (res.ok) {
+      setMessages((prev) => prev.filter((m) => m.id !== messageId));
+    }
+  }
+
   async function joinAndUnlock() {
     setJoining(true);
 
@@ -311,9 +322,19 @@ export default function ChatPanel({ tripId }: Props) {
 
         {messages.map((m) =>
           m.isYou ? (
-            <div key={m.id} className="flex justify-end">
+            <div key={m.id} className="flex justify-end group">
               <div className="max-w-[75%]">
                 <div className="flex items-center justify-end gap-1.5 mb-1">
+                  {canModerate && (
+                    <button
+                      type="button"
+                      onClick={() => deleteMessage(m.id)}
+                      className="text-gray-600 hover:text-red-400 transition opacity-0 group-hover:opacity-100"
+                      title="Удалить сообщение"
+                    >
+                      <Trash2 size={12} />
+                    </button>
+                  )}
                   <span className="text-xs text-gray-500">Вы</span>
                   <RoleBadge isDriver={m.isDriver} isStaff={m.isStaff} />
                 </div>
@@ -332,7 +353,7 @@ export default function ChatPanel({ tripId }: Props) {
               </div>
             </div>
           ) : (
-            <div key={m.id} className="flex gap-3">
+            <div key={m.id} className="flex gap-3 group">
               <Avatar
                 name={m.authorName}
                 size={32}
@@ -344,6 +365,16 @@ export default function ChatPanel({ tripId }: Props) {
                 <div className="flex items-center gap-1.5 mb-1">
                   <span className="text-xs text-gray-500">{m.authorName}</span>
                   <RoleBadge isDriver={m.isDriver} isStaff={m.isStaff} />
+                  {canModerate && (
+                    <button
+                      type="button"
+                      onClick={() => deleteMessage(m.id)}
+                      className="text-gray-600 hover:text-red-400 transition opacity-0 group-hover:opacity-100"
+                      title="Удалить сообщение"
+                    >
+                      <Trash2 size={12} />
+                    </button>
+                  )}
                 </div>
 
                 <div className="bg-[#1c1c2b] rounded-2xl rounded-tl-sm px-4 py-2.5 text-sm break-words">
