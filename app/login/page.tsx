@@ -36,6 +36,7 @@ function LoginForm() {
   const [captchaToken, setCaptchaToken] = useState("");
   const [captchaAnswer, setCaptchaAnswer] = useState("");
   const [pushConsent, setPushConsent] = useState(false);
+  const [dataConsent, setDataConsent] = useState(false);
 
   const [emailCode, setEmailCode] = useState("");
   const [codeRequested, setCodeRequested] = useState(false);
@@ -109,6 +110,11 @@ function LoginForm() {
         return;
       }
 
+      if (!dataConsent) {
+        setError("Подтвердите согласие на обработку персональных данных, чтобы продолжить");
+        return;
+      }
+
       if (!pushConsent) {
         setError("Подтвердите согласие на push-уведомления, чтобы продолжить");
         return;
@@ -147,6 +153,7 @@ function LoginForm() {
                 captchaToken,
                 captchaAnswer: Number(captchaAnswer),
                 pushConsent,
+                dataConsent,
               }
             : { phone, password }
         ),
@@ -303,6 +310,25 @@ function LoginForm() {
                 className="w-full bg-[#171726] border border-white/5 focus:border-violet-500 rounded-2xl p-4 outline-none transition"
               />
             </div>
+          )}
+
+          {mode === "register" && (
+            <label className="flex items-start gap-3 text-sm text-gray-400 cursor-pointer select-none">
+              <input
+                type="checkbox"
+                checked={dataConsent}
+                onChange={(e) => setDataConsent(e.target.checked)}
+                className="mt-0.5 w-4 h-4 shrink-0 accent-violet-600"
+              />
+              Согласен(на) на{" "}
+              <Link href="/privacy" target="_blank" className="text-violet-400 hover:text-violet-300 underline">
+                обработку персональных данных
+              </Link>{" "}
+              и принимаю{" "}
+              <Link href="/terms" target="_blank" className="text-violet-400 hover:text-violet-300 underline">
+                пользовательское соглашение
+              </Link>
+            </label>
           )}
 
           {mode === "register" && (

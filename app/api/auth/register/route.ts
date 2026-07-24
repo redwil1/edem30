@@ -38,6 +38,7 @@ export async function POST(req: NextRequest) {
     typeof body?.captchaToken === "string" ? body.captchaToken : "";
   const captchaAnswer = Number(body?.captchaAnswer);
   const pushConsent = body?.pushConsent === true;
+  const dataConsent = body?.dataConsent === true;
   const emailRaw =
     typeof body?.email === "string" ? body.email.trim().slice(0, 200) : "";
   const emailCode =
@@ -73,6 +74,13 @@ export async function POST(req: NextRequest) {
   if (password.length < 7) {
     return NextResponse.json(
       { error: "Пароль должен быть не короче 7 символов" },
+      { status: 400 }
+    );
+  }
+
+  if (!dataConsent) {
+    return NextResponse.json(
+      { error: "Подтвердите согласие на обработку персональных данных, чтобы продолжить" },
       { status: 400 }
     );
   }
@@ -115,9 +123,11 @@ export async function POST(req: NextRequest) {
   let userId: number;
 
   try {
+    const now = new Date().toISOString();
+
     const inserted = await sql<{ id: number }[]>`
-      INSERT INTO users (name, phone, password_hash, email, push_consent_at)
-      VALUES (${name}, ${phone}, ${passwordHash}, ${codeCheck.email}, ${new Date().toISOString()})
+      INSERT INTO users (name, phone, password_hash, email, push_consent_at, data_consent_at)
+      VALUES (${name}, ${phone}, ${passwordHash}, ${codeCheck.email}, ${now}, ${now})
       RETURNING id
     `;
 

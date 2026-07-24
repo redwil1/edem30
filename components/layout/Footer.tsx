@@ -32,6 +32,10 @@ export default function Footer() {
             Пользовательское соглашение
           </Link>
 
+          <Link href="/privacy" className="hover:text-white transition">
+            Обработка персональных данных
+          </Link>
+
           <Link href="/contacts" className="hover:text-white transition">
             Контакты
           </Link>
