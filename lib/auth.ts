@@ -144,12 +144,13 @@ export type PublicUser = {
   avatarPreset: string | null;
   gender: string | null;
   createdAt: string;
+  lastSeenAt: string | null;
 };
 
 export async function getPublicUserById(id: number): Promise<PublicUser | null> {
   const rows = await sql<PublicUser[]>`
     SELECT id, name, role, avatar_url as "avatarUrl", avatar_preset as "avatarPreset",
-           gender, created_at as "createdAt"
+           gender, created_at as "createdAt", last_seen_at as "lastSeenAt"
     FROM users WHERE id = ${id}
   `;
 

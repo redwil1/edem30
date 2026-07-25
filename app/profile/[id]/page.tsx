@@ -10,7 +10,7 @@ import ReviewsList from "@/components/profile/ReviewsList";
 import { getCurrentUser, getPublicUserById } from "@/lib/auth";
 import { countTripsAsDriver, countTripsAsPassenger } from "@/lib/trips";
 import { getUserRatingStats, listUserReviews } from "@/lib/reviews";
-import { formatRating } from "@/lib/utils";
+import { formatRating, isOnline } from "@/lib/utils";
 
 const GENDER_LABELS: Record<string, string> = {
   male: "Мужской",
@@ -108,10 +108,20 @@ export default async function PublicProfilePage({ params }: Props) {
                     size={64}
                     avatarUrl={target.avatarUrl}
                     avatarPreset={target.avatarPreset}
+                    online={isOnline(target.lastSeenAt)}
                   />
 
                   <div>
-                    <div className="font-bold text-lg">{target.name}</div>
+                    <div className="flex items-center gap-2">
+                      <div className="font-bold text-lg">{target.name}</div>
+
+                      {isOnline(target.lastSeenAt) && (
+                        <span className="flex items-center gap-1 text-[11px] font-medium text-green-400">
+                          <span className="w-1.5 h-1.5 rounded-full bg-green-400" />
+                          Онлайн
+                        </span>
+                      )}
+                    </div>
 
                     <div className="text-xs text-gray-500 mt-0.5">
                       Пол: {target.gender ? GENDER_LABELS[target.gender] ?? "не указан" : "не указан"}

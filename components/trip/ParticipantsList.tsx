@@ -18,7 +18,13 @@ export default function ParticipantsList({ participants }: Props) {
         {participants.map((p) => {
           const inner = (
             <>
-              <Avatar name={p.name} size={32} avatarUrl={p.avatarUrl} avatarPreset={p.avatarPreset} />
+              <Avatar
+                name={p.name}
+                size={32}
+                avatarUrl={p.avatarUrl}
+                avatarPreset={p.avatarPreset}
+                online={p.online}
+              />
 
               <div className="text-sm">{p.name}</div>
 

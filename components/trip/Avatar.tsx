@@ -12,9 +12,27 @@ type Props = {
   tone?: "violet" | "neutral";
   avatarUrl?: string | null;
   avatarPreset?: string | null;
+  online?: boolean;
 };
 
-export default function Avatar({ name, size = 36, avatarUrl, avatarPreset }: Props) {
+function OnlineDot({ size }: { size: number }) {
+  const dotSize = Math.max(9, Math.round(size * 0.28));
+
+  return (
+    <span
+      className="absolute bottom-0 right-0 rounded-full bg-green-400"
+      style={{
+        width: dotSize,
+        height: dotSize,
+        border: `2px solid var(--bg-card)`,
+      }}
+      title="Онлайн"
+      aria-label="Онлайн"
+    />
+  );
+}
+
+export default function Avatar({ name, size = 36, avatarUrl, avatarPreset, online }: Props) {
   const [open, setOpen] = useState(false);
 
   useEffect(() => {
@@ -45,7 +63,7 @@ export default function Avatar({ name, size = 36, avatarUrl, avatarPreset }: Pro
             e.stopPropagation();
             setOpen(true);
           }}
-          className="shrink-0 rounded-full cursor-zoom-in"
+          className="relative shrink-0 rounded-full cursor-zoom-in"
           aria-label={`Открыть фото профиля: ${name}`}
         >
           {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -55,6 +73,8 @@ export default function Avatar({ name, size = 36, avatarUrl, avatarPreset }: Pro
             style={{ width: size, height: size }}
             className="rounded-full object-cover shrink-0"
           />
+
+          {online && <OnlineDot size={size} />}
         </button>
 
         {open &&
@@ -95,15 +115,24 @@ export default function Avatar({ name, size = 36, avatarUrl, avatarPreset }: Pro
   }
 
   if (avatarPreset) {
-    return <AvatarPresetIcon preset={avatarPreset} size={size} />;
+    return (
+      <div className="relative shrink-0">
+        <AvatarPresetIcon preset={avatarPreset} size={size} />
+        {online && <OnlineDot size={size} />}
+      </div>
+    );
   }
 
   return (
-    <div
-      style={{ width: size, height: size, fontSize: size * 0.38 }}
-      className="avatar-gradient rounded-full flex items-center justify-center font-bold shrink-0 text-gray-300"
-    >
-      {initials}
+    <div className="relative shrink-0">
+      <div
+        style={{ width: size, height: size, fontSize: size * 0.38 }}
+        className="avatar-gradient rounded-full flex items-center justify-center font-bold shrink-0 text-gray-300"
+      >
+        {initials}
+      </div>
+
+      {online && <OnlineDot size={size} />}
     </div>
   );
 }

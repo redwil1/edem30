@@ -14,6 +14,14 @@ export function formatRating(rating: number) {
   return `${rating.toFixed(1)} из 5`;
 }
 
+const ONLINE_WINDOW_MS = 5 * 60_000;
+
+export function isOnline(lastSeenAt: string | null): boolean {
+  if (!lastSeenAt) return false;
+
+  return Date.now() - new Date(lastSeenAt).getTime() < ONLINE_WINDOW_MS;
+}
+
 const DATE_RE = /^(\d{4})-(\d{2})-(\d{2})$/;
 
 export function formatTimeAgo(iso: string | null): string {

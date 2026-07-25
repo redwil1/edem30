@@ -10,6 +10,8 @@ export interface Participant {
   isYou?: boolean;
 
   isDriver?: boolean;
+
+  online?: boolean;
 }
 
 export interface ChatMessage {

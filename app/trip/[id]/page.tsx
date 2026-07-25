@@ -4,6 +4,7 @@ import { ArrowLeft } from "lucide-react";
 
 import { sql } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
+import { isOnline } from "@/lib/utils";
 import {
   getTripById,
   getTripLifecycle,
@@ -54,10 +55,11 @@ export default async function TripPage({ params }: Props) {
       name: string;
       avatar_url: string | null;
       avatar_preset: string | null;
+      last_seen_at: string | null;
     }[]
   >`
     SELECT users.id as id, users.name as name, users.avatar_url as avatar_url,
-           users.avatar_preset as avatar_preset
+           users.avatar_preset as avatar_preset, users.last_seen_at as last_seen_at
     FROM trip_participants
     JOIN users ON users.id = trip_participants.user_id
     WHERE trip_participants.trip_id = ${trip.id}
@@ -70,12 +72,19 @@ export default async function TripPage({ params }: Props) {
     avatarUrl: r.avatar_url,
     avatarPreset: r.avatar_preset,
     isYou: user ? r.id === user.id : false,
+    online: isOnline(r.last_seen_at),
   }));
 
   const joined = !!user && participants.some((p) => p.isYou);
 
   const ownerId = await getTripOwnerId(trip.id);
   const lifecycle = await getTripLifecycle(trip.id);
+
+  const ownerLastSeenRows = ownerId
+    ? await sql<{ last_seen_at: string | null }[]>`
+        SELECT last_seen_at FROM users WHERE id = ${ownerId}
+      `
+    : [];
 
   const isDriver = !!user && ownerId === user.id;
   const isParty = isDriver || joined;
@@ -89,6 +98,7 @@ export default async function TripPage({ params }: Props) {
           avatarPreset: trip.driverAvatarPreset,
           isYou: !!user && ownerId === user.id,
           isDriver: true,
+          online: isOnline(ownerLastSeenRows[0]?.last_seen_at ?? null),
         },
         ...participants,
       ]
