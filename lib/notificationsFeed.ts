@@ -3,9 +3,9 @@ import "server-only";
 import { getRecentChatMessagesForUser, getPendingReviewPrompt } from "@/lib/trips";
 import { getPendingComplaintNotices } from "@/lib/reports";
 import { listOpenOrders } from "@/lib/taxiOrders";
-import { listAdminReports } from "@/lib/admin";
+import { listAdminReports, getRecentSignups } from "@/lib/admin";
 
-export type FeedItemType = "message" | "complaint" | "review" | "order" | "staffReport";
+export type FeedItemType = "message" | "complaint" | "review" | "order" | "staffReport" | "newUser";
 
 export type FeedItem = {
   id: string;
@@ -22,12 +22,13 @@ export async function getNotificationFeed(
 ): Promise<FeedItem[]> {
   const isStaff = role === "admin" || role === "moderator";
 
-  const [messages, complaints, review, orders, staffReports] = await Promise.all([
+  const [messages, complaints, review, orders, staffReports, signups] = await Promise.all([
     getRecentChatMessagesForUser(userId),
     getPendingComplaintNotices(userId),
     getPendingReviewPrompt(userId),
     role === "driver" ? listOpenOrders(userId) : Promise.resolve([]),
     isStaff ? listAdminReports("new") : Promise.resolve([]),
+    isStaff ? getRecentSignups(10) : Promise.resolve([]),
   ]);
 
   const items: FeedItem[] = [];
@@ -84,6 +85,17 @@ export async function getNotificationFeed(
       body: `${o.from} → ${o.to} · ${o.price} ₽`,
       url: "/taxi",
       createdAt: o.createdAt,
+    });
+  }
+
+  for (const s of signups) {
+    items.push({
+      id: `newUser-${s.id}`,
+      type: "newUser",
+      title: "Новый пользователь",
+      body: s.phone ? `${s.name} · +${s.phone}` : s.name,
+      url: "/eadmin30",
+      createdAt: s.createdAt,
     });
   }
 

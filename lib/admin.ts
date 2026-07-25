@@ -230,6 +230,33 @@ export async function listAdminUsers(
   return users;
 }
 
+export type RecentSignup = {
+  id: number;
+  name: string;
+  phone: string | null;
+  role: UserRole;
+  createdAt: string;
+};
+
+export async function getRecentSignups(limit = 10): Promise<RecentSignup[]> {
+  const rows = await sql<
+    { id: number; name: string; phone: string | null; role: UserRole; created_at: string }[]
+  >`
+    SELECT id, name, phone, role, created_at
+    FROM users
+    ORDER BY created_at DESC, id DESC
+    LIMIT ${limit}
+  `;
+
+  return rows.map((r) => ({
+    id: r.id,
+    name: r.name,
+    phone: r.phone,
+    role: r.role,
+    createdAt: r.created_at,
+  }));
+}
+
 const ASSIGNABLE_ROLES: UserRole[] = ["passenger", "driver", "admin", "moderator"];
 
 export async function setAdminUserRole(

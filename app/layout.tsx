@@ -10,6 +10,7 @@ import EmptyTripNotifier from "@/components/trip/EmptyTripNotifier";
 import NewTripNotifier from "@/components/NewTripNotifier";
 import ChatMessageNotifier from "@/components/ChatMessageNotifier";
 import ComplaintNoticeNotifier from "@/components/ComplaintNoticeNotifier";
+import AdminComplaintAlert from "@/components/admin/AdminComplaintAlert";
 import RealNameNotifier from "@/components/RealNameNotifier";
 import PendingReviewNotifier from "@/components/PendingReviewNotifier";
 import VisitTracker from "@/components/VisitTracker";
@@ -69,6 +70,7 @@ export default function RootLayout({
             <NewTripNotifier />
             <ChatMessageNotifier />
             <ComplaintNoticeNotifier />
+            <AdminComplaintAlert />
             <RealNameNotifier />
             <PendingReviewNotifier />
             <SupportChatWidget />

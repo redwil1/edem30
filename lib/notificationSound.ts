@@ -41,3 +41,29 @@ export function playNotificationDing() {
     osc.stop(ctx.currentTime + 0.25);
   } catch {}
 }
+
+/** Двойной резкий сигнал — для жалоб, которые нужно заметить сразу. */
+export function playAlertSound() {
+  const ctx = getContext();
+  if (!ctx) return;
+
+  try {
+    [0, 0.18].forEach((delay) => {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+
+      osc.type = "square";
+      osc.frequency.setValueAtTime(880, ctx.currentTime + delay);
+
+      gain.gain.setValueAtTime(0.001, ctx.currentTime + delay);
+      gain.gain.exponentialRampToValueAtTime(0.1, ctx.currentTime + delay + 0.02);
+      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + delay + 0.15);
+
+      osc.start(ctx.currentTime + delay);
+      osc.stop(ctx.currentTime + delay + 0.16);
+    });
+  } catch {}
+}

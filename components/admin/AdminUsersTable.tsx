@@ -18,6 +18,7 @@ import { useAuth } from "@/components/auth/AuthProvider";
 
 type Role = "passenger" | "driver" | "admin" | "moderator";
 type Filter = "all" | "driver" | "passenger" | "blocked" | "noname";
+type SortBy = "date_desc" | "date_asc" | "role" | "name" | "reports";
 
 type User = {
   id: number;
@@ -58,6 +59,39 @@ const ROLE_LABELS: Record<Role, string> = {
   moderator: "Модератор",
 };
 
+const ROLE_ORDER: Record<Role, number> = {
+  admin: 0,
+  moderator: 1,
+  driver: 2,
+  passenger: 3,
+};
+
+const SORT_OPTIONS: { value: SortBy; label: string }[] = [
+  { value: "date_desc", label: "Сначала новые" },
+  { value: "date_asc", label: "Сначала старые" },
+  { value: "role", label: "По роли" },
+  { value: "name", label: "По имени (А-Я)" },
+  { value: "reports", label: "По числу жалоб" },
+];
+
+function sortUsers(users: User[], sortBy: SortBy): User[] {
+  const sorted = [...users];
+
+  switch (sortBy) {
+    case "date_asc":
+      return sorted.sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
+    case "role":
+      return sorted.sort((a, b) => ROLE_ORDER[a.role] - ROLE_ORDER[b.role]);
+    case "name":
+      return sorted.sort((a, b) => a.name.localeCompare(b.name, "ru"));
+    case "reports":
+      return sorted.sort((a, b) => b.reportsAgainst - a.reportsAgainst);
+    case "date_desc":
+    default:
+      return sorted.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+  }
+}
+
 export default function AdminUsersTable() {
   const { user: me } = useAuth();
   const isAdmin = me?.role === "admin";
@@ -65,6 +99,7 @@ export default function AdminUsersTable() {
   const [users, setUsers] = useState<User[] | null>(null);
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState<Filter>("all");
+  const [sortBy, setSortBy] = useState<SortBy>("date_desc");
   const [savingId, setSavingId] = useState<number | null>(null);
   const [deletingId, setDeletingId] = useState<number | null>(null);
   const [resettingId, setResettingId] = useState<number | null>(null);
@@ -220,28 +255,45 @@ export default function AdminUsersTable() {
         />
       </form>
 
-      <div className="flex items-center gap-2 mb-5 overflow-x-auto pb-1">
-        {FILTERS.map((f) => (
-          <button
-            key={f.value}
-            type="button"
-            onClick={() => setFilter(f.value)}
-            className={`whitespace-nowrap rounded-xl px-3.5 py-2 text-xs font-medium transition ${
-              filter === f.value
-                ? "bg-violet-600 text-white"
-                : "bg-[#12121c] border border-white/5 text-gray-400 hover:text-white"
-            }`}
-          >
-            {f.label}
-          </button>
-        ))}
+      <div className="flex items-center justify-between gap-3 mb-5 flex-wrap">
+        <div className="flex items-center gap-2 overflow-x-auto pb-1">
+          {FILTERS.map((f) => (
+            <button
+              key={f.value}
+              type="button"
+              onClick={() => setFilter(f.value)}
+              className={`whitespace-nowrap rounded-xl px-3.5 py-2 text-xs font-medium transition ${
+                filter === f.value
+                  ? "bg-violet-600 text-white"
+                  : "bg-[#12121c] border border-white/5 text-gray-400 hover:text-white"
+              }`}
+            >
+              {f.label}
+            </button>
+          ))}
+        </div>
+
+        <select
+          value={sortBy}
+          onChange={(e) => setSortBy(e.target.value as SortBy)}
+          className="bg-[#12121c] border border-white/5 rounded-xl px-3 py-2 text-xs font-medium text-gray-400 outline-none shrink-0"
+        >
+          {SORT_OPTIONS.map((o) => (
+            <option key={o.value} value={o.value}>
+              {o.label}
+            </option>
+          ))}
+        </select>
       </div>
 
       {!users ? (
         <div className="py-16 flex items-center justify-center text-gray-500">
           <Loader2 size={20} className="animate-spin" />
         </div>
-      ) : (
+      ) : (() => {
+        const sortedUsers = sortUsers(users, sortBy);
+
+        return (
         <div className="bg-[#12121c] border border-white/5 rounded-2xl overflow-x-auto">
           <table className="w-full text-sm min-w-[600px]">
             <thead>
@@ -257,7 +309,7 @@ export default function AdminUsersTable() {
             </thead>
 
             <tbody>
-              {users.map((u) => (
+              {sortedUsers.map((u) => (
                 <tr key={u.id} className="border-b border-white/5 last:border-0">
                   <td className="px-4 py-3 text-gray-500">{u.id}</td>
                   <td className="px-4 py-3 font-medium">
@@ -375,7 +427,7 @@ export default function AdminUsersTable() {
                 </tr>
               ))}
 
-              {users.length === 0 && (
+              {sortedUsers.length === 0 && (
                 <tr>
                   <td colSpan={7} className="px-4 py-10 text-center text-gray-500">
                     Никого не найдено
@@ -385,7 +437,8 @@ export default function AdminUsersTable() {
             </tbody>
           </table>
         </div>
-      )}
+        );
+      })()}
 
       {error && <p className="text-red-400 text-sm mt-3">{error}</p>}
 
