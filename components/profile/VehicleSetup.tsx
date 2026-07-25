@@ -5,7 +5,7 @@ import { Check, Loader2 } from "lucide-react";
 
 import CarModelInput from "@/components/CarModelInput";
 import CarBodyIcon from "@/components/vehicle/CarBodyIcon";
-import { CAR_BODY_TYPES, CAR_COLORS } from "@/lib/vehicle";
+import { CAR_BODY_TYPES, CAR_COLORS, isValidPlate, normalizePlate } from "@/lib/vehicle";
 
 export default function VehicleSetup() {
   const [bodyType, setBodyType] = useState("");
@@ -43,9 +43,15 @@ export default function VehicleSetup() {
   }, []);
 
   async function save() {
-    setSaving(true);
     setError("");
     setSaved(false);
+
+    if (plate && !isValidPlate(plate)) {
+      setError("Некорректный гос. номер — формат вида «Е150ЕУ30»");
+      return;
+    }
+
+    setSaving(true);
 
     try {
       const res = await fetch("/api/profile/vehicle", {
@@ -114,9 +120,9 @@ export default function VehicleSetup() {
 
         <input
           value={plate}
-          onChange={(e) => setPlate(e.target.value.toUpperCase())}
-          placeholder="🔢 Гос. номер"
-          maxLength={20}
+          onChange={(e) => setPlate(normalizePlate(e.target.value))}
+          placeholder="🔢 Гос. номер, например Е150ЕУ30"
+          maxLength={12}
           className="w-full bg-[#171726] border border-white/10 focus:border-violet-500 rounded-2xl p-4 outline-none transition"
         />
 

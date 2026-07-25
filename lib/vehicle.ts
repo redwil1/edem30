@@ -45,3 +45,37 @@ export type Vehicle = {
 export function isVehicleComplete(vehicle: Vehicle): boolean {
   return !!(vehicle.bodyType && vehicle.model && vehicle.plate && vehicle.color);
 }
+
+// Буквы, разрешённые в гос. номерах РФ (кириллица, совпадающая по начертанию с латиницей).
+const PLATE_LETTERS = "АВЕКМНОРСТУХ";
+
+const LATIN_TO_CYRILLIC: Record<string, string> = {
+  A: "А",
+  B: "В",
+  E: "Е",
+  K: "К",
+  M: "М",
+  H: "Н",
+  O: "О",
+  P: "Р",
+  C: "С",
+  T: "Т",
+  Y: "У",
+  X: "Х",
+};
+
+/** Приводит номер к верхнему регистру и заменяет латинские буквы-омоглифы на кириллицу. */
+export function normalizePlate(raw: string): string {
+  return raw
+    .toUpperCase()
+    .split("")
+    .map((ch) => LATIN_TO_CYRILLIC[ch] ?? ch)
+    .join("");
+}
+
+// Стандартный формат по ГОСТ Р 50577: буква, 3 цифры, 2 буквы, код региона (2-3 цифры).
+const PLATE_RE = new RegExp(`^[${PLATE_LETTERS}]\\d{3}[${PLATE_LETTERS}]{2}\\d{2,3}$`);
+
+export function isValidPlate(raw: string): boolean {
+  return PLATE_RE.test(normalizePlate(raw));
+}

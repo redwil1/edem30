@@ -4,7 +4,7 @@ import { getCurrentUser } from "@/lib/auth";
 import { sql } from "@/lib/db";
 import { rateLimit } from "@/lib/rateLimit";
 import { isTrustedOrigin } from "@/lib/security";
-import { isValidCarBodyType, isValidCarColor } from "@/lib/vehicle";
+import { isValidCarBodyType, isValidCarColor, isValidPlate, normalizePlate } from "@/lib/vehicle";
 
 export const runtime = "nodejs";
 
@@ -68,9 +68,7 @@ export async function POST(req: NextRequest) {
   const model =
     typeof body?.model === "string" ? body.model.trim().slice(0, 60) : "";
   const plate =
-    typeof body?.plate === "string"
-      ? body.plate.trim().toUpperCase().slice(0, 20)
-      : "";
+    typeof body?.plate === "string" ? normalizePlate(body.plate.trim()).slice(0, 12) : "";
   const color = body?.color;
 
   if (bodyType !== null && bodyType !== "" && !isValidCarBodyType(bodyType)) {
@@ -79,6 +77,13 @@ export async function POST(req: NextRequest) {
 
   if (color !== null && color !== "" && !isValidCarColor(color)) {
     return NextResponse.json({ error: "Некорректный цвет" }, { status: 400 });
+  }
+
+  if (plate && !isValidPlate(plate)) {
+    return NextResponse.json(
+      { error: "Некорректный гос. номер — формат вида «Е150ЕУ30»" },
+      { status: 400 }
+    );
   }
 
   await sql`

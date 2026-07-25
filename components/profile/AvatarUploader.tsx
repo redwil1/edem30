@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { Camera, Check, Loader2, X } from "lucide-react";
 
 import { useAuth } from "@/components/auth/AuthProvider";
@@ -15,20 +16,24 @@ export default function AvatarUploader() {
   const inputRef = useRef<HTMLInputElement>(null);
 
   const [open, setOpen] = useState(false);
+  const [viewing, setViewing] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
 
   useEffect(() => {
-    if (!open) return;
+    if (!open && !viewing) return;
 
     function onKey(e: KeyboardEvent) {
-      if (e.key === "Escape") setOpen(false);
+      if (e.key === "Escape") {
+        setOpen(false);
+        setViewing(false);
+      }
     }
 
     document.addEventListener("keydown", onKey);
     return () => document.removeEventListener("keydown", onKey);
-  }, [open]);
+  }, [open, viewing]);
 
   async function handleFile(rawFile: File) {
     setError("");
@@ -111,9 +116,14 @@ export default function AvatarUploader() {
     <div>
       <button
         type="button"
-        onClick={() => setOpen(true)}
-        className="relative w-16 h-16 rounded-full overflow-hidden shrink-0 group"
-        title="Изменить фото профиля"
+        onClick={() => {
+          if (user.avatarUrl) setViewing(true);
+          else setOpen(true);
+        }}
+        className={`relative w-16 h-16 rounded-full overflow-hidden shrink-0 group ${
+          user.avatarUrl ? "cursor-zoom-in" : ""
+        }`}
+        title={user.avatarUrl ? "Просмотреть фото профиля" : "Изменить фото профиля"}
       >
         {user.avatarUrl ? (
           // eslint-disable-next-line @next/next/no-img-element
@@ -148,6 +158,33 @@ export default function AvatarUploader() {
         <Camera size={14} />
         Изменить фото
       </button>
+
+      {viewing &&
+        user.avatarUrl &&
+        createPortal(
+          <div
+            className="fixed inset-0 z-[100] bg-black/80 flex items-center justify-center p-6"
+            onClick={() => setViewing(false)}
+          >
+            <button
+              type="button"
+              onClick={() => setViewing(false)}
+              className="absolute top-5 right-5 text-white/70 hover:text-white transition"
+              aria-label="Закрыть"
+            >
+              <X size={28} />
+            </button>
+
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={user.avatarUrl}
+              alt={user.name}
+              className="max-w-[90vw] max-h-[85vh] rounded-2xl object-contain"
+              onClick={(e) => e.stopPropagation()}
+            />
+          </div>,
+          document.body
+        )}
 
       <input
         ref={inputRef}
