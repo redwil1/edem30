@@ -320,7 +320,7 @@ function LoginForm() {
                 onChange={(e) => setDataConsent(e.target.checked)}
                 className="mt-0.5 w-4 h-4 shrink-0 accent-violet-600"
               />
-              Согласен(на) на{" "}
+              Даю согласие на{" "}
               <Link href="/privacy" target="_blank" className="text-violet-400 hover:text-violet-300 underline">
                 обработку персональных данных
               </Link>{" "}
