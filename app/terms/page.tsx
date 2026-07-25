@@ -6,6 +6,9 @@ import Footer from "@/components/layout/Footer";
 export const metadata: Metadata = {
   title: "Пользовательское соглашение",
   description: "Условия использования сервиса Едем30.",
+  alternates: {
+    canonical: "/terms",
+  },
 };
 
 const sections = [

@@ -9,6 +9,9 @@ export const metadata: Metadata = {
   title: "О сервисе",
   description:
     "Едем30 — сервис поиска попутчиков и заказа такси по Астраханской области: Астрахань, Харабали и другие города и посёлки.",
+  alternates: {
+    canonical: "/about",
+  },
 };
 
 const steps = [

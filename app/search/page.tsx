@@ -11,6 +11,9 @@ export const metadata: Metadata = {
   title: "Межгородние поездки и попутчики",
   description:
     "Расписание поездок между Астраханью, Харабали и другими городами области. Найдите попутчиков или предложите свою поездку.",
+  alternates: {
+    canonical: "/search",
+  },
 };
 
 export default async function SearchPage() {

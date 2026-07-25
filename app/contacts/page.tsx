@@ -8,6 +8,9 @@ import Footer from "@/components/layout/Footer";
 export const metadata: Metadata = {
   title: "Контакты",
   description: "Свяжитесь с поддержкой сервиса Едем30 — телефон, почта, чат и адрес.",
+  alternates: {
+    canonical: "/contacts",
+  },
 };
 
 const contactCards = [

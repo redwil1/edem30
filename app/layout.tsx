@@ -18,6 +18,7 @@ import ServiceWorkerRegister from "@/components/ServiceWorkerRegister";
 import OnlineHeartbeat from "@/components/OnlineHeartbeat";
 import SupportChatWidget from "@/components/support/SupportChatWidget";
 import BottomNav from "@/components/layout/BottomNav";
+import JsonLd from "@/components/seo/JsonLd";
 
 const manrope = Manrope({
   variable: "--font-manrope",
@@ -39,11 +40,65 @@ export const metadata: Metadata = {
   },
   description:
     "Заказ такси и поиск попутчиков в Астрахани, Харабали и других городах Астраханской области. Расписание межгородних поездок, чат с водителем, отзывы.",
+  keywords: [
+    "такси Астрахань",
+    "попутчики Астрахань",
+    "межгород Астраханская область",
+    "Едем30",
+    "поездки Харабали",
+    "такси по городу",
+  ],
+  alternates: {
+    canonical: "/",
+  },
   openGraph: {
     siteName: "Едем30",
     locale: "ru_RU",
     type: "website",
+    title: "Едем30 — такси и попутчики по Астраханской области",
+    description:
+      "Заказ такси и поиск попутчиков в Астрахани, Харабали и других городах Астраханской области.",
   },
+  twitter: {
+    card: "summary_large_image",
+    title: "Едем30 — такси и попутчики по Астраханской области",
+    description:
+      "Заказ такси и поиск попутчиков в Астрахани, Харабали и других городах Астраханской области.",
+  },
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+      "max-image-preview": "large",
+    },
+  },
+};
+
+const organizationJsonLd = {
+  "@context": "https://schema.org",
+  "@type": "TaxiService",
+  name: "Едем30",
+  url: "https://edem30.ru",
+  logo: "https://edem30.ru/pwa-icon-512",
+  image: "https://edem30.ru/pwa-icon-512",
+  description:
+    "Сервис поиска попутчиков и заказа такси по Астрахани и Астраханской области.",
+  areaServed: {
+    "@type": "AdministrativeArea",
+    name: "Астраханская область",
+  },
+  email: "support@edem30.ru",
+  sameAs: ["https://t.me/edem30bot"],
+};
+
+const websiteJsonLd = {
+  "@context": "https://schema.org",
+  "@type": "WebSite",
+  name: "Едем30",
+  url: "https://edem30.ru",
+  inLanguage: "ru-RU",
 };
 
 export default function RootLayout({
@@ -58,6 +113,9 @@ export default function RootLayout({
       className={`${manrope.variable} ${unbounded.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col pb-16 lg:pb-0">
+        <JsonLd data={organizationJsonLd} />
+        <JsonLd data={websiteJsonLd} />
+
         <ThemeProvider attribute="class" defaultTheme="dark" enableSystem={false}>
           <AuthProvider>
             <RoleThemeSync />

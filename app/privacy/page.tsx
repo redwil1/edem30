@@ -6,6 +6,9 @@ import Footer from "@/components/layout/Footer";
 export const metadata: Metadata = {
   title: "Политика обработки персональных данных",
   description: "Политика обработки персональных данных сервиса Едем30.",
+  alternates: {
+    canonical: "/privacy",
+  },
 };
 
 const sections = [

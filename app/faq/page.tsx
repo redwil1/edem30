@@ -3,17 +3,38 @@ import type { Metadata } from "next";
 import Navbar from "@/components/layout/Navbar";
 import Footer from "@/components/layout/Footer";
 import FaqAccordion from "@/components/faq/FaqAccordion";
+import JsonLd from "@/components/seo/JsonLd";
 import { faqSections as sections } from "@/data/faqContent";
 
 export const metadata: Metadata = {
   title: "Вопросы и ответы",
   description:
     "Как создать поездку, найти такси, оплатить и пользоваться сервисом Едем30 — подробные ответы по шагам.",
+  alternates: {
+    canonical: "/faq",
+  },
+};
+
+const faqJsonLd = {
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  mainEntity: sections.flatMap((section) =>
+    section.items.map((item) => ({
+      "@type": "Question",
+      name: item.question,
+      acceptedAnswer: {
+        "@type": "Answer",
+        text: item.answer.join(" "),
+      },
+    }))
+  ),
 };
 
 export default function FaqPage() {
   return (
     <main className="min-h-screen bg-[#0b0b13] text-white flex flex-col">
+      <JsonLd data={faqJsonLd} />
+
       <Navbar />
 
       <div className="max-w-[820px] w-full mx-auto px-5 sm:px-6 lg:px-10 py-12 lg:py-16 flex-1">

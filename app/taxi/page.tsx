@@ -7,6 +7,10 @@ import Footer from "@/components/layout/Footer";
 export const metadata: Metadata = {
   title: "Такси по городу",
   description: "Раздел «Такси по городу» временно в разработке.",
+  robots: {
+    index: false,
+    follow: true,
+  },
 };
 
 export default function TaxiPage() {
