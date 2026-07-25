@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { Bell, MessageCircle, AlertTriangle, Star, Car, Flag, UserPlus } from "lucide-react";
+import { Bell, MessageCircle, AlertTriangle, Star, Car, Flag, UserPlus, X } from "lucide-react";
 
 import { useAuth } from "@/components/auth/AuthProvider";
 import { playNotificationDing } from "@/lib/notificationSound";
@@ -29,28 +29,33 @@ function seenKey(userId: number) {
   return `edem30_notif_seen_${userId}`;
 }
 
-function loadSeen(userId: number): Set<string> {
+function dismissedKey(userId: number) {
+  return `edem30_notif_dismissed_${userId}`;
+}
+
+function loadIds(key: string): Set<string> {
   try {
-    const raw = localStorage.getItem(seenKey(userId));
+    const raw = localStorage.getItem(key);
     return raw ? new Set(JSON.parse(raw)) : new Set();
   } catch {
     return new Set();
   }
 }
 
-function saveSeen(userId: number, ids: Set<string>) {
+function saveIds(key: string, ids: Set<string>) {
   try {
-    localStorage.setItem(seenKey(userId), JSON.stringify([...ids].slice(-200)));
+    localStorage.setItem(key, JSON.stringify([...ids].slice(-200)));
   } catch {}
 }
 
 export default function NotificationBell() {
   const { user } = useAuth();
   const [items, setItems] = useState<FeedItem[]>([]);
-  const [, setSeenVersion] = useState(0);
+  const [, setVersion] = useState(0);
   const [open, setOpen] = useState(false);
 
-  const seen = user ? loadSeen(user.id) : new Set<string>();
+  const seen = user ? loadIds(seenKey(user.id)) : new Set<string>();
+  const dismissed = user ? loadIds(dismissedKey(user.id)) : new Set<string>();
   const knownIds = useRef<Set<string> | null>(null);
 
   useEffect(() => {
@@ -87,7 +92,8 @@ export default function NotificationBell() {
 
   if (!user) return null;
 
-  const unreadCount = items.filter((i) => !seen.has(i.id)).length;
+  const visibleItems = items.filter((i) => !dismissed.has(i.id));
+  const unreadCount = visibleItems.filter((i) => !seen.has(i.id)).length;
 
   function toggleOpen() {
     setOpen((v) => {
@@ -96,12 +102,21 @@ export default function NotificationBell() {
       if (next && user) {
         const updated = new Set(seen);
         for (const i of items) updated.add(i.id);
-        saveSeen(user.id, updated);
-        setSeenVersion((v) => v + 1);
+        saveIds(seenKey(user.id), updated);
+        setVersion((v) => v + 1);
       }
 
       return next;
     });
+  }
+
+  function closeAll() {
+    if (!user) return;
+
+    const updated = new Set(dismissed);
+    for (const i of items) updated.add(i.id);
+    saveIds(dismissedKey(user.id), updated);
+    setVersion((v) => v + 1);
   }
 
   return (
@@ -126,17 +141,28 @@ export default function NotificationBell() {
           <div className="fixed inset-0 z-30" onClick={() => setOpen(false)} />
 
           <div className="absolute right-0 top-full mt-2 w-80 bg-[#171726] border border-white/10 rounded-2xl p-1.5 z-40 shadow-xl max-h-[70vh] overflow-y-auto">
-            <div className="px-3 pt-2 pb-1.5 text-xs font-medium text-gray-500">
-              Уведомления
+            <div className="flex items-center justify-between px-3 pt-2 pb-1.5">
+              <span className="text-xs font-medium text-gray-500">Уведомления</span>
+
+              {visibleItems.length > 0 && (
+                <button
+                  type="button"
+                  onClick={closeAll}
+                  className="flex items-center gap-1 text-xs font-medium text-gray-500 hover:text-white transition"
+                >
+                  <X size={12} />
+                  Закрыть все
+                </button>
+              )}
             </div>
 
-            {items.length === 0 && (
+            {visibleItems.length === 0 && (
               <div className="px-3 py-6 text-center text-sm text-gray-500">
                 Пока ничего нового
               </div>
             )}
 
-            {items.map((item) => {
+            {visibleItems.map((item) => {
               const Icon = ICONS[item.type];
 
               return (

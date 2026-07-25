@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import { AlertTriangle, X } from "lucide-react";
 
 import { useAuth } from "@/components/auth/AuthProvider";
@@ -60,9 +61,11 @@ export default function ComplaintNoticeNotifier() {
   return (
     <div className="fixed top-24 left-1/2 -translate-x-1/2 z-50 w-[calc(100%-2rem)] max-w-md flex flex-col gap-2">
       {notices.map((n) => (
-        <div
+        <Link
           key={n.reportId}
-          className="bg-[#171726] border border-orange-500/30 rounded-2xl p-4 shadow-xl flex items-start gap-3"
+          href="/profile"
+          onClick={() => dismiss(n.reportId)}
+          className="bg-[#171726] border border-orange-500/30 hover:border-orange-500 rounded-2xl p-4 shadow-xl flex items-start gap-3 transition"
         >
           <div className="w-9 h-9 rounded-xl bg-orange-500/15 flex items-center justify-center shrink-0">
             <AlertTriangle size={17} className="text-orange-400" />
@@ -82,13 +85,17 @@ export default function ComplaintNoticeNotifier() {
           </div>
 
           <button
-            onClick={() => dismiss(n.reportId)}
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              dismiss(n.reportId);
+            }}
             className="text-gray-500 hover:text-white transition shrink-0"
             aria-label="Понятно"
           >
             <X size={16} />
           </button>
-        </div>
+        </Link>
       ))}
     </div>
   );

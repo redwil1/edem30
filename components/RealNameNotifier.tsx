@@ -15,7 +15,11 @@ export default function RealNameNotifier() {
 
   return (
     <div className="fixed top-24 left-1/2 -translate-x-1/2 z-50 w-[calc(100%-2rem)] max-w-md">
-      <div className="bg-[#171726] border border-yellow-500/30 rounded-2xl p-4 shadow-xl flex items-start gap-3">
+      <Link
+        href="/profile"
+        onClick={() => setDismissed(true)}
+        className="bg-[#171726] border border-yellow-500/30 hover:border-yellow-500 rounded-2xl p-4 shadow-xl flex items-start gap-3 transition"
+      >
         <div className="w-9 h-9 rounded-xl bg-yellow-500/15 flex items-center justify-center shrink-0">
           <UserPen size={17} className="text-yellow-400" />
         </div>
@@ -27,23 +31,23 @@ export default function RealNameNotifier() {
             Другим участникам поездок будет спокойнее знать, с кем они едут
           </div>
 
-          <Link
-            href="/profile"
-            onClick={() => setDismissed(true)}
-            className="inline-block text-xs font-medium bg-yellow-500/15 text-yellow-300 hover:bg-yellow-500/25 transition rounded-lg px-3 py-1.5 mt-2.5"
-          >
+          <span className="inline-block text-xs font-medium bg-yellow-500/15 text-yellow-300 transition rounded-lg px-3 py-1.5 mt-2.5">
             Изменить в профиле
-          </Link>
+          </span>
         </div>
 
         <button
-          onClick={() => setDismissed(true)}
+          onClick={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            setDismissed(true);
+          }}
           className="text-gray-500 hover:text-white transition shrink-0"
           aria-label="Скрыть"
         >
           <X size={16} />
         </button>
-      </div>
+      </Link>
     </div>
   );
 }

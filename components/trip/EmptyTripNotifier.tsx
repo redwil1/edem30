@@ -54,9 +54,11 @@ export default function EmptyTripNotifier() {
   return (
     <div className="fixed top-24 left-1/2 -translate-x-1/2 z-50 w-[calc(100%-2rem)] max-w-md flex flex-col gap-2">
       {visible.map((w) => (
-        <div
+        <Link
           key={w.tripId}
-          className="bg-[#171726] border border-red-500/30 rounded-2xl p-4 shadow-xl flex items-start gap-3"
+          href={`/trip/${w.tripId}`}
+          onClick={() => setDismissedIds((prev) => [...prev, w.tripId])}
+          className="bg-[#171726] border border-red-500/30 hover:border-red-500 rounded-2xl p-4 shadow-xl flex items-start gap-3 transition"
         >
           <div className="w-9 h-9 rounded-xl bg-red-500/15 flex items-center justify-center shrink-0 text-lg">
             😢
@@ -74,22 +76,23 @@ export default function EmptyTripNotifier() {
               {w.minutesUntil === 0 ? "меньше минуты" : `${w.minutesUntil} мин`}
             </div>
 
-            <Link
-              href={`/trip/${w.tripId}`}
-              className="inline-block text-xs font-medium text-violet-400 hover:text-violet-300 transition mt-2.5"
-            >
-              Открыть поездку
-            </Link>
+            <span className="inline-block text-xs font-medium text-violet-400 mt-2.5">
+              Открыть поездку →
+            </span>
           </div>
 
           <button
-            onClick={() => setDismissedIds((prev) => [...prev, w.tripId])}
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              setDismissedIds((prev) => [...prev, w.tripId]);
+            }}
             className="text-gray-500 hover:text-white transition shrink-0"
             aria-label="Скрыть"
           >
             <X size={16} />
           </button>
-        </div>
+        </Link>
       ))}
     </div>
   );

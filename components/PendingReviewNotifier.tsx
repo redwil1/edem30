@@ -53,7 +53,11 @@ export default function PendingReviewNotifier() {
 
   return (
     <div className="fixed bottom-20 lg:bottom-6 left-1/2 -translate-x-1/2 z-40 w-[calc(100%-2rem)] max-w-md">
-      <div className="bg-[#171726] border border-yellow-500/30 rounded-2xl p-4 shadow-xl flex items-start gap-3">
+      <Link
+        href={`/trip/${pending.tripId}`}
+        onClick={() => setDismissedTripId(pending.tripId)}
+        className="bg-[#171726] border border-yellow-500/30 hover:border-yellow-500 rounded-2xl p-4 shadow-xl flex items-start gap-3 transition"
+      >
         <div className="w-9 h-9 rounded-xl bg-yellow-500/15 flex items-center justify-center shrink-0">
           <Star size={17} className="text-yellow-400" />
         </div>
@@ -65,22 +69,23 @@ export default function PendingReviewNotifier() {
             Оцените {pending.revieweeName} по завершённой поездке
           </div>
 
-          <Link
-            href={`/trip/${pending.tripId}`}
-            className="inline-block text-xs font-medium bg-yellow-500/15 text-yellow-300 hover:bg-yellow-500/25 transition rounded-lg px-3 py-1.5 mt-2.5"
-          >
+          <span className="inline-block text-xs font-medium bg-yellow-500/15 text-yellow-300 transition rounded-lg px-3 py-1.5 mt-2.5">
             Оставить отзыв
-          </Link>
+          </span>
         </div>
 
         <button
-          onClick={() => setDismissedTripId(pending.tripId)}
+          onClick={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            setDismissedTripId(pending.tripId);
+          }}
           className="text-gray-500 hover:text-white transition shrink-0"
           aria-label="Скрыть"
         >
           <X size={16} />
         </button>
-      </div>
+      </Link>
     </div>
   );
 }
