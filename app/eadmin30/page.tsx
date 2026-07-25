@@ -19,6 +19,7 @@ import {
   Menu,
   X,
   TrendingUp,
+  Image as ImageIcon,
 } from "lucide-react";
 
 import { useAuth } from "@/components/auth/AuthProvider";
@@ -36,6 +37,7 @@ import AdminPromoCodesTable from "@/components/admin/AdminPromoCodesTable";
 import AdminNewsletterPanel from "@/components/admin/AdminNewsletterPanel";
 import AdminSettingsPanel from "@/components/admin/AdminSettingsPanel";
 import AdminMarketing from "@/components/admin/AdminMarketing";
+import AdminAdBannersTable from "@/components/admin/AdminAdBannersTable";
 
 type Tab =
   | "dashboard"
@@ -50,10 +52,11 @@ type Tab =
   | "marketing"
   | "subscriptions"
   | "promoCodes"
+  | "ads"
   | "newsletter"
   | "settings";
 
-const ADMIN_ONLY_TABS: Tab[] = ["marketing", "subscriptions", "promoCodes", "newsletter", "settings"];
+const ADMIN_ONLY_TABS: Tab[] = ["marketing", "subscriptions", "promoCodes", "ads", "newsletter", "settings"];
 
 const TABS: { id: Tab; label: string; icon: typeof LayoutDashboard }[] = [
   { id: "dashboard", label: "📊 Дашборд", icon: LayoutDashboard },
@@ -68,6 +71,7 @@ const TABS: { id: Tab; label: string; icon: typeof LayoutDashboard }[] = [
   { id: "marketing", label: "📈 Маркетинг", icon: TrendingUp },
   { id: "subscriptions", label: "💰 Подписки", icon: CreditCard },
   { id: "promoCodes", label: "🎁 Промокоды", icon: Tag },
+  { id: "ads", label: "🖼 Реклама", icon: ImageIcon },
   { id: "newsletter", label: "📢 Рассылка", icon: Megaphone },
   { id: "settings", label: "⚙ Настройки", icon: Settings },
 ];
@@ -154,6 +158,7 @@ export default function AdminPage() {
         {isAdmin && tab === "marketing" && <AdminMarketing />}
         {isAdmin && tab === "subscriptions" && <AdminSubscriptionPlansTable />}
         {isAdmin && tab === "promoCodes" && <AdminPromoCodesTable />}
+        {isAdmin && tab === "ads" && <AdminAdBannersTable />}
         {isAdmin && tab === "newsletter" && <AdminNewsletterPanel />}
         {isAdmin && tab === "settings" && <AdminSettingsPanel />}
       </div>
