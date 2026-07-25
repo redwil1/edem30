@@ -51,9 +51,8 @@ export default function Navbar() {
     <header className="sticky top-0 z-30 border-b border-white/5 bg-[#0b0b13]/90 backdrop-blur">
       <div className="max-w-[1400px] mx-auto px-5 lg:px-10 h-20 flex items-center justify-between">
         <Link href="/" className="flex items-center gap-3 shrink-0">
-          <div className="font-display btn-gradient w-11 h-11 rounded-xl flex items-center justify-center font-bold text-lg shrink-0">
-            Е
-          </div>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="/logo-mark.png" alt="Едем30" className="w-11 h-11 rounded-xl shrink-0" />
 
           <div>
             <div className="font-display font-bold text-lg leading-tight">
