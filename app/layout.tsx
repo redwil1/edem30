@@ -13,6 +13,7 @@ import ComplaintNoticeNotifier from "@/components/ComplaintNoticeNotifier";
 import RealNameNotifier from "@/components/RealNameNotifier";
 import PendingReviewNotifier from "@/components/PendingReviewNotifier";
 import VisitTracker from "@/components/VisitTracker";
+import ServiceWorkerRegister from "@/components/ServiceWorkerRegister";
 import OnlineHeartbeat from "@/components/OnlineHeartbeat";
 import SupportChatWidget from "@/components/support/SupportChatWidget";
 import BottomNav from "@/components/layout/BottomNav";
@@ -60,6 +61,7 @@ export default function RootLayout({
           <AuthProvider>
             <RoleThemeSync />
             <VisitTracker />
+            <ServiceWorkerRegister />
             <OnlineHeartbeat />
             <DriverOrderNotifier />
             <TripReminderNotifier />
