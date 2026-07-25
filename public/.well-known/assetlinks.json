@@ -1,0 +1,12 @@
+[
+  {
+    "relation": ["delegate_permission/common.handle_all_urls"],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "ru.edem30.twa",
+      "sha256_cert_fingerprints": [
+        "E4:78:A6:BF:26:CE:E2:B8:96:ED:23:89:F2:39:43:F6:0C:D8:EE:8D:B2:58:72:14:BE:DA:6C:F5:73:C3:69:C5"
+      ]
+    }
+  }
+]
