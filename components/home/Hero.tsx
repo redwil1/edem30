@@ -1,10 +1,10 @@
-import Image from "next/image";
 import Link from "next/link";
 import { Bus, Car, ChevronRight } from "lucide-react";
 
 import RoleSwitch from "./RoleSwitch";
 import CitySwitch from "./CitySwitch";
 import CitySkyline from "./CitySkyline";
+import HeroCarScene from "./HeroCarScene";
 
 type Props = {
   city: string | null;
@@ -97,14 +97,7 @@ export default function Hero({ city, onCityChange }: Props) {
             <div className="absolute inset-0 m-auto w-[85%] h-[70%] bg-violet-600/25 rounded-full blur-[90px] pointer-events-none" />
 
             <div className="absolute inset-0 rounded-[22px] overflow-hidden bg-[#0b0816] shadow-[0_25px_70px_-15px_rgba(139,92,246,0.5)]">
-              <Image
-                src="/hero-car-neon.png"
-                alt="Машина Едем30"
-                fill
-                priority
-                sizes="(min-width: 1024px) 45vw, 0px"
-                className="object-cover object-[center_40%]"
-              />
+              <HeroCarScene />
             </div>
           </div>
         </div>
