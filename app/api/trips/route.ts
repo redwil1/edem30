@@ -212,7 +212,11 @@ export async function POST(req: NextRequest) {
     const passengerIds = await fulfillRideRequests(fulfillRequestIds, id);
 
     for (const passengerId of passengerIds) {
-      await joinTrip(id, passengerId);
+      const joinResult = await joinTrip(id, passengerId);
+
+      // Не шлём "поездка сформирована", если реально не попал в неё
+      // (например водитель указал мест меньше, чем ждало пассажиров).
+      if (!joinResult.ok) continue;
 
       sendPushToUser(passengerId, {
         title: "Отличная новость!",

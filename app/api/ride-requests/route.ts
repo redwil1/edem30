@@ -81,15 +81,15 @@ export async function POST(req: NextRequest) {
     }
   }
 
-  // Если после этой заявки маршрут набрал 3+ ожидающих (именно заявок, не
-  // сумма мест) — сообщить водителям, что тут можно одним нажатием
-  // сформировать поездку. Шлём один раз, ровно на переходе через порог,
-  // чтобы не спамить на каждую следующую заявку.
+  // Если эта заявка провела маршрут через порог в 3+ ожидающих ПАССАЖИРОВ
+  // (сумма мест, не количество заявок) — сообщить водителям. Шлём ровно
+  // на переходе через порог, чтобы не спамить на каждую следующую заявку.
   const open = await listOpenRideRequests();
   const clusters = clusterRideRequests(open);
   const myCluster = clusters.find((c) => c.requests.some((r) => r.id === id));
+  const waitingBefore = existingCluster?.waitingCount ?? 0;
 
-  if (myCluster && myCluster.requests.length === 3) {
+  if (myCluster && waitingBefore < 3 && myCluster.waitingCount >= 3) {
     sendPushToSegment("driver", {
       title: "🔥 Формируется поездка",
       body: `${myCluster.from} → ${myCluster.to}: уже ждут ${myCluster.waitingCount} пассажиров. Можно сформировать поездку одним нажатием.`,

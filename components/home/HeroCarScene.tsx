@@ -32,7 +32,7 @@ export default function HeroCarScene() {
     if (!container) return;
 
     let target = { x: 0, y: 0 };
-    let current = { x: 0, y: 0 };
+    const current = { x: 0, y: 0 };
     let raf = 0;
     let running = true;
 
