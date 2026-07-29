@@ -261,10 +261,15 @@ body {
 
 /* ---------------------------------------------------------------------
    Hero car scene: три независимых слоя (город/машина/свечение),
-   see components/home/HeroCarScene.tsx. Параллакс от курсора крутит JS
-   через transform на .hero-layer-wrapper (rAF), а "дыхание"/покачивание/
-   мерцание — чистый CSS на вложенном .hero-layer-img, чтобы JS и CSS не
-   дрались за один и тот же transform.
+   see components/home/HeroCarScene.tsx. Слои — это только техническая
+   разбивка ради анимации; визуально это должен читаться как один кадр,
+   поэтому все три используют один object-position (center 40%, как в
+   исходном сведённом hero-car-neon.png) и лёгкий overscan (scale 1.04),
+   чтобы параллакс не обнажал прозрачные края.
+
+   Параллакс от курсора крутит JS через transform на .hero-layer-wrapper
+   (rAF), а "дыхание"/покачивание/мерцание — чистый CSS на вложенном
+   .hero-layer-img, чтобы JS и CSS не дрались за один и тот же transform.
    ------------------------------------------------------------------- */
 
 .hero-scene {
@@ -285,48 +290,64 @@ body {
   width: 100%;
   height: 100%;
   object-fit: cover;
+  object-position: center 40%;
   opacity: 0;
-  transform: scale(1.06);
+  transform: scale(1.1);
   filter: blur(8px);
   transition: opacity 0.8s cubic-bezier(0.16, 1, 0.3, 1),
     transform 0.8s cubic-bezier(0.16, 1, 0.3, 1),
     filter 0.8s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-.hero-layer-img.is-in {
+/* Машина — главный объект кадра: чёткая, без затемнения, без CSS-фильтров. */
+.hero-layer-car .hero-layer-img.is-in {
   opacity: 1;
-  transform: scale(1);
+  transform: scale(1.04);
   filter: blur(0);
+  animation: hero-car-float 8s ease-in-out 0.9s infinite;
 }
 
-/* Слой 1 — город: почти неподвижный, очень медленное "дыхание" яркости. */
+@keyframes hero-car-float {
+  0%,
+  100% {
+    transform: scale(1.04) translateY(0);
+  }
+  50% {
+    transform: scale(1.04) translateY(-3px);
+  }
+}
+
+/* Город — только задний план: темнее, слегка размыт, менее контрастен,
+   чтобы не спорил с машиной за внимание и не читался как своя картинка. */
 .hero-layer-city .hero-layer-img.is-in {
-  animation: hero-city-breathe 11s ease-in-out 0.8s infinite;
+  opacity: 1;
+  transform: scale(1.04);
+  animation: hero-city-breathe 12s ease-in-out 0.8s infinite;
 }
 
 @keyframes hero-city-breathe {
   0%,
   100% {
-    filter: brightness(1) saturate(1);
+    filter: brightness(0.5) saturate(0.75) blur(1.5px);
   }
   50% {
-    filter: brightness(1.05) saturate(1.08);
+    filter: brightness(0.58) saturate(0.8) blur(1.5px);
   }
 }
 
-/* Окна города — лёгкое мерцание поверх слоя отдельным градиентным оверлеем,
+/* Окна города — едва заметное мерцание отдельным градиентным оверлеем,
    чтобы не трогать сам PNG фильтрами (дёшево по производительности). */
 .hero-city-flicker {
   position: absolute;
   inset: 0;
   background: radial-gradient(
     circle at 30% 55%,
-    rgba(255, 230, 150, 0.10),
+    rgba(255, 230, 150, 0.06),
     transparent 45%
   );
   mix-blend-mode: screen;
   opacity: 0;
-  animation: hero-window-flicker 9s ease-in-out 1s infinite;
+  animation: hero-window-flicker 10s ease-in-out 1s infinite;
   pointer-events: none;
 }
 
@@ -338,31 +359,16 @@ body {
   }
   45%,
   55% {
-    opacity: 0.6;
+    opacity: 0.4;
   }
   50% {
-    opacity: 0.35;
-  }
-}
-
-/* Слой 2 — машина: лёгкое покачивание вверх/вниз, "дорогое", не игровое. */
-.hero-layer-car .hero-layer-img.is-in {
-  animation: hero-car-float 7s ease-in-out 0.9s infinite;
-}
-
-@keyframes hero-car-float {
-  0%,
-  100% {
-    transform: translateY(0);
-  }
-  50% {
-    transform: translateY(-4px);
+    opacity: 0.22;
   }
 }
 
 /* Фары — мягкое, немигающее фиолетовое свечение поверх передней части
    машины. Позиция подобрана под типовой ракурс "3/4 спереди"; если у
-   финальной машина.png фары в другом месте — поправить top/left ниже. */
+   финальной car.png фары в другом месте — поправить top/left ниже. */
 .hero-headlight-glow {
   position: absolute;
   left: 38%;
@@ -372,7 +378,7 @@ body {
   border-radius: 50%;
   background: radial-gradient(
     circle,
-    rgba(168, 130, 255, 0.55),
+    rgba(168, 130, 255, 0.5),
     transparent 70%
   );
   filter: blur(6px);
@@ -384,15 +390,20 @@ body {
 @keyframes hero-headlight-pulse {
   0%,
   100% {
-    opacity: 0.45;
+    opacity: 0.4;
   }
   50% {
-    opacity: 0.85;
+    opacity: 0.75;
   }
 }
 
-/* Слой 3 — свечение: медленно "дышит" масштабом и прозрачностью, как будто
-   подсвечивает землю под машиной. */
+/* Свечение под машиной — screen-блендинг, чтобы вести себя как свет,
+   а не как отдельная картинка поверх кадра; медленно "дышит" размером
+   и прозрачностью. */
+.hero-layer-glow .hero-layer-img {
+  mix-blend-mode: screen;
+}
+
 .hero-layer-glow .hero-layer-img.is-in {
   animation: hero-glow-breathe 7s ease-in-out 1s infinite;
 }
@@ -400,12 +411,12 @@ body {
 @keyframes hero-glow-breathe {
   0%,
   100% {
-    opacity: 0.65;
-    transform: scale(1);
+    opacity: 0.55;
+    transform: scale(1.04);
   }
   50% {
-    opacity: 0.95;
-    transform: scale(1.05);
+    opacity: 0.8;
+    transform: scale(1.09);
   }
 }
 
