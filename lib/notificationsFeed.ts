@@ -4,8 +4,16 @@ import { getRecentChatMessagesForUser, getPendingReviewPrompt } from "@/lib/trip
 import { getPendingComplaintNotices } from "@/lib/reports";
 import { listOpenOrders } from "@/lib/taxiOrders";
 import { listAdminReports, getRecentSignups } from "@/lib/admin";
+import { getRecentAdminRepliesForUser, getRecentUserMessagesForStaff } from "@/lib/conversations";
 
-export type FeedItemType = "message" | "complaint" | "review" | "order" | "staffReport" | "newUser";
+export type FeedItemType =
+  | "message"
+  | "complaint"
+  | "review"
+  | "order"
+  | "staffReport"
+  | "newUser"
+  | "support";
 
 export type FeedItem = {
   id: string;
@@ -22,14 +30,17 @@ export async function getNotificationFeed(
 ): Promise<FeedItem[]> {
   const isStaff = role === "admin" || role === "moderator";
 
-  const [messages, complaints, review, orders, staffReports, signups] = await Promise.all([
-    getRecentChatMessagesForUser(userId),
-    getPendingComplaintNotices(userId),
-    getPendingReviewPrompt(userId),
-    role === "driver" ? listOpenOrders(userId) : Promise.resolve([]),
-    isStaff ? listAdminReports("new") : Promise.resolve([]),
-    isStaff ? getRecentSignups(10) : Promise.resolve([]),
-  ]);
+  const [messages, complaints, review, orders, staffReports, signups, adminReplies, userSupportMessages] =
+    await Promise.all([
+      getRecentChatMessagesForUser(userId),
+      getPendingComplaintNotices(userId),
+      getPendingReviewPrompt(userId),
+      role === "driver" ? listOpenOrders(userId) : Promise.resolve([]),
+      isStaff ? listAdminReports("new") : Promise.resolve([]),
+      isStaff ? getRecentSignups(10) : Promise.resolve([]),
+      getRecentAdminRepliesForUser(userId),
+      isStaff ? getRecentUserMessagesForStaff() : Promise.resolve([]),
+    ]);
 
   const items: FeedItem[] = [];
 
@@ -85,6 +96,28 @@ export async function getNotificationFeed(
       body: `${o.from} → ${o.to} · ${o.price} ₽`,
       url: "/taxi",
       createdAt: o.createdAt,
+    });
+  }
+
+  for (const m of adminReplies) {
+    items.push({
+      id: `support-${m.id}`,
+      type: "support",
+      title: "Поддержка Едем30",
+      body: m.text,
+      url: "/profile#support-chat",
+      createdAt: m.createdAt,
+    });
+  }
+
+  for (const m of userSupportMessages) {
+    items.push({
+      id: `support-staff-${m.id}`,
+      type: "support",
+      title: `${m.subjectName}: сообщение в поддержку`,
+      body: m.text,
+      url: "/eadmin30",
+      createdAt: m.createdAt,
     });
   }
 

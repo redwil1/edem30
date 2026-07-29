@@ -79,7 +79,10 @@ export default function SupportChatCard() {
   }
 
   return (
-    <div className="bg-[#12121c] border border-white/5 rounded-3xl p-4 sm:p-6 mt-6">
+    <div
+      id="support-chat"
+      className="bg-[#12121c] border border-white/5 rounded-3xl p-4 sm:p-6 mt-6 scroll-mt-24"
+    >
       <div className="flex items-center gap-2.5 mb-4">
         <Headset size={18} className="text-violet-400" />
         <div className="font-display font-bold text-lg">Поддержка</div>

@@ -125,6 +125,56 @@ export async function startSupportConversation(
   return postMessage(conversation.id, staffId, text);
 }
 
+export type SupportMessageNotice = {
+  id: number;
+  text: string;
+  createdAt: string;
+};
+
+/** Ответы админа/модератора конкретному пользователю за последние 2 часа — для тоста и звука у пользователя. */
+export async function getRecentAdminRepliesForUser(
+  userId: number,
+  limit = 20
+): Promise<SupportMessageNotice[]> {
+  return sql<SupportMessageNotice[]>`
+    SELECT m.id as "id", m.text as "text", m.created_at as "createdAt"
+    FROM conversation_messages m
+    JOIN conversations c ON c.id = m.conversation_id
+    JOIN users u ON u.id = m.sender_id
+    WHERE c.type = 'support' AND c.subject_user_id = ${userId}
+      AND m.sender_id != ${userId}
+      AND (u.role = 'admin' OR u.role = 'moderator')
+      AND m.created_at > now() - interval '2 hours'
+    ORDER BY m.created_at DESC
+    LIMIT ${limit}
+  `;
+}
+
+export type SupportUserMessageNotice = {
+  id: number;
+  subjectUserId: number;
+  subjectName: string;
+  text: string;
+  createdAt: string;
+};
+
+/** Сообщения пользователей в поддержку за последние 2 часа — для тоста и звука у сотрудников. */
+export async function getRecentUserMessagesForStaff(
+  limit = 20
+): Promise<SupportUserMessageNotice[]> {
+  return sql<SupportUserMessageNotice[]>`
+    SELECT m.id as "id", c.subject_user_id as "subjectUserId", u.name as "subjectName",
+           m.text as "text", m.created_at as "createdAt"
+    FROM conversation_messages m
+    JOIN conversations c ON c.id = m.conversation_id
+    JOIN users u ON u.id = c.subject_user_id
+    WHERE c.type = 'support' AND m.sender_id = c.subject_user_id
+      AND m.created_at > now() - interval '2 hours'
+    ORDER BY m.created_at DESC
+    LIMIT ${limit}
+  `;
+}
+
 export async function postMessage(
   conversationId: number,
   senderId: number,

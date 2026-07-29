@@ -2,12 +2,13 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { House, Bus, Car, User } from "lucide-react";
+import { House, Bus, Car, MessageCircle, User } from "lucide-react";
 
 const items = [
   { href: "/", icon: House, text: "Главная" },
   { href: "/search", icon: Bus, text: "Межгород" },
   { href: "/taxi", icon: Car, text: "Такси" },
+  { href: "/profile#support-chat", icon: MessageCircle, text: "Чат" },
   { href: "/profile", icon: User, text: "Профиль" },
 ];
 
@@ -19,7 +20,7 @@ export default function BottomNav() {
       <div className="max-w-md mx-auto flex justify-around py-2.5">
         {items.map((item) => {
           const Icon = item.icon;
-          const active = pathname === item.href;
+          const active = pathname === item.href.split("#")[0];
 
           return (
             <Link
