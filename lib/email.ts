@@ -18,6 +18,9 @@ export async function sendEmail(to: string, subject: string, html: string): Prom
       "Content-Type": "application/json",
     },
     body: JSON.stringify({ from, to, subject, html }),
+    // Без таймаута зависший/недоступный Resend вешал весь запрос
+    // (например, отправку кода подтверждения) на неопределённое время.
+    signal: AbortSignal.timeout(8000),
   }).catch(() => null);
 
   return Boolean(res?.ok);
