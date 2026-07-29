@@ -82,8 +82,8 @@ export default function HomeContent({ trips }: Props) {
         </div>
 
         <div className="flex flex-col gap-6">
-          <TaxiOrderCard />
           <NotificationsCard />
+          <TaxiOrderCard />
           <PopularDirectionsCard />
         </div>
       </div>
