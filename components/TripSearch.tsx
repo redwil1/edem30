@@ -6,6 +6,7 @@ import { ChevronDown, MapPin, Plus, X } from "lucide-react";
 
 import CityModal from "./CityModal";
 import TripsList from "./TripsList";
+import FindDriverCard from "./home/FindDriverCard";
 import { useTripSearch } from "@/hooks/useTripSearch";
 import { Trip } from "@/types/trips";
 import { intercityDestinations } from "@/lib/cities";
@@ -99,6 +100,10 @@ export default function TripSearch({ trips, emptyText }: Props) {
 
       <div className="mt-8">
         <TripsList trips={filteredTrips} emptyText={emptyText} />
+      </div>
+
+      <div className="mt-6">
+        <FindDriverCard />
       </div>
     </>
   );
