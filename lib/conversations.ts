@@ -146,8 +146,7 @@ export async function getConversationMessages(
 export async function isAnyStaffOnline(): Promise<boolean> {
   const rows = await sql<{ lastSeenAt: string | null }[]>`
     SELECT last_seen_at as "lastSeenAt" FROM users
-    WHERE role IN ('admin', 'moderator') AND last_seen_at > now() - interval '5 minutes'
-    LIMIT 1
+    WHERE role IN ('admin', 'moderator')
   `;
 
   return rows.some((r) => isOnline(r.lastSeenAt));
