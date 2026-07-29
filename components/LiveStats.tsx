@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
-import { Users, Car, Clock, Zap } from "lucide-react";
+import { Users, Car, Clock, Zap, UserPlus, Sparkles } from "lucide-react";
 
 import { formatTimeAgo } from "@/lib/utils";
 
@@ -11,6 +11,8 @@ type Stats = {
   passengersRiding: number;
   tripsToday: number;
   lastBookingAt: string | null;
+  totalUsers: number;
+  matchRate: number | null;
 };
 
 const CARD_DEFS = [
@@ -46,6 +48,22 @@ const CARD_DEFS = [
     label: "Последнее бронирование",
     value: (s: Stats) => formatTimeAgo(s.lastBookingAt),
   },
+  {
+    key: "totalUsers" as const,
+    icon: UserPlus,
+    color: "text-sky-400",
+    dot: "bg-sky-400",
+    label: "Зарегистрировано",
+    value: (s: Stats) => `${s.totalUsers} пользователей`,
+  },
+  {
+    key: "matchRate" as const,
+    icon: Sparkles,
+    color: "text-pink-400",
+    dot: "bg-pink-400",
+    label: "Находят попутчиков",
+    value: (s: Stats) => (s.matchRate === null ? "—" : `${s.matchRate}%`),
+  },
 ];
 
 export default function LiveStats() {
@@ -77,7 +95,7 @@ export default function LiveStats() {
   if (!stats) return null;
 
   return (
-    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 sm:gap-3 mt-6 sm:mt-8">
+    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2.5 sm:gap-3 mt-6 sm:mt-8">
       {CARD_DEFS.map((def, i) => {
         const Icon = def.icon;
 

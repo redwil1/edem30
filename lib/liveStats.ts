@@ -12,10 +12,12 @@ export type LiveStats = {
   passengersRiding: number;
   tripsToday: number;
   lastBookingAt: string | null;
+  totalUsers: number;
+  matchRate: number | null;
 };
 
 export async function getLiveStats(): Promise<LiveStats> {
-  const [drivers, riding, today, lastBooking] = await Promise.all([
+  const [drivers, riding, today, lastBooking, users, matched] = await Promise.all([
     sql<{ c: string }[]>`
       SELECT COUNT(DISTINCT owner_id) as c FROM trips WHERE ${ACTIVE_TRIP_CLAUSE}
     `,
@@ -34,13 +36,29 @@ export async function getLiveStats(): Promise<LiveStats> {
     sql<{ joined_at: string | null }[]>`
       SELECT MAX(joined_at) as joined_at FROM trip_participants
     `,
+    sql<{ c: string }[]>`SELECT COUNT(*) as c FROM users`,
+    sql<{ total: string; matched: string }[]>`
+      SELECT COUNT(*) as total,
+             COUNT(*) FILTER (
+               WHERE EXISTS (
+                 SELECT 1 FROM trip_participants tp WHERE tp.trip_id = trips.id
+               )
+             ) as matched
+      FROM trips
+      WHERE cancelled_at IS NULL
+    `,
   ]);
+
+  const total = Number(matched[0].total);
+  const matchedCount = Number(matched[0].matched);
 
   return {
     driversOnline: Number(drivers[0].c),
     passengersRiding: Number(riding[0].c),
     tripsToday: Number(today[0].c),
     lastBookingAt: lastBooking[0]?.joined_at ?? null,
+    totalUsers: Number(users[0].c),
+    matchRate: total > 0 ? Math.round((matchedCount / total) * 100) : null,
   };
 }
 

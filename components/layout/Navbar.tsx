@@ -52,10 +52,10 @@ export default function Navbar() {
       <div className="max-w-[1400px] mx-auto px-5 lg:px-10 h-20 flex items-center justify-between">
         <Link href="/" className="flex items-center gap-3 shrink-0">
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/logo-mark.png" alt="Едем30" className="w-11 h-11 rounded-xl shrink-0" />
+          <img src="/logo-mark.png" alt="Едем30" className="w-[50px] h-[50px] rounded-xl shrink-0" />
 
           <div>
-            <div className="font-display font-bold text-lg leading-tight">
+            <div className="font-display font-bold text-xl leading-tight">
               Едем<span className="text-violet-400">30</span>
             </div>
 

@@ -86,7 +86,7 @@ export default function SchedulePanel({ trips }: Props) {
                   <span className="text-violet-400">{formatDate(trip.date)}</span>
                 </div>
 
-                <div className="font-bold text-lg mt-2 leading-snug">
+                <div className="font-bold text-xl mt-2 leading-snug">
                   {trip.from} → {trip.to}
                 </div>
 
@@ -106,7 +106,7 @@ export default function SchedulePanel({ trips }: Props) {
 
                 <div className="flex items-center gap-4 sm:gap-5">
                   <div className="text-right leading-none">
-                    <div className="text-violet-400 font-bold text-lg">
+                    <div className="text-violet-400 font-bold text-2xl">
                       {formatPrice(trip.price)}
                     </div>
 
@@ -115,24 +115,24 @@ export default function SchedulePanel({ trips }: Props) {
                     </div>
                   </div>
 
-                  <div className="flex items-center gap-2.5">
+                  <div className="flex items-center gap-2">
                     <Avatar
                       name={trip.driver}
-                      size={36}
+                      size={28}
                       avatarUrl={trip.driverAvatarUrl}
                       avatarPreset={trip.driverAvatarPreset}
                     />
 
                     <div className="hidden xl:block leading-none">
-                      <div className="text-sm font-medium whitespace-nowrap">
+                      <div className="text-xs text-gray-400 font-medium whitespace-nowrap">
                         {trip.driver}
                       </div>
 
-                      <div className="text-xs text-yellow-400 flex items-center gap-1 mt-1.5">
-                        <Star size={11} className="fill-yellow-400 shrink-0" />
+                      <div className="text-[11px] text-gray-500 flex items-center gap-1 mt-1">
+                        <Star size={10} className="fill-yellow-400 text-yellow-400 shrink-0" />
                         {formatRating(trip.rating)}{" "}
-                        <span className="text-gray-500">
-                          ({trip.tripsCount} отзывов)
+                        <span className="text-gray-600">
+                          ({trip.tripsCount})
                         </span>
                       </div>
                     </div>
