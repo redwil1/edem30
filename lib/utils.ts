@@ -70,6 +70,33 @@ export function formatTimeAgo(iso: string | null): string {
   return `${diffDays} ${word} назад`;
 }
 
+function isSameDay(a: Date, b: Date) {
+  return (
+    a.getFullYear() === b.getFullYear() &&
+    a.getMonth() === b.getMonth() &&
+    a.getDate() === b.getDate()
+  );
+}
+
+/** Разделитель дат в чате: "Сегодня" / "Вчера" / "12 марта". */
+export function formatChatDateSeparator(iso: string) {
+  const date = new Date(iso);
+  const now = new Date();
+
+  if (isSameDay(date, now)) return "Сегодня";
+
+  const yesterday = new Date(now);
+  yesterday.setDate(now.getDate() - 1);
+
+  if (isSameDay(date, yesterday)) return "Вчера";
+
+  return new Intl.DateTimeFormat("ru-RU", {
+    day: "numeric",
+    month: "long",
+    year: date.getFullYear() === now.getFullYear() ? undefined : "numeric",
+  }).format(date);
+}
+
 export function formatDate(date: string) {
   const match = DATE_RE.exec(date);
 

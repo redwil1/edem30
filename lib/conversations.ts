@@ -2,6 +2,7 @@ import "server-only";
 
 import { sql } from "@/lib/db";
 import { UserRole } from "@/lib/auth";
+import { isOnline } from "@/lib/utils";
 
 const STAFF_ROLES = new Set<UserRole>(["admin", "moderator"]);
 
@@ -16,14 +17,22 @@ export type SupportConversationRow = {
   subjectPhone: string | null;
   subjectAvatarUrl: string | null;
   subjectAvatarPreset: string | null;
+  subjectLastSeenAt: string | null;
   lastMessageAt: string;
   lastMessageText: string | null;
+  lastMessageAttachmentType: string | null;
   lastMessageSenderId: number | null;
+  staffLastReadAt: string | null;
+  unreadCount: number;
+};
+
+type SupportConversationListRow = Omit<SupportConversationRow, "unreadCount"> & {
+  unreadCount: string;
 };
 
 /** Все треды поддержки для админки, новые сверху. */
 export async function listSupportConversations(): Promise<SupportConversationRow[]> {
-  return sql<SupportConversationRow[]>`
+  const rows = await sql<SupportConversationListRow[]>`
     SELECT
       c.id as "id",
       c.subject_user_id as "subjectUserId",
@@ -31,13 +40,22 @@ export async function listSupportConversations(): Promise<SupportConversationRow
       u.phone as "subjectPhone",
       u.avatar_url as "subjectAvatarUrl",
       u.avatar_preset as "subjectAvatarPreset",
+      u.last_seen_at as "subjectLastSeenAt",
       c.last_message_at as "lastMessageAt",
       lm.text as "lastMessageText",
-      lm.sender_id as "lastMessageSenderId"
+      lm.attachment_type as "lastMessageAttachmentType",
+      lm.sender_id as "lastMessageSenderId",
+      c.staff_last_read_at as "staffLastReadAt",
+      (
+        SELECT COUNT(*) FROM conversation_messages um
+        WHERE um.conversation_id = c.id
+          AND um.sender_id = c.subject_user_id
+          AND (c.staff_last_read_at IS NULL OR um.created_at > c.staff_last_read_at)
+      ) as "unreadCount"
     FROM conversations c
     JOIN users u ON u.id = c.subject_user_id
     LEFT JOIN LATERAL (
-      SELECT text, sender_id
+      SELECT text, sender_id, attachment_type
       FROM conversation_messages
       WHERE conversation_id = c.id
       ORDER BY created_at DESC
@@ -46,6 +64,8 @@ export async function listSupportConversations(): Promise<SupportConversationRow
     WHERE c.type = 'support'
     ORDER BY c.last_message_at DESC
   `;
+
+  return rows.map((r) => ({ ...r, unreadCount: Number(r.unreadCount) }));
 }
 
 /** Пользователи, которым можно написать (для поиска в админке). Сотрудников не показываем. */
@@ -72,12 +92,33 @@ export async function getSupportConversationBySubject(subjectUserId: number) {
   return rows[0]?.id ?? null;
 }
 
+export type ConversationMeta = {
+  id: number;
+  subjectUserId: number;
+  userLastReadAt: string | null;
+  staffLastReadAt: string | null;
+};
+
+export async function getConversationMeta(
+  conversationId: number
+): Promise<ConversationMeta | null> {
+  const rows = await sql<ConversationMeta[]>`
+    SELECT id as "id", subject_user_id as "subjectUserId",
+           user_last_read_at as "userLastReadAt", staff_last_read_at as "staffLastReadAt"
+    FROM conversations WHERE id = ${conversationId}
+  `;
+
+  return rows[0] ?? null;
+}
+
 export type ConversationMessageRow = {
   id: number;
   senderId: number;
   senderName: string;
   senderRole: UserRole;
   text: string;
+  attachmentUrl: string | null;
+  attachmentType: "image" | "video" | null;
   createdAt: string;
 };
 
@@ -91,12 +132,33 @@ export async function getConversationMessages(
       u.name as "senderName",
       u.role as "senderRole",
       m.text as "text",
+      m.attachment_url as "attachmentUrl",
+      m.attachment_type as "attachmentType",
       m.created_at as "createdAt"
     FROM conversation_messages m
     JOIN users u ON u.id = m.sender_id
     WHERE m.conversation_id = ${conversationId}
     ORDER BY m.created_at ASC
   `;
+}
+
+/** Сотрудник онлайн, если хоть один админ/модератор заходил в последние 5 минут. */
+export async function isAnyStaffOnline(): Promise<boolean> {
+  const rows = await sql<{ lastSeenAt: string | null }[]>`
+    SELECT last_seen_at as "lastSeenAt" FROM users
+    WHERE role IN ('admin', 'moderator') AND last_seen_at > now() - interval '5 minutes'
+    LIMIT 1
+  `;
+
+  return rows.some((r) => isOnline(r.lastSeenAt));
+}
+
+export async function markUserRead(conversationId: number) {
+  await sql`UPDATE conversations SET user_last_read_at = now() WHERE id = ${conversationId}`;
+}
+
+export async function markStaffRead(conversationId: number) {
+  await sql`UPDATE conversations SET staff_last_read_at = now() WHERE id = ${conversationId}`;
 }
 
 /**
@@ -106,7 +168,8 @@ export async function getConversationMessages(
 export async function startSupportConversation(
   staffId: number,
   subjectUserId: number,
-  text: string
+  text: string,
+  attachment?: { url: string; type: "image" | "video" }
 ) {
   const [conversation] = await sql<{ id: number }[]>`
     INSERT INTO conversations (type, subject_user_id, created_by)
@@ -122,7 +185,7 @@ export async function startSupportConversation(
     ON CONFLICT (conversation_id, user_id) DO NOTHING
   `;
 
-  return postMessage(conversation.id, staffId, text);
+  return postMessage(conversation.id, staffId, text, attachment);
 }
 
 export type SupportMessageNotice = {
@@ -178,11 +241,12 @@ export async function getRecentUserMessagesForStaff(
 export async function postMessage(
   conversationId: number,
   senderId: number,
-  text: string
+  text: string,
+  attachment?: { url: string; type: "image" | "video" }
 ) {
   const [message] = await sql<{ id: number; createdAt: string }[]>`
-    INSERT INTO conversation_messages (conversation_id, sender_id, text)
-    VALUES (${conversationId}, ${senderId}, ${text})
+    INSERT INTO conversation_messages (conversation_id, sender_id, text, attachment_url, attachment_type)
+    VALUES (${conversationId}, ${senderId}, ${text}, ${attachment?.url ?? null}, ${attachment?.type ?? null})
     RETURNING id, created_at as "createdAt"
   `;
 

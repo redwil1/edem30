@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 
 import { requireStaff } from "@/lib/admin";
 import { listSupportConversations } from "@/lib/conversations";
+import { isOnline } from "@/lib/utils";
 
 export async function GET() {
   const staff = await requireStaff();
@@ -20,9 +21,12 @@ export async function GET() {
         phone: c.subjectPhone,
         avatarUrl: c.subjectAvatarUrl,
         avatarPreset: c.subjectAvatarPreset,
+        online: isOnline(c.subjectLastSeenAt),
         lastMessageAt: c.lastMessageAt,
         lastMessageText: c.lastMessageText,
+        lastMessageAttachmentType: c.lastMessageAttachmentType,
         needsReply: c.lastMessageSenderId === c.subjectUserId,
+        unreadCount: c.unreadCount,
       })),
     },
     { headers: { "Cache-Control": "no-store" } }
