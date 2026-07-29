@@ -15,6 +15,7 @@ import {
   Megaphone,
   Settings,
   MessageCircle,
+  Headset,
   Send,
   Menu,
   X,
@@ -31,6 +32,7 @@ import AdminReviewsTable from "@/components/admin/AdminReviewsTable";
 import AdminReportsTable from "@/components/admin/AdminReportsTable";
 import AdminVerificationsTable from "@/components/admin/AdminVerificationsTable";
 import AdminChatModeration from "@/components/admin/AdminChatModeration";
+import AdminSupportInbox from "@/components/admin/AdminSupportInbox";
 import AdminTelegramMessagesTable from "@/components/admin/AdminTelegramMessagesTable";
 import AdminSubscriptionPlansTable from "@/components/admin/AdminSubscriptionPlansTable";
 import AdminPromoCodesTable from "@/components/admin/AdminPromoCodesTable";
@@ -45,6 +47,7 @@ type Tab =
   | "trips"
   | "taxiOrders"
   | "chats"
+  | "support"
   | "telegram"
   | "reports"
   | "reviews"
@@ -64,6 +67,7 @@ const TABS: { id: Tab; label: string; icon: typeof LayoutDashboard }[] = [
   { id: "trips", label: "🚗 Поездки", icon: Car },
   { id: "taxiOrders", label: "🚕 Заказы такси", icon: Car },
   { id: "chats", label: "💬 Чаты", icon: MessageCircle },
+  { id: "support", label: "🎧 Поддержка", icon: Headset },
   { id: "telegram", label: "✈ Telegram", icon: Send },
   { id: "verifications", label: "✅ Верификации", icon: ShieldCheck },
   { id: "reports", label: "🚩 Жалобы", icon: Flag },
@@ -151,6 +155,7 @@ export default function AdminPage() {
         {tab === "trips" && <AdminTripsTable />}
         {tab === "taxiOrders" && <AdminTaxiOrdersTable />}
         {tab === "chats" && <AdminChatModeration />}
+        {tab === "support" && <AdminSupportInbox />}
         {tab === "telegram" && <AdminTelegramMessagesTable />}
         {tab === "verifications" && <AdminVerificationsTable />}
         {tab === "reports" && <AdminReportsTable />}
