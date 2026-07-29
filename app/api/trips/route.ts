@@ -54,13 +54,6 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  if (user.role !== "driver") {
-    return NextResponse.json(
-      { error: "Публиковать поездки могут только водители" },
-      { status: 403 }
-    );
-  }
-
   const activeCount = await countActiveTripsByOwner(user.id);
 
   if (activeCount >= MAX_ACTIVE_TRIPS) {

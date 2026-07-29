@@ -39,7 +39,7 @@ export default function CreateTripPage() {
 function CreateTripForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { user, loading, setRole, city: selectedCity, setCity: setSelectedCity } = useAuth();
+  const { user, loading, city: selectedCity, setCity: setSelectedCity } = useAuth();
 
   const [type, setType] = useState<TripType>(
     searchParams.get("type") === "city" ? "city" : "intercity"
@@ -58,7 +58,6 @@ function CreateTripForm() {
 
   const [error, setError] = useState("");
   const [submitting, setSubmitting] = useState(false);
-  const [becomingDriver, setBecomingDriver] = useState(false);
   const [cityModalField, setCityModalField] = useState<CityField>(null);
 
   async function submit(e: FormEvent) {
@@ -169,39 +168,6 @@ function CreateTripForm() {
     );
   }
 
-  if (!loading && user && user.role !== "driver") {
-    return (
-      <main className="min-h-screen bg-[#0b0b13] text-white">
-        <Navbar />
-
-        <div className="max-w-md mx-auto px-5 py-8">
-          <Link href="/" className="text-violet-400 inline-block mb-8">
-            ← Назад
-          </Link>
-
-          <h1 className="text-3xl font-bold mb-4">Создать поездку</h1>
-
-          <p className="text-gray-400 mb-6">
-            Публиковать поездки могут только водители. Переключитесь в режим
-            водителя, чтобы продолжить.
-          </p>
-
-          <button
-            onClick={async () => {
-              setBecomingDriver(true);
-              await setRole("driver");
-              router.refresh();
-              setBecomingDriver(false);
-            }}
-            disabled={becomingDriver}
-            className="block w-full text-center bg-violet-600 hover:bg-violet-700 disabled:opacity-60 transition rounded-2xl py-4 font-bold"
-          >
-            {becomingDriver ? "Секунду..." : "Стать водителем"}
-          </button>
-        </div>
-      </main>
-    );
-  }
 
   return (
     <main className="min-h-screen bg-[#0b0b13] text-white">
