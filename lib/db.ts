@@ -17,7 +17,20 @@ function createSql() {
   // mode, which doesn't guarantee the same backend connection across
   // statements — postgres.js's default prepared statements can then
   // reference a statement name that no longer exists. Disable them.
-  return postgres(connectionString, { ssl: "require", prepare: false });
+  //
+  // On Vercel each serverless instance gets its own client (module scope is
+  // per-container, not shared globally), and postgres.js defaults to up to
+  // 10 pooled connections per client — with many concurrent instances that
+  // can blow past PgBouncer's own client-connection cap. Since PgBouncer
+  // already does the real pooling, cap each client to a single connection
+  // and release it quickly when idle.
+  return postgres(connectionString, {
+    ssl: "require",
+    prepare: false,
+    max: 1,
+    idle_timeout: 20,
+    connect_timeout: 10,
+  });
 }
 
 export const sql = globalForDb.sql ?? createSql();
