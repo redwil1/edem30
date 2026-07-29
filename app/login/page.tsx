@@ -283,6 +283,18 @@ function LoginForm() {
                     autoFocus
                     className="w-full bg-[#0f0f18] border border-white/10 focus:border-violet-500 rounded-xl p-3.5 outline-none transition"
                   />
+
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      setEmailCode("");
+                      await requestEmailCode();
+                    }}
+                    disabled={sendingCode}
+                    className="text-xs text-violet-400 hover:text-violet-300 disabled:opacity-60 transition"
+                  >
+                    {sendingCode ? "Отправляем..." : "Запросить новый код"}
+                  </button>
                 </>
               )}
 
