@@ -76,11 +76,11 @@ export default function ReportModal({ tripId, open, onClose }: Props) {
 
   return (
     <div
-      className="fixed inset-0 bg-black/70 flex items-end sm:items-center justify-center z-50"
+      className="fixed inset-0 h-[100dvh] bg-black/70 flex items-center justify-center z-50 p-4"
       onClick={close}
     >
       <div
-        className="bg-[#171726] w-full max-w-md rounded-t-3xl sm:rounded-3xl p-6"
+        className="bg-[#171726] w-full max-w-md rounded-3xl p-6 max-h-[85dvh] overflow-y-auto"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center justify-between mb-5">
