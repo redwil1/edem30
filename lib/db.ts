@@ -22,12 +22,20 @@ function createSql() {
   // per-container, not shared globally), and postgres.js defaults to up to
   // 10 pooled connections per client — with many concurrent instances that
   // can blow past PgBouncer's own client-connection cap. Since PgBouncer
-  // already does the real pooling, cap each client to a single connection
-  // and release it quickly when idle.
+  // already does the real pooling, cap each client well below the default.
+  //
+  // Capping at 1 (an earlier attempt) backfired: a single logged-in page
+  // load fires ~10 concurrent requests (notification bell, chat, trip/order
+  // notifiers, online heartbeat, ...), each hitting a route that queries the
+  // DB. With max:1 they all serialize behind one connection on the same
+  // warm instance, so a single slow query head-of-line-blocks everything
+  // else, including auth — the whole page can appear to hang. A small pool
+  // still bounds total connections across instances while letting a page's
+  // own concurrent requests run in parallel instead of queueing.
   return postgres(connectionString, {
     ssl: "require",
     prepare: false,
-    max: 1,
+    max: 5,
     idle_timeout: 20,
     connect_timeout: 10,
   });
