@@ -103,7 +103,7 @@ export default function PushSubscribeButton() {
         type="button"
         onClick={subscribed ? unsubscribe : subscribe}
         disabled={loading}
-        className="flex items-center gap-2 text-sm font-medium text-gray-400 hover:text-white disabled:opacity-60 transition"
+        className="flex items-center gap-2 text-sm font-medium text-gray-300 hover:text-white border border-white/15 hover:border-white/30 bg-white/5 hover:bg-white/10 rounded-xl px-4 py-2.5 disabled:opacity-60 transition"
       >
         {loading ? (
           <Loader2 size={15} className="animate-spin" />
