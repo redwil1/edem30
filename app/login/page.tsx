@@ -115,11 +115,6 @@ function LoginForm() {
         return;
       }
 
-      if (!pushConsent) {
-        setError("Подтвердите согласие на push-уведомления, чтобы продолжить");
-        return;
-      }
-
       if (!emailValid) {
         setError("Укажите корректную почту");
         return;
@@ -340,7 +335,8 @@ function LoginForm() {
                 className="mt-0.5 w-4 h-4 shrink-0 accent-violet-600"
               />
               Согласен(на) получать push-уведомления о новых сообщениях,
-              заказах и статусе поездок
+              заказах и статусе поездок{" "}
+              <span className="text-gray-600">(необязательно)</span>
             </label>
           )}
 

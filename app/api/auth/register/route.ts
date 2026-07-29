@@ -87,13 +87,6 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  if (!pushConsent) {
-    return NextResponse.json(
-      { error: "Подтвердите согласие на push-уведомления, чтобы продолжить" },
-      { status: 400 }
-    );
-  }
-
   if (!isValidEmail(emailRaw)) {
     return NextResponse.json({ error: "Укажите корректную почту" }, { status: 400 });
   }
@@ -137,7 +130,7 @@ export async function POST(req: NextRequest) {
         signup_utm_content, signup_utm_term
       )
       VALUES (
-        ${name}, ${phone}, ${passwordHash}, ${codeCheck.email}, ${now}, ${now},
+        ${name}, ${phone}, ${passwordHash}, ${codeCheck.email}, ${pushConsent ? now : null}, ${now},
         ${sourceInfo?.source ?? "direct"}, ${sourceInfo?.utmSource ?? null},
         ${sourceInfo?.utmMedium ?? null}, ${sourceInfo?.utmCampaign ?? null},
         ${sourceInfo?.utmContent ?? null}, ${sourceInfo?.utmTerm ?? null}
