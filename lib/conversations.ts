@@ -10,6 +10,101 @@ export function isStaffRole(role: UserRole) {
   return STAFF_ROLES.has(role);
 }
 
+/**
+ * Личный чат между двумя пользователями (например водитель↔пассажир после
+ * отклика на заявку) — использует тот же conversations/conversation_messages,
+ * что и поддержка, но type='direct' и оба участника имеют равные права
+ * (никто не обязан писать первым). Идемпотентно: повторный вызов для той
+ * же пары возвращает уже существующий чат.
+ */
+export async function getOrCreateDirectConversation(
+  userAId: number,
+  userBId: number
+): Promise<number> {
+  const existing = await sql<{ id: number }[]>`
+    SELECT c.id as "id"
+    FROM conversations c
+    WHERE c.type = 'direct'
+      AND EXISTS (
+        SELECT 1 FROM conversation_participants p
+        WHERE p.conversation_id = c.id AND p.user_id = ${userAId}
+      )
+      AND EXISTS (
+        SELECT 1 FROM conversation_participants p
+        WHERE p.conversation_id = c.id AND p.user_id = ${userBId}
+      )
+      AND (
+        SELECT COUNT(*) FROM conversation_participants p WHERE p.conversation_id = c.id
+      ) = 2
+    LIMIT 1
+  `;
+
+  if (existing[0]) return existing[0].id;
+
+  const [conversation] = await sql<{ id: number }[]>`
+    INSERT INTO conversations (type, created_by)
+    VALUES ('direct', ${userAId})
+    RETURNING id
+  `;
+
+  await sql`
+    INSERT INTO conversation_participants (conversation_id, user_id)
+    VALUES (${conversation.id}, ${userAId}), (${conversation.id}, ${userBId})
+  `;
+
+  return conversation.id;
+}
+
+export async function isDirectConversationParticipant(
+  conversationId: number,
+  userId: number
+): Promise<boolean> {
+  const rows = await sql<{ id: number }[]>`
+    SELECT conversation_id as id FROM conversation_participants
+    WHERE conversation_id = ${conversationId} AND user_id = ${userId}
+  `;
+
+  return rows.length > 0;
+}
+
+export type DirectConversationSummary = {
+  id: number;
+  otherUserId: number;
+  otherUserName: string;
+  otherUserAvatarUrl: string | null;
+  otherUserAvatarPreset: string | null;
+  lastMessageAt: string;
+  lastMessageText: string | null;
+};
+
+/** Список личных чатов пользователя, новые сверху. */
+export async function listDirectConversationsForUser(
+  userId: number
+): Promise<DirectConversationSummary[]> {
+  return sql<DirectConversationSummary[]>`
+    SELECT
+      c.id as "id",
+      u.id as "otherUserId",
+      u.name as "otherUserName",
+      u.avatar_url as "otherUserAvatarUrl",
+      u.avatar_preset as "otherUserAvatarPreset",
+      c.last_message_at as "lastMessageAt",
+      lm.text as "lastMessageText"
+    FROM conversations c
+    JOIN conversation_participants me ON me.conversation_id = c.id AND me.user_id = ${userId}
+    JOIN conversation_participants other ON other.conversation_id = c.id AND other.user_id != ${userId}
+    JOIN users u ON u.id = other.user_id
+    LEFT JOIN LATERAL (
+      SELECT text FROM conversation_messages
+      WHERE conversation_id = c.id
+      ORDER BY created_at DESC
+      LIMIT 1
+    ) lm ON true
+    WHERE c.type = 'direct'
+    ORDER BY c.last_message_at DESC
+  `;
+}
+
 export type SupportConversationRow = {
   id: number;
   subjectUserId: number;
@@ -150,6 +245,37 @@ export async function isAnyStaffOnline(): Promise<boolean> {
   `;
 
   return rows.some((r) => isOnline(r.lastSeenAt));
+}
+
+export async function markParticipantRead(conversationId: number, userId: number) {
+  await sql`
+    UPDATE conversation_participants SET last_read_at = now()
+    WHERE conversation_id = ${conversationId} AND user_id = ${userId}
+  `;
+}
+
+export async function getOtherParticipantId(
+  conversationId: number,
+  excludeUserId: number
+): Promise<number | null> {
+  const rows = await sql<{ userId: number }[]>`
+    SELECT user_id as "userId" FROM conversation_participants
+    WHERE conversation_id = ${conversationId} AND user_id != ${excludeUserId}
+  `;
+
+  return rows[0]?.userId ?? null;
+}
+
+export async function getOtherParticipantLastRead(
+  conversationId: number,
+  excludeUserId: number
+): Promise<string | null> {
+  const rows = await sql<{ lastReadAt: string | null }[]>`
+    SELECT last_read_at as "lastReadAt" FROM conversation_participants
+    WHERE conversation_id = ${conversationId} AND user_id != ${excludeUserId}
+  `;
+
+  return rows[0]?.lastReadAt ?? null;
 }
 
 export async function markUserRead(conversationId: number) {

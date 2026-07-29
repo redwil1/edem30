@@ -14,6 +14,7 @@ import PopularDirectionsCard from "./PopularDirectionsCard";
 import WhyUs from "./WhyUs";
 import WelcomeGate from "./WelcomeGate";
 import NotificationsCard from "./NotificationsCard";
+import FindDriverCard from "./FindDriverCard";
 
 type Props = {
   trips: Trip[];
@@ -84,6 +85,7 @@ export default function HomeContent({ trips }: Props) {
         <div className="flex flex-col gap-6">
           <NotificationsCard />
           <TaxiOrderCard />
+          <FindDriverCard />
           <PopularDirectionsCard />
         </div>
       </div>

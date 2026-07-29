@@ -1,14 +1,15 @@
 "use client";
 
 import { useState } from "react";
-import { Bus, Car } from "lucide-react";
+import { Bus, Car, Search } from "lucide-react";
 
 import DriverOrdersFeed from "@/components/taxi/DriverOrdersFeed";
 import RoleSwitch from "./RoleSwitch";
 import DriverTripsPanel from "./DriverTripsPanel";
 import NotificationsCard from "./NotificationsCard";
+import RideRequestsFeed from "./RideRequestsFeed";
 
-type Tab = "taxi" | "intercity";
+type Tab = "taxi" | "intercity" | "passengers";
 
 export default function DriverHome() {
   const [tab, setTab] = useState<Tab>("taxi");
@@ -47,9 +48,24 @@ export default function DriverHome() {
           <Bus size={15} />
           Межгород
         </button>
+
+        <button
+          type="button"
+          onClick={() => setTab("passengers")}
+          className={`flex-1 flex items-center justify-center gap-1.5 rounded-xl py-2.5 text-sm font-medium transition ${
+            tab === "passengers"
+              ? "bg-violet-600 text-white"
+              : "text-gray-400 hover:text-white"
+          }`}
+        >
+          <Search size={15} />
+          Пассажиры
+        </button>
       </div>
 
-      {tab === "taxi" ? <DriverOrdersFeed /> : <DriverTripsPanel />}
+      {tab === "taxi" && <DriverOrdersFeed />}
+      {tab === "intercity" && <DriverTripsPanel />}
+      {tab === "passengers" && <RideRequestsFeed />}
     </div>
   );
 }
