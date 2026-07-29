@@ -90,7 +90,7 @@ export default function HeroCarScene() {
       <div ref={cityRef} className="hero-layer-wrapper hero-layer-city">
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
-          src="/hero/город.png"
+          src="/hero/city.png"
           alt=""
           aria-hidden
           className={`hero-layer-img ${mounted ? "is-in" : ""}`}
@@ -103,7 +103,7 @@ export default function HeroCarScene() {
       <div ref={carRef} className="hero-layer-wrapper hero-layer-car">
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
-          src="/hero/машина.png"
+          src="/hero/car.png"
           alt="Машина Едем30"
           className={`hero-layer-img ${mounted ? "is-in" : ""}`}
           style={{ transitionDelay: "100ms" }}
@@ -115,7 +115,7 @@ export default function HeroCarScene() {
       <div ref={glowRef} className="hero-layer-wrapper hero-layer-glow">
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
-          src="/hero/свечение.png"
+          src="/hero/glow.png"
           alt=""
           aria-hidden
           className={`hero-layer-img ${mounted ? "is-in" : ""}`}
