@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
-import { Users, Car, Clock, Zap, UserPlus, Sparkles } from "lucide-react";
+import { Users, Car, Clock, Zap, UserPlus, Sparkles, Rocket } from "lucide-react";
 
 import { formatTimeAgo } from "@/lib/utils";
 
@@ -93,6 +93,28 @@ export default function LiveStats() {
   }, []);
 
   if (!stats) return null;
+
+  // Сырые счётчики ("1 водитель, 0 пассажиров") на молодом сервисе выглядят
+  // как пустой сайт, а не как соц. доказательство — честнее промолчать и
+  // показать мягкий призыв, чем подсвечивать, что тут почти никого нет.
+  // Публикуем реальные цифры только когда они уже сами по себе убедительны.
+  const looksAlive = stats.totalUsers >= 5 && stats.tripsToday >= 1;
+
+  if (!looksAlive) {
+    return (
+      <motion.div
+        initial={{ opacity: 0, y: 16 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.35 }}
+        className="flex items-center gap-3 bg-[#14141f] border border-white/5 rounded-2xl px-4 py-3.5 mt-6 sm:mt-8"
+      >
+        <Rocket size={18} className="text-violet-400 shrink-0" />
+        <span className="text-sm text-gray-300">
+          Едем30 только набирает обороты — станьте одним из первых
+        </span>
+      </motion.div>
+    );
+  }
 
   return (
     <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2.5 sm:gap-3 mt-6 sm:mt-8">
