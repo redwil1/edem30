@@ -1,8 +1,34 @@
+"use client";
+
+import { useEffect, useState } from "react";
 import { Bell } from "lucide-react";
 
+import { useAuth } from "@/components/auth/AuthProvider";
 import PushSubscribeButton from "@/components/PushSubscribeButton";
+import { isIos, isStandalone } from "@/lib/pushSubscribeClient";
 
 export default function NotificationsCard() {
+  const { user } = useAuth();
+  const [visible, setVisible] = useState(false);
+
+  useEffect(() => {
+    if (!user) return;
+
+    if (isIos() && !isStandalone()) {
+      setVisible(true);
+      return;
+    }
+
+    if (!("serviceWorker" in navigator) || !("PushManager" in window)) return;
+
+    navigator.serviceWorker.register("/sw.js").then(async (registration) => {
+      const existing = await registration.pushManager.getSubscription();
+      setVisible(!existing);
+    });
+  }, [user]);
+
+  if (!visible) return null;
+
   return (
     <div className="relative bg-[#1c1213] border border-red-500/40 rounded-3xl p-4 sm:p-6 shadow-[0_0_0_1px_rgba(239,68,68,0.08)]">
       <div className="flex items-center gap-2.5 mb-3">
