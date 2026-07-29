@@ -98,7 +98,7 @@ export async function POST(req: NextRequest, { params }: Props) {
   sendPushToUser(subjectUserId, {
     title: "Поддержка Едем30",
     body: text.slice(0, 120),
-    url: "/profile",
+    url: "/chat",
   });
 
   return NextResponse.json({

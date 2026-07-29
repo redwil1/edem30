@@ -8,7 +8,7 @@ const items = [
   { href: "/", icon: House, text: "Главная" },
   { href: "/search", icon: Bus, text: "Межгород" },
   { href: "/taxi", icon: Car, text: "Такси" },
-  { href: "/profile#support-chat", icon: MessageCircle, text: "Чат" },
+  { href: "/chat", icon: MessageCircle, text: "Чат" },
   { href: "/profile", icon: User, text: "Профиль" },
 ];
 

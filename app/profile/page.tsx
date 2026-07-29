@@ -10,7 +10,6 @@ import PushSubscribeButton from "@/components/PushSubscribeButton";
 import EmailSettings from "@/components/profile/EmailSettings";
 import FavoriteAddressesManager from "@/components/profile/FavoriteAddressesManager";
 import ProfileTabs from "@/components/profile/ProfileTabs";
-import SupportChatCard from "@/components/profile/SupportChatCard";
 import ReviewsList from "@/components/profile/ReviewsList";
 import TripHistoryList from "@/components/profile/TripHistoryList";
 import { getCurrentUser } from "@/lib/auth";
@@ -153,8 +152,6 @@ export default async function ProfilePage() {
                   </div>
 
                   <EmailSettings />
-
-                  <SupportChatCard />
 
                   <FavoriteAddressesManager />
 

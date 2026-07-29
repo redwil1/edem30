@@ -105,7 +105,7 @@ export async function getNotificationFeed(
       type: "support",
       title: "Поддержка Едем30",
       body: m.text,
-      url: "/profile#support-chat",
+      url: "/chat",
       createdAt: m.createdAt,
     });
   }

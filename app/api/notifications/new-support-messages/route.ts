@@ -38,7 +38,7 @@ export async function GET() {
         id: m.id,
         senderName: "Поддержка Едем30",
         preview: m.text,
-        url: "/profile#support-chat",
+        url: "/chat",
       })),
     },
     { headers: { "Cache-Control": "no-store" } }
