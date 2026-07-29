@@ -46,8 +46,13 @@ function CreateTripForm() {
   );
   const [from, setFrom] = useState(searchParams.get("from") ?? "");
   const [to, setTo] = useState(searchParams.get("to") ?? "");
-  const [date, setDate] = useState(today());
-  const [time, setTime] = useState("");
+  const [date, setDate] = useState(searchParams.get("date") ?? today());
+  const [time, setTime] = useState(searchParams.get("time") ?? "");
+
+  const fulfillRequestIds = (searchParams.get("fulfillRequestIds") ?? "")
+    .split(",")
+    .map((s) => Number(s))
+    .filter((n) => Number.isInteger(n) && n > 0);
   const [price, setPrice] = useState(searchParams.get("price") ?? "");
   const [totalSeats, setTotalSeats] = useState(searchParams.get("totalSeats") ?? "");
   const [transportCategory, setTransportCategory] = useState(
@@ -122,6 +127,7 @@ function CreateTripForm() {
           transportCategory,
           carModel: carModel.trim(),
           licensePlate: licensePlate.trim(),
+          fulfillRequestIds,
         }),
       });
 
@@ -178,9 +184,18 @@ function CreateTripForm() {
           ← Назад
         </Link>
 
-        <h1 className="text-3xl font-bold mb-8">Создать поездку</h1>
+        <h1 className="text-3xl font-bold mb-2">
+          {fulfillRequestIds.length > 0 ? "Сформировать поездку" : "Создать поездку"}
+        </h1>
 
-        <form onSubmit={submit} className="space-y-4">
+        {fulfillRequestIds.length > 0 && (
+          <p className="text-sm text-violet-300 bg-violet-600/10 border border-violet-500/20 rounded-2xl px-4 py-3 mb-6">
+            Вы формируете поездку из заявок пассажиров «Ищу водителя» — маршрут,
+            дата и места уже подставлены. Останется указать цену и машину.
+          </p>
+        )}
+
+        <form onSubmit={submit} className="space-y-4 mt-6">
           <CategorySwitch value={type} onChange={setType} />
 
           {type === "intercity" ? (
@@ -311,7 +326,11 @@ function CreateTripForm() {
             disabled={submitting}
             className="w-full bg-violet-600 hover:bg-violet-700 disabled:opacity-60 transition rounded-2xl py-4 font-bold"
           >
-            {submitting ? "Публикуем..." : "Опубликовать поездку"}
+            {submitting
+              ? "Публикуем..."
+              : fulfillRequestIds.length > 0
+              ? "Сформировать поездку"
+              : "Опубликовать поездку"}
           </button>
         </form>
       </div>

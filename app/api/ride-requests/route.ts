@@ -1,9 +1,15 @@
 import { NextRequest, NextResponse } from "next/server";
 
 import { getCurrentUser } from "@/lib/auth";
-import { createRideRequest, listOpenRideRequests } from "@/lib/rideRequests";
+import {
+  clusterRideRequests,
+  createRideRequest,
+  findMatchingCluster,
+  listOpenRideRequests,
+} from "@/lib/rideRequests";
 import { rateLimit } from "@/lib/rateLimit";
 import { isTrustedOrigin } from "@/lib/security";
+import { sendPushToSegment, sendPushToUser } from "@/lib/push";
 
 export const runtime = "nodejs";
 
@@ -52,6 +58,10 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Некорректное количество пассажиров" }, { status: 400 });
   }
 
+  // Уже существующий кластер на этот маршрут — до вставки новой заявки,
+  // чтобы уведомить именно ТЕХ, кто уже ждал (не самого создателя).
+  const existingCluster = await findMatchingCluster(from, to, date, time);
+
   const id = await createRideRequest(user.id, {
     from,
     to,
@@ -60,6 +70,32 @@ export async function POST(req: NextRequest) {
     passengersCount,
     comment: comment || undefined,
   });
+
+  if (existingCluster) {
+    for (const r of existingCluster.requests) {
+      sendPushToUser(r.passengerId, {
+        title: "К вашей поездке присоединился ещё один пассажир",
+        body: `${from} → ${to}`,
+        url: "/find-driver/mine",
+      });
+    }
+  }
+
+  // Если после этой заявки маршрут набрал 3+ ожидающих (именно заявок, не
+  // сумма мест) — сообщить водителям, что тут можно одним нажатием
+  // сформировать поездку. Шлём один раз, ровно на переходе через порог,
+  // чтобы не спамить на каждую следующую заявку.
+  const open = await listOpenRideRequests();
+  const clusters = clusterRideRequests(open);
+  const myCluster = clusters.find((c) => c.requests.some((r) => r.id === id));
+
+  if (myCluster && myCluster.requests.length === 3) {
+    sendPushToSegment("driver", {
+      title: "🔥 Формируется поездка",
+      body: `${myCluster.from} → ${myCluster.to}: уже ждут ${myCluster.waitingCount} пассажиров. Можно сформировать поездку одним нажатием.`,
+      url: "/",
+    });
+  }
 
   return NextResponse.json({ id });
 }

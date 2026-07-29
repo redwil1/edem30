@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 
 import { getCurrentUser } from "@/lib/auth";
-import { listMyRideRequests, listResponsesForRequest } from "@/lib/rideRequests";
+import { listMyRideRequests } from "@/lib/rideRequests";
 
 export const runtime = "nodejs";
 
@@ -13,15 +13,8 @@ export async function GET() {
 
   const requests = await listMyRideRequests(user.id);
 
-  const withResponses = await Promise.all(
-    requests.map(async (r) => ({
-      ...r,
-      responses: r.status === "open" || r.responsesCount > 0 ? await listResponsesForRequest(r.id) : [],
-    }))
-  );
-
   return NextResponse.json(
-    { requests: withResponses },
+    { requests },
     { headers: { "Cache-Control": "no-store" } }
   );
 }

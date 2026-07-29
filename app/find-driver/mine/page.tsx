@@ -2,25 +2,12 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { Loader2, MessageCircle, Plus, Search, X } from "lucide-react";
+import { Car, Loader2, Plus, Search, X } from "lucide-react";
 
 import Navbar from "@/components/layout/Navbar";
 import Footer from "@/components/layout/Footer";
-import Avatar from "@/components/trip/Avatar";
 import { useAuth } from "@/components/auth/AuthProvider";
-import { formatDate, formatRating } from "@/lib/utils";
-
-type ResponseRow = {
-  id: number;
-  driverId: number;
-  driverName: string;
-  driverAvatarUrl: string | null;
-  driverAvatarPreset: string | null;
-  driverRating: number | null;
-  driverReviewsCount: number;
-  conversationId: number | null;
-  createdAt: string;
-};
+import { formatDate } from "@/lib/utils";
 
 type RequestRow = {
   id: number;
@@ -31,15 +18,13 @@ type RequestRow = {
   passengersCount: number;
   comment: string | null;
   status: "open" | "closed" | "cancelled";
-  acceptedDriverId: number | null;
-  responsesCount: number;
+  tripId: number | null;
   createdAt: string;
-  responses: ResponseRow[];
 };
 
 const STATUS_LABEL: Record<RequestRow["status"], { label: string; className: string }> = {
-  open: { label: "Открыта", className: "bg-violet-600/15 text-violet-300" },
-  closed: { label: "Закрыта", className: "bg-green-500/10 text-green-400" },
+  open: { label: "Формируется", className: "bg-violet-600/15 text-violet-300" },
+  closed: { label: "Водитель найден", className: "bg-green-500/10 text-green-400" },
   cancelled: { label: "Отменена", className: "bg-red-500/10 text-red-400" },
 };
 
@@ -60,17 +45,6 @@ export default function MyRideRequestsPage() {
     const interval = setInterval(load, 10_000);
     return () => clearInterval(interval);
   }, [user]);
-
-  async function chooseDriver(requestId: number, driverId: number) {
-    setBusyId(requestId);
-    await fetch(`/api/ride-requests/${requestId}/close`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ driverId }),
-    });
-    setBusyId(null);
-    load();
-  }
 
   async function cancelRequest(requestId: number) {
     setBusyId(requestId);
@@ -127,8 +101,8 @@ export default function MyRideRequestsPage() {
           </div>
         ) : requests.length === 0 ? (
           <div className="bg-[#12121c] border border-white/5 rounded-3xl p-10 text-center text-gray-500 text-sm">
-            Заявок пока нет. Создайте первую — водители по вашему маршруту
-            смогут откликнуться.
+            Заявок пока нет. Создайте первую — как только наберутся попутчики,
+            водители увидят формирующуюся поездку.
           </div>
         ) : (
           <div className="space-y-4">
@@ -155,71 +129,28 @@ export default function MyRideRequestsPage() {
                     </span>
                   </div>
 
-                  {r.status === "open" && (
-                    <button
-                      onClick={() => cancelRequest(r.id)}
-                      disabled={busyId === r.id}
-                      className="flex items-center gap-1.5 text-xs font-medium text-gray-500 hover:text-red-400 transition mt-3 disabled:opacity-60"
-                    >
-                      <X size={12} />
-                      Отменить заявку
-                    </button>
-                  )}
+                  <div className="flex items-center gap-4 mt-3">
+                    {r.status === "open" && (
+                      <button
+                        onClick={() => cancelRequest(r.id)}
+                        disabled={busyId === r.id}
+                        className="flex items-center gap-1.5 text-xs font-medium text-gray-500 hover:text-red-400 transition disabled:opacity-60"
+                      >
+                        <X size={12} />
+                        Отменить заявку
+                      </button>
+                    )}
 
-                  {r.responses.length > 0 && (
-                    <div className="mt-4 pt-4 border-t border-white/5 space-y-3">
-                      <div className="text-xs text-gray-500 font-medium">
-                        Откликнулись водители ({r.responses.length})
-                      </div>
-
-                      {r.responses.map((resp) => (
-                        <div key={resp.id} className="flex items-center justify-between gap-3">
-                          <div className="flex items-center gap-2.5 min-w-0">
-                            <Avatar
-                              name={resp.driverName}
-                              size={32}
-                              avatarUrl={resp.driverAvatarUrl}
-                              avatarPreset={resp.driverAvatarPreset}
-                            />
-                            <div className="min-w-0">
-                              <div className="text-sm font-medium truncate">{resp.driverName}</div>
-                              {resp.driverRating !== null && (
-                                <div className="text-xs text-yellow-400">
-                                  {formatRating(resp.driverRating)} ({resp.driverReviewsCount})
-                                </div>
-                              )}
-                            </div>
-                          </div>
-
-                          <div className="flex items-center gap-2 shrink-0">
-                            {resp.conversationId && (
-                              <Link
-                                href={`/dm/${resp.conversationId}`}
-                                className="flex items-center gap-1.5 text-xs font-medium text-violet-400 hover:text-violet-300 transition border border-violet-500/30 rounded-lg px-2.5 py-1.5"
-                              >
-                                <MessageCircle size={12} />
-                                Чат
-                              </Link>
-                            )}
-
-                            {r.status === "open" && (
-                              <button
-                                onClick={() => chooseDriver(r.id, resp.driverId)}
-                                disabled={busyId === r.id}
-                                className="text-xs font-bold bg-violet-600 hover:bg-violet-700 transition rounded-lg px-2.5 py-1.5 disabled:opacity-60"
-                              >
-                                Выбрать
-                              </button>
-                            )}
-
-                            {r.acceptedDriverId === resp.driverId && (
-                              <span className="text-xs text-green-400 font-medium">Выбран</span>
-                            )}
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  )}
+                    {r.status === "closed" && r.tripId && (
+                      <Link
+                        href={`/trip/${r.tripId}`}
+                        className="flex items-center gap-1.5 text-xs font-medium text-green-400 hover:text-green-300 transition"
+                      >
+                        <Car size={12} />
+                        Открыть поездку
+                      </Link>
+                    )}
+                  </div>
                 </div>
               );
             })}

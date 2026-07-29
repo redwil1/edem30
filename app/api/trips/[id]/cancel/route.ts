@@ -4,6 +4,8 @@ import { getCurrentUser } from "@/lib/auth";
 import { rateLimit } from "@/lib/rateLimit";
 import { isTrustedOrigin } from "@/lib/security";
 import { cancelTrip } from "@/lib/trips";
+import { restoreRideRequestsForTrip } from "@/lib/rideRequests";
+import { sendPushToUser } from "@/lib/push";
 
 export const runtime = "nodejs";
 
@@ -51,6 +53,19 @@ export async function POST(req: NextRequest, { params }: Props) {
     const [error, status] = messages[result.reason];
 
     return NextResponse.json({ error }, { status });
+  }
+
+  // Если эта поездка была сформирована из заявок "Ищу водителя" — вернуть
+  // их в формирующиеся (пассажиры никуда не делись, просто снова ищут
+  // водителя), а не заставлять создавать заявки заново.
+  const restoredPassengerIds = await restoreRideRequestsForTrip(tripId);
+
+  for (const passengerId of restoredPassengerIds) {
+    sendPushToUser(passengerId, {
+      title: "Водитель отменил поездку",
+      body: "Мы снова ищем нового водителя — заявка снова активна.",
+      url: "/find-driver/mine",
+    });
   }
 
   return NextResponse.json({ ok: true });

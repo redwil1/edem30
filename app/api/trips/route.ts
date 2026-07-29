@@ -3,11 +3,12 @@ import { NextRequest, NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import { rateLimit } from "@/lib/rateLimit";
 import { isTrustedOrigin } from "@/lib/security";
-import { countActiveTripsByOwner, createTrip } from "@/lib/trips";
+import { countActiveTripsByOwner, createTrip, joinTrip } from "@/lib/trips";
 import { TripType } from "@/types/trips";
 import { isValidAddress } from "@/lib/addressValidation";
 import { containsProfanity } from "@/lib/profanity";
-import { sendPushToSegment } from "@/lib/push";
+import { sendPushToSegment, sendPushToUser } from "@/lib/push";
+import { fulfillRideRequests } from "@/lib/rideRequests";
 
 export const runtime = "nodejs";
 
@@ -197,6 +198,29 @@ export async function POST(req: NextRequest) {
     },
     user.id
   );
+
+  // Водитель формирует поездку из уже собранных заявок "Ищу водителя" —
+  // используем существующий join, отдельной системы участников не заводим.
+  const fulfillRequestIdsRaw = Array.isArray(body?.fulfillRequestIds)
+    ? body.fulfillRequestIds
+    : [];
+  const fulfillRequestIds = fulfillRequestIdsRaw
+    .map((x: unknown) => Number(x))
+    .filter((n: number) => Number.isInteger(n) && n > 0);
+
+  if (fulfillRequestIds.length > 0) {
+    const passengerIds = await fulfillRideRequests(fulfillRequestIds, id);
+
+    for (const passengerId of passengerIds) {
+      await joinTrip(id, passengerId);
+
+      sendPushToUser(passengerId, {
+        title: "Отличная новость!",
+        body: "Водитель найден. Поездка сформирована.",
+        url: `/trip/${id}`,
+      });
+    }
+  }
 
   return NextResponse.json({ id });
 }

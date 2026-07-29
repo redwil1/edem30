@@ -15,6 +15,7 @@ import WhyUs from "./WhyUs";
 import WelcomeGate from "./WelcomeGate";
 import NotificationsCard from "./NotificationsCard";
 import FindDriverCard from "./FindDriverCard";
+import FormingTripsLiveFeed from "./FormingTripsLiveFeed";
 
 type Props = {
   trips: Trip[];
@@ -75,6 +76,10 @@ export default function HomeContent({ trips }: Props) {
 
       <div className="max-w-[1400px] mx-auto px-5 sm:px-6 lg:px-10">
         <LiveStats />
+      </div>
+
+      <div className="max-w-[1400px] mx-auto px-5 sm:px-6 lg:px-10 mt-6">
+        <FormingTripsLiveFeed />
       </div>
 
       <div className="max-w-[1400px] mx-auto px-5 sm:px-6 lg:px-10 grid grid-cols-1 lg:grid-cols-3 gap-6 pb-10">
