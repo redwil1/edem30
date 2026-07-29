@@ -323,17 +323,17 @@ body {
    чтобы не спорил с машиной за внимание и не читался как своя картинка. */
 .hero-layer-city .hero-layer-img.is-in {
   opacity: 1;
-  transform: scale(1.04);
+  transform: scale(1.1);
   animation: hero-city-breathe 12s ease-in-out 0.8s infinite;
 }
 
 @keyframes hero-city-breathe {
   0%,
   100% {
-    filter: brightness(0.5) saturate(0.75) blur(1.5px);
+    filter: brightness(0.5) saturate(0.75) blur(1.35px);
   }
   50% {
-    filter: brightness(0.58) saturate(0.8) blur(1.5px);
+    filter: brightness(0.58) saturate(0.8) blur(1.35px);
   }
 }
 
