@@ -5,16 +5,42 @@ function urlBase64ToUint8Array(base64String: string) {
   return Uint8Array.from([...rawData].map((c) => c.charCodeAt(0)));
 }
 
-/** Запрашивает разрешение браузера и подписывает пользователя на push. Возвращает true при успехе. */
-export async function subscribeToPush(): Promise<boolean> {
+/** iOS Safari поддерживает Web Push только для PWA, запущенного со значка на "Домой" (standalone). */
+export function isIos() {
+  return /iphone|ipad|ipod/i.test(navigator.userAgent);
+}
+
+export function isStandalone() {
+  return (
+    window.matchMedia?.("(display-mode: standalone)").matches ||
+    // iOS-специфичное свойство, отсутствует в типах DOM
+    (navigator as unknown as { standalone?: boolean }).standalone === true
+  );
+}
+
+export type PushSubscribeResult =
+  | { ok: true }
+  | {
+      ok: false;
+      reason: "ios-not-installed" | "unsupported" | "permission-denied" | "no-key" | "error";
+    };
+
+/** Запрашивает разрешение браузера и подписывает пользователя на push. */
+export async function subscribeToPush(): Promise<PushSubscribeResult> {
   try {
-    if (!("serviceWorker" in navigator) || !("PushManager" in window)) return false;
+    if (isIos() && !isStandalone()) {
+      return { ok: false, reason: "ios-not-installed" };
+    }
+
+    if (!("serviceWorker" in navigator) || !("PushManager" in window)) {
+      return { ok: false, reason: "unsupported" };
+    }
 
     const publicKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
-    if (!publicKey) return false;
+    if (!publicKey) return { ok: false, reason: "no-key" };
 
     const permission = await Notification.requestPermission();
-    if (permission !== "granted") return false;
+    if (permission !== "granted") return { ok: false, reason: "permission-denied" };
 
     const registration = await navigator.serviceWorker.register("/sw.js");
     await navigator.serviceWorker.ready;
@@ -30,8 +56,8 @@ export async function subscribeToPush(): Promise<boolean> {
       body: JSON.stringify(subscription.toJSON()),
     });
 
-    return true;
+    return { ok: true };
   } catch {
-    return false;
+    return { ok: false, reason: "error" };
   }
 }

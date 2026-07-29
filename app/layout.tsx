@@ -74,6 +74,11 @@ export const metadata: Metadata = {
       "max-image-preview": "large",
     },
   },
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "black-translucent",
+    title: "Едем30",
+  },
 };
 
 const organizationJsonLd = {

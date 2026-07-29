@@ -116,13 +116,23 @@ async function sendToSubscription(row: SubscriptionRow, payload: PushPayload) {
         endpoint: row.endpoint,
         keys: { p256dh: row.p256dh, auth: row.auth },
       },
-      JSON.stringify(payload)
+      JSON.stringify(payload),
+      // Apple's push service (web.push.apple.com) has been reported to be
+      // stricter about missing TTL than Chrome/Firefox's endpoints.
+      { TTL: 60 * 60 * 24 }
     );
   } catch (err) {
     const statusCode = (err as { statusCode?: number })?.statusCode;
 
     if (statusCode === 404 || statusCode === 410) {
       await removeSubscription(row.endpoint);
+      return;
     }
+
+    console.error(
+      `[push] failed to send to ${row.endpoint.slice(0, 60)}...`,
+      statusCode,
+      (err as { body?: string })?.body ?? err
+    );
   }
 }

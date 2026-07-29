@@ -11,6 +11,8 @@ self.addEventListener("push", (event) => {
   const title = payload.title || "Едем30";
   const options = {
     body: payload.body || "",
+    icon: "/pwa-icon-192.png",
+    badge: "/pwa-icon-192.png",
     data: { url: payload.url || "/" },
   };
 
