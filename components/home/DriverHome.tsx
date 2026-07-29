@@ -6,6 +6,7 @@ import { Bus, Car } from "lucide-react";
 import DriverOrdersFeed from "@/components/taxi/DriverOrdersFeed";
 import RoleSwitch from "./RoleSwitch";
 import DriverTripsPanel from "./DriverTripsPanel";
+import NotificationsCard from "./NotificationsCard";
 
 type Tab = "taxi" | "intercity";
 
@@ -15,6 +16,10 @@ export default function DriverHome() {
   return (
     <div>
       <RoleSwitch />
+
+      <div className="mb-6 max-w-md">
+        <NotificationsCard />
+      </div>
 
       <div className="flex bg-[#12121c] border border-white/5 rounded-2xl p-1 mb-6 max-w-md">
         <button
