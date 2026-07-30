@@ -24,7 +24,7 @@ const TRANSPORT_CATEGORIES: Record<string, string> = {
 };
 
 const MAX_SEATS_BY_CATEGORY: Record<string, number> = {
-  minivan: 22,
+  minibus: 22,
 };
 const DEFAULT_MAX_SEATS = 8;
 
