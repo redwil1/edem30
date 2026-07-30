@@ -44,7 +44,14 @@ async function main() {
       if (cluster.length === 0) return;
 
       const first = cluster[0];
-      const totalSeats = cluster.reduce((sum, r) => sum + r.passengers_count, 0);
+      // Места считаем по УНИКАЛЬНЫМ пассажирам (один и тот же человек может
+      // оставить две заявки на один маршрут — например поменял желаемое
+      // время) — берём его самую раннюю заявку в кластере.
+      const byPassenger = new Map();
+      for (const r of cluster) {
+        if (!byPassenger.has(r.passenger_id)) byPassenger.set(r.passenger_id, r);
+      }
+      const totalSeats = [...byPassenger.values()].reduce((sum, r) => sum + r.passengers_count, 0);
 
       const [trip] = await sql`
         INSERT INTO trips (type, from_city, to_city, trip_date, trip_time, price, total_seats, transport, driver_name, owner_id, verified)

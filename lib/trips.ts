@@ -1022,12 +1022,16 @@ export async function joinFormingTrip(
   seatDelta: number,
   executor: postgres.ISql = sql
 ): Promise<void> {
-  await executor`
+  const inserted = await executor<{ user_id: number }[]>`
     INSERT INTO trip_participants (trip_id, user_id) VALUES (${tripId}, ${userId})
     ON CONFLICT (trip_id, user_id) DO NOTHING
+    RETURNING user_id
   `;
 
-  if (seatDelta > 0) {
+  // Бампаем total_seats только если это НОВЫЙ участник — если тот же
+  // пользователь оставил вторую заявку на этот же формирующийся маршрут
+  // (например поменял желаемое время), он не занимает второе место.
+  if (seatDelta > 0 && inserted.length > 0) {
     await executor`
       UPDATE trips SET total_seats = total_seats + ${seatDelta}
       WHERE id = ${tripId} AND owner_id IS NULL
@@ -1039,14 +1043,33 @@ export async function joinFormingTrip(
 export async function leaveFormingTrip(
   tripId: number,
   userId: number,
-  seatDelta: number,
   executor: postgres.ISql = sql
 ): Promise<void> {
+  // Если у пассажира ещё остались другие открытые заявки на этот же
+  // формирующийся маршрут — он остаётся участником, места не освобождаем
+  // (при вступлении места считаются только один раз на пользователя,
+  // см. joinFormingTrip — значит и списываем их тоже только один раз).
+  const otherOpenRequests = await executor<{ id: number }[]>`
+    SELECT id FROM ride_requests
+    WHERE trip_id = ${tripId} AND passenger_id = ${userId} AND status = 'open'
+  `;
+
+  if (otherOpenRequests.length > 0) return;
+
   await executor`DELETE FROM trip_participants WHERE trip_id = ${tripId} AND user_id = ${userId}`;
 
-  if (seatDelta > 0) {
+  // Места, которые реально засчитались при вступлении — это count самой
+  // первой заявки этого пользователя на данную поездку (последующие
+  // заявки того же пользователя мест не добавляли).
+  const [firstRequest] = await executor<{ passengers_count: number }[]>`
+    SELECT passengers_count FROM ride_requests
+    WHERE trip_id = ${tripId} AND passenger_id = ${userId}
+    ORDER BY id ASC LIMIT 1
+  `;
+
+  if (firstRequest) {
     await executor`
-      UPDATE trips SET total_seats = GREATEST(total_seats - ${seatDelta}, 0)
+      UPDATE trips SET total_seats = GREATEST(total_seats - ${firstRequest.passengers_count}, 0)
       WHERE id = ${tripId} AND owner_id IS NULL
     `;
   }

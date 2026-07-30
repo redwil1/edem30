@@ -272,7 +272,7 @@ export async function cancelRideRequest(
   // Пока поездка ещё формируется (водитель не найден) — покинуть группу/чат,
   // чтобы место и список участников оставались честными.
   if (request.tripId !== null) {
-    await leaveFormingTrip(request.tripId, passengerId, request.passengersCount);
+    await leaveFormingTrip(request.tripId, passengerId);
   }
 
   return { ok: true };
