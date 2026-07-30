@@ -16,6 +16,7 @@ import WelcomeGate from "./WelcomeGate";
 import NotificationsCard from "./NotificationsCard";
 import FindDriverCard from "./FindDriverCard";
 import FormingTripsLiveFeed from "./FormingTripsLiveFeed";
+import CarrierHighlightCard from "@/components/carrier/CarrierHighlightCard";
 
 type Props = {
   trips: Trip[];
@@ -91,6 +92,7 @@ export default function HomeContent({ trips }: Props) {
           <NotificationsCard />
           <TaxiOrderCard />
           <FindDriverCard />
+          <CarrierHighlightCard />
           <PopularDirectionsCard />
         </div>
       </div>

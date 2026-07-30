@@ -21,6 +21,7 @@ import {
   X,
   TrendingUp,
   Image as ImageIcon,
+  Crown,
 } from "lucide-react";
 
 import { useAuth } from "@/components/auth/AuthProvider";
@@ -40,6 +41,7 @@ import AdminNewsletterPanel from "@/components/admin/AdminNewsletterPanel";
 import AdminSettingsPanel from "@/components/admin/AdminSettingsPanel";
 import AdminMarketing from "@/components/admin/AdminMarketing";
 import AdminAdBannersTable from "@/components/admin/AdminAdBannersTable";
+import AdminCarriersPanel from "@/components/admin/AdminCarriersPanel";
 
 type Tab =
   | "dashboard"
@@ -52,6 +54,7 @@ type Tab =
   | "reports"
   | "reviews"
   | "verifications"
+  | "carriers"
   | "marketing"
   | "subscriptions"
   | "promoCodes"
@@ -72,6 +75,7 @@ const TABS: { id: Tab; label: string; icon: typeof LayoutDashboard }[] = [
   { id: "verifications", label: "✅ Верификации", icon: ShieldCheck },
   { id: "reports", label: "🚩 Жалобы", icon: Flag },
   { id: "reviews", label: "⭐ Отзывы", icon: Star },
+  { id: "carriers", label: "👑 VIP / Перевозчики", icon: Crown },
   { id: "marketing", label: "📈 Маркетинг", icon: TrendingUp },
   { id: "subscriptions", label: "💰 Подписки", icon: CreditCard },
   { id: "promoCodes", label: "🎁 Промокоды", icon: Tag },
@@ -160,6 +164,7 @@ export default function AdminPage() {
         {tab === "verifications" && <AdminVerificationsTable />}
         {tab === "reports" && <AdminReportsTable />}
         {tab === "reviews" && <AdminReviewsTable />}
+        {tab === "carriers" && <AdminCarriersPanel />}
         {isAdmin && tab === "marketing" && <AdminMarketing />}
         {isAdmin && tab === "subscriptions" && <AdminSubscriptionPlansTable />}
         {isAdmin && tab === "promoCodes" && <AdminPromoCodesTable />}

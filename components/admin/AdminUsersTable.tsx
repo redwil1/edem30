@@ -9,6 +9,7 @@ import {
   Check,
   CheckCircle2,
   Copy,
+  Crown,
   KeyRound,
   Loader2,
   Search,
@@ -19,7 +20,7 @@ import {
 import { useAuth } from "@/components/auth/AuthProvider";
 
 type Role = "passenger" | "driver" | "admin" | "moderator";
-type Filter = "all" | "driver" | "passenger" | "blocked" | "noname" | "push" | "no_push";
+type Filter = "all" | "driver" | "passenger" | "blocked" | "noname" | "push" | "no_push" | "vip";
 type SortBy = "date_desc" | "date_asc" | "role" | "name" | "reports";
 
 type User = {
@@ -31,7 +32,11 @@ type User = {
   reportsAgainst: number;
   isBlocked: boolean;
   pushDeviceCount: number;
+  isVip: boolean;
+  carrierId: number | null;
 };
+
+type Carrier = { id: number; slug: string; name: string };
 
 const FILTERS: { value: Filter; label: string }[] = [
   { value: "all", label: "Все" },
@@ -41,6 +46,7 @@ const FILTERS: { value: Filter; label: string }[] = [
   { value: "noname", label: "Без имени" },
   { value: "push", label: "🔔 С уведомлениями" },
   { value: "no_push", label: "🔕 Без уведомлений" },
+  { value: "vip", label: "👑 VIP" },
 ];
 
 function phoneLabel(phone: string | null) {
@@ -114,6 +120,18 @@ export default function AdminUsersTable() {
   );
   const [copied, setCopied] = useState(false);
   const [error, setError] = useState("");
+  const [carriers, setCarriers] = useState<Carrier[]>([]);
+  const [vipSavingId, setVipSavingId] = useState<number | null>(null);
+  const [carrierSavingId, setCarrierSavingId] = useState<number | null>(null);
+
+  useEffect(() => {
+    if (!isAdmin) return;
+
+    fetch("/api/admin/carriers", { cache: "no-store" })
+      .then((res) => res.json())
+      .then((data) => setCarriers(data.carriers ?? []))
+      .catch(() => setCarriers([]));
+  }, [isAdmin]);
 
   useEffect(() => {
     if (!newPassword) return;
@@ -154,6 +172,32 @@ export default function AdminUsersTable() {
 
     await load(search, filter);
     setSavingId(null);
+  }
+
+  async function toggleVip(user: User) {
+    setVipSavingId(user.id);
+
+    await fetch(`/api/admin/users/${user.id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ isVip: !user.isVip }),
+    });
+
+    await load(search, filter);
+    setVipSavingId(null);
+  }
+
+  async function setCarrier(userId: number, carrierId: string) {
+    setCarrierSavingId(userId);
+
+    await fetch(`/api/admin/users/${userId}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ carrierId: carrierId ? Number(carrierId) : null }),
+    });
+
+    await load(search, filter);
+    setCarrierSavingId(null);
   }
 
   async function deleteUser(user: User) {
@@ -309,6 +353,7 @@ export default function AdminUsersTable() {
                 <th className="px-4 py-3 font-medium">Роль</th>
                 <th className="px-4 py-3 font-medium">Статус</th>
                 <th className="px-4 py-3 font-medium">Уведомления</th>
+                <th className="px-4 py-3 font-medium">VIP / Перевозчик</th>
                 <th className="px-4 py-3 font-medium">Дата</th>
                 <th className="px-4 py-3 font-medium" />
               </tr>
@@ -321,6 +366,16 @@ export default function AdminUsersTable() {
                   <td className="px-4 py-3 font-medium">
                     <div className="flex items-center gap-2">
                       {u.name}
+
+                      {u.isVip && (
+                        <span
+                          className="inline-flex items-center gap-1 text-[10px] font-medium px-1.5 py-0.5 rounded-full whitespace-nowrap bg-amber-500/15 text-amber-400"
+                          title="VIP-партнёр"
+                        >
+                          <Crown size={10} />
+                          VIP
+                        </span>
+                      )}
 
                       {riskBadge(u.reportsAgainst) && (
                         <span
@@ -380,6 +435,47 @@ export default function AdminUsersTable() {
                       {u.pushDeviceCount > 0 ? <Bell size={10} /> : <BellOff size={10} />}
                       {u.pushDeviceCount > 0 ? "Включены" : "Не подключены"}
                     </span>
+                  </td>
+                  <td className="px-4 py-3">
+                    {isAdmin ? (
+                      <div className="flex items-center gap-2">
+                        <button
+                          type="button"
+                          onClick={() => toggleVip(u)}
+                          disabled={vipSavingId === u.id}
+                          title={u.isVip ? "Снять VIP" : "Назначить VIP"}
+                          className={`inline-flex items-center justify-center w-8 h-8 rounded-lg disabled:opacity-30 transition ${
+                            u.isVip
+                              ? "text-amber-400 hover:bg-amber-500/10"
+                              : "text-gray-500 hover:bg-white/5"
+                          }`}
+                        >
+                          {vipSavingId === u.id ? (
+                            <Loader2 size={15} className="animate-spin" />
+                          ) : (
+                            <Crown size={15} />
+                          )}
+                        </button>
+
+                        <select
+                          value={u.carrierId ?? ""}
+                          disabled={carrierSavingId === u.id}
+                          onChange={(e) => setCarrier(u.id, e.target.value)}
+                          className="bg-[#1c1c2b] rounded-lg px-2 py-1.5 text-xs outline-none disabled:opacity-60"
+                        >
+                          <option value="">— не привязан —</option>
+                          {carriers.map((c) => (
+                            <option key={c.id} value={c.id}>
+                              {c.name}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                    ) : (
+                      <span className="text-gray-500 text-xs">
+                        {u.carrierId ? "Привязан к перевозчику" : "—"}
+                      </span>
+                    )}
                   </td>
                   <td className="px-4 py-3 text-gray-500 whitespace-nowrap">
                     {u.createdAt}
@@ -452,7 +548,7 @@ export default function AdminUsersTable() {
 
               {sortedUsers.length === 0 && (
                 <tr>
-                  <td colSpan={8} className="px-4 py-10 text-center text-gray-500">
+                  <td colSpan={9} className="px-4 py-10 text-center text-gray-500">
                     Никого не найдено
                   </td>
                 </tr>

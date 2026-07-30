@@ -8,6 +8,7 @@ import RoleSwitch from "./RoleSwitch";
 import DriverTripsPanel from "./DriverTripsPanel";
 import NotificationsCard from "./NotificationsCard";
 import RideRequestsFeed from "./RideRequestsFeed";
+import CarrierDashboardLink from "@/components/carrier/CarrierDashboardLink";
 
 type Tab = "taxi" | "intercity" | "passengers";
 
@@ -17,6 +18,10 @@ export default function DriverHome() {
   return (
     <div>
       <RoleSwitch />
+
+      <div className="max-w-md">
+        <CarrierDashboardLink />
+      </div>
 
       <div className="mb-6 max-w-md">
         <NotificationsCard />

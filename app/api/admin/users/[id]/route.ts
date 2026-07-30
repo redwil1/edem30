@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 
-import { deleteAdminUser, requireAdmin, setAdminUserRole } from "@/lib/admin";
+import { deleteAdminUser, requireAdmin, setAdminUserRole, setUserCarrier, setUserVip } from "@/lib/admin";
 import { rateLimit } from "@/lib/rateLimit";
 import { isTrustedOrigin } from "@/lib/security";
 
@@ -38,15 +38,28 @@ export async function PATCH(req: NextRequest, { params }: Props) {
   }
 
   const body = await req.json().catch(() => null);
-  const role = typeof body?.role === "string" ? body.role : "";
 
-  const ok = await setAdminUserRole(userId, role);
+  if (typeof body?.role === "string") {
+    const ok = await setAdminUserRole(userId, body.role);
 
-  if (!ok) {
-    return NextResponse.json(
-      { error: "Не удалось изменить роль" },
-      { status: 400 }
-    );
+    if (!ok) {
+      return NextResponse.json({ error: "Не удалось изменить роль" }, { status: 400 });
+    }
+  }
+
+  if (typeof body?.isVip === "boolean") {
+    await setUserVip(userId, body.isVip);
+  }
+
+  if ("carrierId" in (body ?? {})) {
+    const carrierId =
+      body.carrierId === null ? null : Number(body.carrierId);
+
+    if (carrierId !== null && (!Number.isInteger(carrierId) || carrierId <= 0)) {
+      return NextResponse.json({ error: "Некорректный перевозчик" }, { status: 400 });
+    }
+
+    await setUserCarrier(userId, carrierId);
   }
 
   return NextResponse.json({ ok: true });

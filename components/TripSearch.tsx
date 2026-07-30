@@ -7,6 +7,7 @@ import { ChevronDown, MapPin, Plus, X } from "lucide-react";
 import CityModal from "./CityModal";
 import TripsList from "./TripsList";
 import FindDriverCard from "./home/FindDriverCard";
+import CarrierHighlightCard from "./carrier/CarrierHighlightCard";
 import { useTripSearch } from "@/hooks/useTripSearch";
 import { Trip } from "@/types/trips";
 import { intercityDestinations } from "@/lib/cities";
@@ -98,7 +99,14 @@ export default function TripSearch({ trips, emptyText }: Props) {
         Добавить поездку
       </Link>
 
+      {from && to && (
+        <div className="mt-8">
+          <CarrierHighlightCard from={from} to={to} />
+        </div>
+      )}
+
       <div className="mt-8">
+        {from && to && <div className="text-sm text-gray-500 font-medium mb-3">🚗 Попутчики</div>}
         <TripsList trips={filteredTrips} emptyText={emptyText} />
       </div>
 

@@ -180,7 +180,8 @@ export type AdminUserFilter =
   | "blocked"
   | "noname"
   | "push"
-  | "no_push";
+  | "no_push"
+  | "vip";
 
 export type AdminUser = {
   id: number;
@@ -191,6 +192,8 @@ export type AdminUser = {
   reportsAgainst: number;
   isBlocked: boolean;
   pushDeviceCount: number;
+  isVip: boolean;
+  carrierId: number | null;
 };
 
 type AdminUserRow = {
@@ -202,6 +205,8 @@ type AdminUserRow = {
   reports_against: string;
   is_blocked: boolean;
   push_device_count: string;
+  is_vip: boolean;
+  carrier_id: number | null;
 };
 
 export async function listAdminUsers(
@@ -211,9 +216,10 @@ export async function listAdminUsers(
   const rows = await sql<AdminUserRow[]>`
     SELECT users.id as id, users.name as name, users.phone as phone,
            users.role as role, users.created_at as createdAt,
-           users.is_blocked as is_blocked,
+           users.is_blocked as is_blocked, users.is_vip as is_vip,
            (SELECT COUNT(*) FROM trip_reports WHERE trip_reports.reported_user_id = users.id) as reports_against,
-           (SELECT COUNT(*) FROM push_subscriptions WHERE push_subscriptions.user_id = users.id) as push_device_count
+           (SELECT COUNT(*) FROM push_subscriptions WHERE push_subscriptions.user_id = users.id) as push_device_count,
+           (SELECT carrier_id FROM carrier_users WHERE carrier_users.user_id = users.id) as carrier_id
     FROM users
     WHERE 1 = 1
       ${search ? sql`AND name ILIKE ${`%${search}%`}` : sql``}
@@ -222,6 +228,7 @@ export async function listAdminUsers(
       ${filter === "blocked" ? sql`AND is_blocked = true` : sql``}
       ${filter === "push" ? sql`AND EXISTS (SELECT 1 FROM push_subscriptions WHERE push_subscriptions.user_id = users.id)` : sql``}
       ${filter === "no_push" ? sql`AND NOT EXISTS (SELECT 1 FROM push_subscriptions WHERE push_subscriptions.user_id = users.id)` : sql``}
+      ${filter === "vip" ? sql`AND users.is_vip = true` : sql``}
     ORDER BY id DESC
   `;
 
@@ -234,6 +241,8 @@ export async function listAdminUsers(
     reportsAgainst: Number(r.reports_against),
     isBlocked: r.is_blocked,
     pushDeviceCount: Number(r.push_device_count),
+    isVip: r.is_vip,
+    carrierId: r.carrier_id,
   }));
 
   if (filter === "noname") {
@@ -241,6 +250,100 @@ export async function listAdminUsers(
   }
 
   return users;
+}
+
+export async function setUserVip(userId: number, vip: boolean): Promise<boolean> {
+  const result = await sql`UPDATE users SET is_vip = ${vip} WHERE id = ${userId}`;
+  return result.count > 0;
+}
+
+/** Привязка/отвязка пользователя к перевозчику (доступ к его кабинету /carrier/dashboard). */
+export async function setUserCarrier(userId: number, carrierId: number | null): Promise<boolean> {
+  if (carrierId === null) {
+    await sql`DELETE FROM carrier_users WHERE user_id = ${userId}`;
+    return true;
+  }
+
+  await sql`
+    INSERT INTO carrier_users (carrier_id, user_id) VALUES (${carrierId}, ${userId})
+    ON CONFLICT (user_id) DO UPDATE SET carrier_id = EXCLUDED.carrier_id
+  `;
+  return true;
+}
+
+export type CarrierAdminOverview = {
+  carriersCount: number;
+  vipCount: number;
+  activeRidesToday: number;
+  totalViews: number;
+  totalRequests: number;
+  carriers: {
+    id: number;
+    slug: string;
+    name: string;
+    active: boolean;
+    vehiclesCount: number;
+    ridesToday: number;
+    viewsTotal: number;
+    requestsTotal: number;
+    operator: { id: number; name: string } | null;
+  }[];
+};
+
+export async function getCarrierAdminOverview(): Promise<CarrierAdminOverview> {
+  const carriers = await sql<
+    { id: number; slug: string; name: string; active: boolean }[]
+  >`SELECT id, slug, name, active FROM carriers ORDER BY id ASC`;
+
+  const [vipCount] = await sql<{ c: string }[]>`SELECT COUNT(*) as c FROM users WHERE is_vip = true`;
+
+  const details = await Promise.all(
+    carriers.map(async (c) => {
+      const [vehicles, ridesToday, views, interests, offers, operator] = await Promise.all([
+        sql<{ c: string }[]>`SELECT COUNT(*) as c FROM carrier_vehicles WHERE carrier_id = ${c.id} AND active = true`,
+        sql<{ c: string }[]>`
+          SELECT COUNT(*) as c FROM carrier_rides
+          WHERE carrier_id = ${c.id} AND ride_date = to_char(now(), 'YYYY-MM-DD')
+            AND status NOT IN ('cancelled')
+        `,
+        sql<{ c: string }[]>`SELECT COUNT(*) as c FROM carrier_page_views WHERE carrier_id = ${c.id}`,
+        sql<{ c: string }[]>`
+          SELECT COUNT(*) as c FROM carrier_ride_interests i
+          JOIN carrier_rides r ON r.id = i.carrier_ride_id WHERE r.carrier_id = ${c.id}
+        `,
+        sql<{ c: string }[]>`
+          SELECT COUNT(*) as c FROM carrier_ride_offers o
+          JOIN carrier_rides r ON r.id = o.carrier_ride_id WHERE r.carrier_id = ${c.id}
+        `,
+        sql<{ id: number; name: string }[]>`
+          SELECT users.id as id, users.name as name FROM carrier_users
+          JOIN users ON users.id = carrier_users.user_id
+          WHERE carrier_users.carrier_id = ${c.id} LIMIT 1
+        `,
+      ]);
+
+      return {
+        id: c.id,
+        slug: c.slug,
+        name: c.name,
+        active: c.active,
+        vehiclesCount: Number(vehicles[0].c),
+        ridesToday: Number(ridesToday[0].c),
+        viewsTotal: Number(views[0].c),
+        requestsTotal: Number(interests[0].c) + Number(offers[0].c),
+        operator: operator[0] ?? null,
+      };
+    })
+  );
+
+  return {
+    carriersCount: carriers.length,
+    vipCount: Number(vipCount.c),
+    activeRidesToday: details.reduce((sum, c) => sum + c.ridesToday, 0),
+    totalViews: details.reduce((sum, c) => sum + c.viewsTotal, 0),
+    totalRequests: details.reduce((sum, c) => sum + c.requestsTotal, 0),
+    carriers: details,
+  };
 }
 
 export type PushStats = {
