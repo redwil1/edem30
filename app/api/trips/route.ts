@@ -23,6 +23,11 @@ const TRANSPORT_CATEGORIES: Record<string, string> = {
   cargo: "Грузовой автомобиль",
 };
 
+const MAX_SEATS_BY_CATEGORY: Record<string, number> = {
+  minivan: 22,
+};
+const DEFAULT_MAX_SEATS = 8;
+
 function isValidFutureDate(date: string) {
   const match = DATE_RE.exec(date);
 
@@ -165,9 +170,11 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  if (!Number.isInteger(totalSeats) || totalSeats <= 0 || totalSeats > 8) {
+  const maxSeats = MAX_SEATS_BY_CATEGORY[transportCategory] ?? DEFAULT_MAX_SEATS;
+
+  if (!Number.isInteger(totalSeats) || totalSeats <= 0 || totalSeats > maxSeats) {
     return NextResponse.json(
-      { error: "Укажите количество мест от 1 до 8" },
+      { error: `Укажите количество мест от 1 до ${maxSeats}` },
       { status: 400 }
     );
   }

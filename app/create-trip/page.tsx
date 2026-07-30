@@ -24,6 +24,15 @@ const TRANSPORT_CATEGORIES = [
   { value: "cargo", label: "🚚 Грузовой автомобиль" },
 ];
 
+const MAX_SEATS_BY_CATEGORY: Record<string, number> = {
+  minivan: 22,
+};
+const DEFAULT_MAX_SEATS = 8;
+
+function maxSeatsForCategory(category: string) {
+  return MAX_SEATS_BY_CATEGORY[category] ?? DEFAULT_MAX_SEATS;
+}
+
 function today() {
   return new Date().toISOString().slice(0, 10);
 }
@@ -96,6 +105,11 @@ function CreateTripForm() {
 
     if (!transportCategory) {
       setError("Укажите тип транспорта");
+      return;
+    }
+
+    if (Number(totalSeats) > maxSeatsForCategory(transportCategory)) {
+      setError(`Максимум ${maxSeatsForCategory(transportCategory)} мест для этого типа транспорта`);
       return;
     }
 
@@ -285,7 +299,7 @@ function CreateTripForm() {
           <input
             type="number"
             min={1}
-            max={8}
+            max={maxSeatsForCategory(transportCategory)}
             value={totalSeats}
             onChange={(e) => setTotalSeats(e.target.value)}
             placeholder="💺 Свободных мест"
@@ -294,7 +308,14 @@ function CreateTripForm() {
 
           <select
             value={transportCategory}
-            onChange={(e) => setTransportCategory(e.target.value)}
+            onChange={(e) => {
+              const category = e.target.value;
+              setTransportCategory(category);
+
+              if (totalSeats && Number(totalSeats) > maxSeatsForCategory(category)) {
+                setTotalSeats(String(maxSeatsForCategory(category)));
+              }
+            }}
             className="w-full bg-[#171726] border border-white/10 focus:border-violet-500 rounded-2xl p-4 outline-none transition"
           >
             <option value="">🚘 Тип транспорта</option>
