@@ -2,6 +2,8 @@
 
 import { useEffect, useState } from "react";
 import {
+  Bell,
+  BellOff,
   Car,
   Circle,
   Eye,
@@ -9,6 +11,7 @@ import {
   Loader2,
   MapPin,
   Shield,
+  Smartphone,
   Star,
   UserPlus,
   Users,
@@ -33,6 +36,14 @@ type AdminAccount = {
   lastLoginAt: string | null;
 };
 
+type PushStats = {
+  totalUsers: number;
+  usersWithPush: number;
+  usersWithoutPush: number;
+  activeSubscriptions: number;
+  percentage: number;
+};
+
 type Stats = {
   usersCount: number;
   driversCount: number;
@@ -52,6 +63,7 @@ type Stats = {
     month: VisitPeriod;
   };
   admins: AdminAccount[];
+  push: PushStats;
 };
 
 const VISIT_PERIOD_LABELS: [key: "day" | "week" | "month", label: string][] = [
@@ -183,6 +195,53 @@ export default function AdminDashboard() {
               </div>
             );
           })}
+        </div>
+      </div>
+
+      <div className="bg-[#12121c] border border-white/5 rounded-2xl p-5">
+        <div className="flex items-center gap-2 text-gray-500 text-sm mb-4">
+          <Bell size={16} />
+          Push-уведомления
+        </div>
+
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+          <div className="bg-[#171726] rounded-xl p-4">
+            <div className="flex items-center gap-1.5 text-gray-500 text-xs mb-2">
+              <Bell size={13} className="text-green-400" />
+              Уведомления включены
+            </div>
+            <div className="text-2xl font-bold">{stats.push.usersWithPush}</div>
+          </div>
+
+          <div className="bg-[#171726] rounded-xl p-4">
+            <div className="flex items-center gap-1.5 text-gray-500 text-xs mb-2">
+              <BellOff size={13} className="text-gray-500" />
+              Не подключены
+            </div>
+            <div className="text-2xl font-bold">{stats.push.usersWithoutPush}</div>
+          </div>
+
+          <div className="bg-[#171726] rounded-xl p-4">
+            <div className="flex items-center gap-1.5 text-gray-500 text-xs mb-2">
+              <Smartphone size={13} />
+              Активные подписки
+            </div>
+            <div className="text-2xl font-bold">{stats.push.activeSubscriptions}</div>
+            <div className="text-xs text-gray-500 mt-1.5">
+              устройств у {stats.push.usersWithPush} польз.
+            </div>
+          </div>
+
+          <div className="bg-[#171726] rounded-xl p-4">
+            <div className="flex items-center gap-1.5 text-gray-500 text-xs mb-2">
+              <Users size={13} />
+              Подключено
+            </div>
+            <div className="text-2xl font-bold">{stats.push.percentage}%</div>
+            <div className="text-xs text-gray-500 mt-1.5">
+              из {stats.push.totalUsers} пользователей
+            </div>
+          </div>
         </div>
       </div>
 

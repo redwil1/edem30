@@ -1,6 +1,12 @@
 import { NextResponse } from "next/server";
 
-import { getAdminAccounts, getAdminStats, getVisitStats, requireStaff } from "@/lib/admin";
+import {
+  getAdminAccounts,
+  getAdminStats,
+  getPushStats,
+  getVisitStats,
+  requireStaff,
+} from "@/lib/admin";
 
 export const runtime = "nodejs";
 
@@ -11,14 +17,15 @@ export async function GET() {
     return NextResponse.json({ error: "Доступ запрещён" }, { status: 403 });
   }
 
-  const [stats, visits, admins] = await Promise.all([
+  const [stats, visits, admins, push] = await Promise.all([
     getAdminStats(),
     getVisitStats(),
     getAdminAccounts(),
+    getPushStats(),
   ]);
 
   return NextResponse.json(
-    { ...stats, visits, admins },
+    { ...stats, visits, admins, push },
     { headers: { "Cache-Control": "no-store" } }
   );
 }

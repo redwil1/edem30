@@ -4,6 +4,8 @@ import { useEffect, useState } from "react";
 import {
   AlertTriangle,
   Ban,
+  Bell,
+  BellOff,
   Check,
   CheckCircle2,
   Copy,
@@ -17,7 +19,7 @@ import {
 import { useAuth } from "@/components/auth/AuthProvider";
 
 type Role = "passenger" | "driver" | "admin" | "moderator";
-type Filter = "all" | "driver" | "passenger" | "blocked" | "noname";
+type Filter = "all" | "driver" | "passenger" | "blocked" | "noname" | "push" | "no_push";
 type SortBy = "date_desc" | "date_asc" | "role" | "name" | "reports";
 
 type User = {
@@ -28,6 +30,7 @@ type User = {
   createdAt: string;
   reportsAgainst: number;
   isBlocked: boolean;
+  pushDeviceCount: number;
 };
 
 const FILTERS: { value: Filter; label: string }[] = [
@@ -36,6 +39,8 @@ const FILTERS: { value: Filter; label: string }[] = [
   { value: "passenger", label: "Только пассажиры" },
   { value: "blocked", label: "Заблокированные" },
   { value: "noname", label: "Без имени" },
+  { value: "push", label: "🔔 С уведомлениями" },
+  { value: "no_push", label: "🔕 Без уведомлений" },
 ];
 
 function phoneLabel(phone: string | null) {
@@ -303,6 +308,7 @@ export default function AdminUsersTable() {
                 <th className="px-4 py-3 font-medium">Телефон</th>
                 <th className="px-4 py-3 font-medium">Роль</th>
                 <th className="px-4 py-3 font-medium">Статус</th>
+                <th className="px-4 py-3 font-medium">Уведомления</th>
                 <th className="px-4 py-3 font-medium">Дата</th>
                 <th className="px-4 py-3 font-medium" />
               </tr>
@@ -356,6 +362,23 @@ export default function AdminUsersTable() {
                     >
                       {u.isBlocked ? <Ban size={10} /> : <CheckCircle2 size={10} />}
                       {u.isBlocked ? "Заблокирован" : "Активен"}
+                    </span>
+                  </td>
+                  <td className="px-4 py-3">
+                    <span
+                      className={`inline-flex items-center gap-1 text-[11px] font-medium px-2 py-1 rounded-full whitespace-nowrap ${
+                        u.pushDeviceCount > 0
+                          ? "bg-green-500/15 text-green-400"
+                          : "bg-red-500/15 text-red-400"
+                      }`}
+                      title={
+                        u.pushDeviceCount > 0
+                          ? `Подключено устройств: ${u.pushDeviceCount}`
+                          : undefined
+                      }
+                    >
+                      {u.pushDeviceCount > 0 ? <Bell size={10} /> : <BellOff size={10} />}
+                      {u.pushDeviceCount > 0 ? "Включены" : "Не подключены"}
                     </span>
                   </td>
                   <td className="px-4 py-3 text-gray-500 whitespace-nowrap">
@@ -429,7 +452,7 @@ export default function AdminUsersTable() {
 
               {sortedUsers.length === 0 && (
                 <tr>
-                  <td colSpan={7} className="px-4 py-10 text-center text-gray-500">
+                  <td colSpan={8} className="px-4 py-10 text-center text-gray-500">
                     Никого не найдено
                   </td>
                 </tr>

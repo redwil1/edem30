@@ -4,7 +4,15 @@ import { AdminUserFilter, listAdminUsers, requireStaff } from "@/lib/admin";
 
 export const runtime = "nodejs";
 
-const VALID_FILTERS: AdminUserFilter[] = ["all", "driver", "passenger", "blocked", "noname"];
+const VALID_FILTERS: AdminUserFilter[] = [
+  "all",
+  "driver",
+  "passenger",
+  "blocked",
+  "noname",
+  "push",
+  "no_push",
+];
 
 export async function GET(req: NextRequest) {
   const admin = await requireStaff();

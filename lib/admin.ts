@@ -173,7 +173,14 @@ export async function getAdminAccounts(): Promise<AdminAccountInfo[]> {
   }));
 }
 
-export type AdminUserFilter = "all" | "driver" | "passenger" | "blocked" | "noname";
+export type AdminUserFilter =
+  | "all"
+  | "driver"
+  | "passenger"
+  | "blocked"
+  | "noname"
+  | "push"
+  | "no_push";
 
 export type AdminUser = {
   id: number;
@@ -183,6 +190,7 @@ export type AdminUser = {
   createdAt: string;
   reportsAgainst: number;
   isBlocked: boolean;
+  pushDeviceCount: number;
 };
 
 type AdminUserRow = {
@@ -193,6 +201,7 @@ type AdminUserRow = {
   createdat: string;
   reports_against: string;
   is_blocked: boolean;
+  push_device_count: string;
 };
 
 export async function listAdminUsers(
@@ -203,13 +212,16 @@ export async function listAdminUsers(
     SELECT users.id as id, users.name as name, users.phone as phone,
            users.role as role, users.created_at as createdAt,
            users.is_blocked as is_blocked,
-           (SELECT COUNT(*) FROM trip_reports WHERE trip_reports.reported_user_id = users.id) as reports_against
+           (SELECT COUNT(*) FROM trip_reports WHERE trip_reports.reported_user_id = users.id) as reports_against,
+           (SELECT COUNT(*) FROM push_subscriptions WHERE push_subscriptions.user_id = users.id) as push_device_count
     FROM users
     WHERE 1 = 1
       ${search ? sql`AND name ILIKE ${`%${search}%`}` : sql``}
       ${filter === "driver" ? sql`AND role = 'driver'` : sql``}
       ${filter === "passenger" ? sql`AND role = 'passenger'` : sql``}
       ${filter === "blocked" ? sql`AND is_blocked = true` : sql``}
+      ${filter === "push" ? sql`AND EXISTS (SELECT 1 FROM push_subscriptions WHERE push_subscriptions.user_id = users.id)` : sql``}
+      ${filter === "no_push" ? sql`AND NOT EXISTS (SELECT 1 FROM push_subscriptions WHERE push_subscriptions.user_id = users.id)` : sql``}
     ORDER BY id DESC
   `;
 
@@ -221,6 +233,7 @@ export async function listAdminUsers(
     createdAt: r.createdat,
     reportsAgainst: Number(r.reports_against),
     isBlocked: r.is_blocked,
+    pushDeviceCount: Number(r.push_device_count),
   }));
 
   if (filter === "noname") {
@@ -228,6 +241,41 @@ export async function listAdminUsers(
   }
 
   return users;
+}
+
+export type PushStats = {
+  totalUsers: number;
+  usersWithPush: number;
+  usersWithoutPush: number;
+  activeSubscriptions: number;
+  percentage: number;
+};
+
+/**
+ * Один пользователь может иметь несколько push-подписок (несколько
+ * устройств) — считаем пользователей через COUNT(DISTINCT user_id),
+ * а подписки отдельно через обычный COUNT(*).
+ */
+export async function getPushStats(): Promise<PushStats> {
+  const [row] = await sql<
+    { total_users: string; users_with_push: string; active_subscriptions: string }[]
+  >`
+    SELECT
+      (SELECT COUNT(*) FROM users) as total_users,
+      (SELECT COUNT(DISTINCT user_id) FROM push_subscriptions) as users_with_push,
+      (SELECT COUNT(*) FROM push_subscriptions) as active_subscriptions
+  `;
+
+  const totalUsers = Number(row.total_users);
+  const usersWithPush = Number(row.users_with_push);
+
+  return {
+    totalUsers,
+    usersWithPush,
+    usersWithoutPush: totalUsers - usersWithPush,
+    activeSubscriptions: Number(row.active_subscriptions),
+    percentage: totalUsers > 0 ? Math.round((usersWithPush / totalUsers) * 100) : 0,
+  };
 }
 
 export type RecentSignup = {
