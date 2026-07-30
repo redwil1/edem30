@@ -81,6 +81,7 @@ export async function listTrips(type?: TripType): Promise<Trip[]> {
     SELECT ${TRIP_SELECT}
     FROM trips
     WHERE ${ACTIVE_CLAUSE}
+      AND trips.owner_id IS NOT NULL
     ${type ? sql`AND trips.type = ${type}` : sql``}
     ORDER BY trips.id DESC
   `;
@@ -977,6 +978,124 @@ export async function createTrip(
   `;
 
   return rows[0].id;
+}
+
+export type FormingTripInput = {
+  from: string;
+  to: string;
+  date: string;
+  time: string;
+  totalSeats: number;
+};
+
+/**
+ * Формирующаяся поездка "Ищу водителя" — та же таблица trips, но без
+ * водителя (owner_id = NULL, уже поддерживается схемой — используется при
+ * удалении аккаунта водителя). Как только водитель откликается, эта же
+ * строка переходит в обычную поездку через claimFormingTrip — новый trips
+ * не создаётся, группа пассажиров и чат (chat_messages по trip_id) не
+ * теряются.
+ */
+export async function createFormingTrip(
+  input: FormingTripInput,
+  executor: postgres.ISql = sql
+): Promise<number> {
+  const rows = await executor<{ id: number }[]>`
+    INSERT INTO trips
+      (type, from_city, to_city, trip_date, trip_time, price, total_seats, transport, driver_name, owner_id, verified)
+    VALUES ('intercity', ${input.from}, ${input.to}, ${input.date}, ${input.time}, 0, ${input.totalSeats}, '', '', NULL, 0)
+    RETURNING id
+  `;
+
+  return rows[0].id;
+}
+
+/**
+ * Добавляет пассажира в ещё формирующуюся (без водителя) поездку через
+ * существующий trip_participants и расширяет объявленное число мест на
+ * его количество — до появления водителя жёсткого лимита мест ещё нет,
+ * это просто счётчик "сколько мест уже нужно".
+ */
+export async function joinFormingTrip(
+  tripId: number,
+  userId: number,
+  seatDelta: number,
+  executor: postgres.ISql = sql
+): Promise<void> {
+  await executor`
+    INSERT INTO trip_participants (trip_id, user_id) VALUES (${tripId}, ${userId})
+    ON CONFLICT (trip_id, user_id) DO NOTHING
+  `;
+
+  if (seatDelta > 0) {
+    await executor`
+      UPDATE trips SET total_seats = total_seats + ${seatDelta}
+      WHERE id = ${tripId} AND owner_id IS NULL
+    `;
+  }
+}
+
+/** Пассажир отменяет свою заявку до появления водителя — покидает участников и уменьшает объявленное число мест. */
+export async function leaveFormingTrip(
+  tripId: number,
+  userId: number,
+  seatDelta: number,
+  executor: postgres.ISql = sql
+): Promise<void> {
+  await executor`DELETE FROM trip_participants WHERE trip_id = ${tripId} AND user_id = ${userId}`;
+
+  if (seatDelta > 0) {
+    await executor`
+      UPDATE trips SET total_seats = GREATEST(total_seats - ${seatDelta}, 0)
+      WHERE id = ${tripId} AND owner_id IS NULL
+    `;
+  }
+}
+
+export type ClaimFormingTripInput = {
+  price: number;
+  totalSeats: number;
+  transport: string;
+  transportCategory?: string;
+  carModel: string;
+  licensePlate: string;
+};
+
+export type ClaimFormingTripResult =
+  | { ok: true }
+  | { ok: false; reason: "not_forming" | "too_small" };
+
+/**
+ * Водитель атомарно "забирает" формирующуюся поездку одним UPDATE —
+ * WHERE owner_id IS NULL гарантирует, что при одновременном отклике
+ * нескольких водителей выиграет ровно один (тот же приём, что и в
+ * fulfillRideRequests/adjustSeats: Postgres сериализует апдейты по строке).
+ */
+export async function claimFormingTrip(
+  tripId: number,
+  driver: { id: number; name: string },
+  input: ClaimFormingTripInput,
+  executor: postgres.ISql = sql
+): Promise<ClaimFormingTripResult> {
+  const rows = await executor<{ id: number }[]>`
+    UPDATE trips
+    SET owner_id = ${driver.id}, driver_name = ${driver.name}, price = ${input.price},
+        total_seats = ${input.totalSeats}, transport = ${input.transport},
+        transport_category = ${input.transportCategory ?? null},
+        car_model = ${input.carModel}, license_plate = ${input.licensePlate}
+    WHERE id = ${tripId} AND owner_id IS NULL
+      AND (SELECT COUNT(*) FROM trip_participants WHERE trip_id = ${tripId}) <= ${input.totalSeats}
+    RETURNING id
+  `;
+
+  if (rows.length > 0) return { ok: true };
+
+  const stillForming = await executor<{ owner_id: number | null }[]>`
+    SELECT owner_id FROM trips WHERE id = ${tripId}
+  `;
+
+  if (stillForming[0]?.owner_id === null) return { ok: false, reason: "too_small" };
+  return { ok: false, reason: "not_forming" };
 }
 
 export type BlockingTripInfo = {

@@ -11,6 +11,7 @@ import {
   getTripOwnerId,
   isInstantTaxiTrip,
 } from "@/lib/trips";
+import { listOpenRideRequestsByTrip } from "@/lib/rideRequests";
 import Navbar from "@/components/layout/Navbar";
 import TripInfoCard from "@/components/trip/TripInfoCard";
 import TripFlowCards from "@/components/trip/TripFlowCards";
@@ -88,6 +89,7 @@ export default async function TripPage({ params }: Props) {
 
   const isDriver = !!user && ownerId === user.id;
   const isParty = isDriver || joined;
+  const isForming = ownerId === null && trip.driver === "";
 
   const displayParticipants = ownerId
     ? [
@@ -118,6 +120,20 @@ export default async function TripPage({ params }: Props) {
 
   const instantTaxi = await isInstantTaxiTrip(trip.id);
 
+  const formingRequestIds = isForming ? (await listOpenRideRequestsByTrip(trip.id)).map((r) => r.id) : [];
+  const claimHref = (() => {
+    const params = new URLSearchParams({
+      type: "intercity",
+      from: trip.from,
+      to: trip.to,
+      date: trip.date,
+      time: trip.time,
+      totalSeats: String(Math.max(trip.totalSeats, 1)),
+      fulfillRequestIds: formingRequestIds.join(","),
+    });
+    return `/create-trip?${params.toString()}`;
+  })();
+
   return (
     <main className="min-h-screen bg-[#0b0b13] text-white pb-14">
       <Navbar />
@@ -138,15 +154,34 @@ export default async function TripPage({ params }: Props) {
             <TripInfoCard
               trip={trip}
               joined={joined}
-              hideJoin={isDriver || instantTaxi}
+              hideJoin={isDriver || instantTaxi || isForming}
             />
+
+            {isForming && !joined && user?.role === "driver" && (
+              <Link
+                href={claimHref}
+                className="btn-gradient text-center rounded-2xl py-3.5 text-sm font-bold transition"
+              >
+                Стать водителем этой поездки
+              </Link>
+            )}
+
+            {isForming && !joined && user?.role !== "driver" && (
+              <Link
+                href="/find-driver"
+                className="btn-gradient text-center rounded-2xl py-3.5 text-sm font-bold transition"
+              >
+                Оставить заявку на этот маршрут
+              </Link>
+            )}
 
             {lifecycle.cancelled ? (
               <div className="bg-[#12121c] border border-red-500/20 rounded-3xl p-4 sm:p-6 text-red-400 font-bold">
                 Поездка отменена
               </div>
             ) : (
-              (isDriver || joined) && (
+              (isDriver || joined) &&
+              !isForming && (
                 <TripFlowCards
                   tripId={trip.id}
                   instantTaxi={instantTaxi}

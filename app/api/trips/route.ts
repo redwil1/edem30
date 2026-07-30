@@ -3,12 +3,12 @@ import { NextRequest, NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import { rateLimit } from "@/lib/rateLimit";
 import { isTrustedOrigin } from "@/lib/security";
-import { countActiveTripsByOwner, createTrip, joinTrip } from "@/lib/trips";
+import { claimFormingTrip, countActiveTripsByOwner, createTrip, joinTrip } from "@/lib/trips";
 import { TripType } from "@/types/trips";
 import { isValidAddress } from "@/lib/addressValidation";
 import { containsProfanity } from "@/lib/profanity";
 import { sendPushToSegment, sendPushToUser } from "@/lib/push";
-import { fulfillRideRequests } from "@/lib/rideRequests";
+import { fulfillRideRequests, getRideRequestsByIds } from "@/lib/rideRequests";
 
 export const runtime = "nodejs";
 
@@ -179,22 +179,80 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  const id = await createTrip(
-    {
-      type,
-      from,
-      to,
-      date,
-      time,
-      price,
-      totalSeats,
-      transport,
-      transportCategory,
-      carModel,
-      licensePlate,
-    },
-    { id: user.id, name: user.name }
-  );
+  // Водитель формирует поездку из уже собранных заявок "Ищу водителя".
+  const fulfillRequestIdsRaw = Array.isArray(body?.fulfillRequestIds)
+    ? body.fulfillRequestIds
+    : [];
+  const fulfillRequestIds = fulfillRequestIdsRaw
+    .map((x: unknown) => Number(x))
+    .filter((n: number) => Number.isInteger(n) && n > 0);
+
+  let id: number;
+
+  if (fulfillRequestIds.length > 0) {
+    // Эти заявки с самого создания привязаны к формирующейся поездке
+    // (trips.owner_id = NULL) — та же строка становится обычной поездкой,
+    // группа и чат не теряются. Если общего "формирующегося" trip_id нет
+    // (например заявки были восстановлены после отмены предыдущего
+    // водителя) — используем прежний путь: новая поездка + перенос заявок.
+    const requests = await getRideRequestsByIds(fulfillRequestIds);
+    const openRequests = requests.filter((r) => r.status === "open");
+    const tripIds = new Set(openRequests.map((r) => r.tripId).filter((t): t is number => t !== null));
+    const sharedTripId =
+      tripIds.size === 1 && openRequests.length === fulfillRequestIds.length ? [...tripIds][0] : null;
+
+    if (sharedTripId !== null) {
+      const claim = await claimFormingTrip(
+        sharedTripId,
+        { id: user.id, name: user.name },
+        { price, totalSeats, transport, transportCategory, carModel, licensePlate }
+      );
+
+      if (!claim.ok) {
+        const message =
+          claim.reason === "too_small"
+            ? "У вас указано меньше мест, чем уже набрали пассажиры"
+            : "Поездка уже сформирована другим водителем";
+        return NextResponse.json({ error: message }, { status: 409 });
+      }
+
+      id = sharedTripId;
+
+      const passengerIds = await fulfillRideRequests(fulfillRequestIds, id);
+      for (const passengerId of passengerIds) {
+        sendPushToUser(passengerId, {
+          title: "Отличная новость!",
+          body: "Водитель найден. Поездка сформирована.",
+          url: `/trip/${id}`,
+        });
+      }
+    } else {
+      id = await createTrip(
+        { type, from, to, date, time, price, totalSeats, transport, transportCategory, carModel, licensePlate },
+        { id: user.id, name: user.name }
+      );
+
+      const passengerIds = await fulfillRideRequests(fulfillRequestIds, id);
+      for (const passengerId of passengerIds) {
+        const joinResult = await joinTrip(id, passengerId);
+
+        // Не шлём "поездка сформирована", если реально не попал в неё
+        // (например водитель указал мест меньше, чем ждало пассажиров).
+        if (!joinResult.ok) continue;
+
+        sendPushToUser(passengerId, {
+          title: "Отличная новость!",
+          body: "Водитель найден. Поездка сформирована.",
+          url: `/trip/${id}`,
+        });
+      }
+    }
+  } else {
+    id = await createTrip(
+      { type, from, to, date, time, price, totalSeats, transport, transportCategory, carModel, licensePlate },
+      { id: user.id, name: user.name }
+    );
+  }
 
   sendPushToSegment(
     "passenger",
@@ -205,33 +263,6 @@ export async function POST(req: NextRequest) {
     },
     user.id
   );
-
-  // Водитель формирует поездку из уже собранных заявок "Ищу водителя" —
-  // используем существующий join, отдельной системы участников не заводим.
-  const fulfillRequestIdsRaw = Array.isArray(body?.fulfillRequestIds)
-    ? body.fulfillRequestIds
-    : [];
-  const fulfillRequestIds = fulfillRequestIdsRaw
-    .map((x: unknown) => Number(x))
-    .filter((n: number) => Number.isInteger(n) && n > 0);
-
-  if (fulfillRequestIds.length > 0) {
-    const passengerIds = await fulfillRideRequests(fulfillRequestIds, id);
-
-    for (const passengerId of passengerIds) {
-      const joinResult = await joinTrip(id, passengerId);
-
-      // Не шлём "поездка сформирована", если реально не попал в неё
-      // (например водитель указал мест меньше, чем ждало пассажиров).
-      if (!joinResult.ok) continue;
-
-      sendPushToUser(passengerId, {
-        title: "Отличная новость!",
-        body: "Водитель найден. Поездка сформирована.",
-        url: `/trip/${id}`,
-      });
-    }
-  }
 
   return NextResponse.json({ id });
 }

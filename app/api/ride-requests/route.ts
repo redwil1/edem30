@@ -3,8 +3,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import {
   clusterRideRequests,
-  createRideRequest,
-  findMatchingCluster,
+  createRideRequestForming,
   listOpenRideRequests,
 } from "@/lib/rideRequests";
 import { rateLimit } from "@/lib/rateLimit";
@@ -58,11 +57,10 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Некорректное количество пассажиров" }, { status: 400 });
   }
 
-  // Уже существующий кластер на этот маршрут — до вставки новой заявки,
-  // чтобы уведомить именно ТЕХ, кто уже ждал (не самого создателя).
-  const existingCluster = await findMatchingCluster(from, to, date, time);
-
-  const id = await createRideRequest(user.id, {
+  // Присоединяет к уже формирующейся поездке (trips, owner_id = NULL) на
+  // этот маршрут/время, либо заводит новую — та же строка потом станет
+  // обычной поездкой, когда её заберёт водитель.
+  const { requestId: id, tripId, existingCluster } = await createRideRequestForming(user.id, {
     from,
     to,
     date,
@@ -76,7 +74,7 @@ export async function POST(req: NextRequest) {
       sendPushToUser(r.passengerId, {
         title: "К вашей поездке присоединился ещё один пассажир",
         body: `${from} → ${to}`,
-        url: "/find-driver/mine",
+        url: `/trip/${tripId}`,
       });
     }
   }
@@ -97,5 +95,5 @@ export async function POST(req: NextRequest) {
     });
   }
 
-  return NextResponse.json({ id });
+  return NextResponse.json({ id, tripId });
 }

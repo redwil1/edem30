@@ -57,12 +57,23 @@ export default function RideRequestsFeed() {
               key={`${cluster.from}-${cluster.to}-${cluster.date}-${cluster.time}`}
               cluster={cluster}
               action={
-                <Link
-                  href={fulfillHref(cluster)}
-                  className="flex items-center justify-center gap-1.5 w-full sm:w-auto bg-violet-600 hover:bg-violet-700 transition rounded-xl px-4 py-2.5 text-sm font-bold"
-                >
-                  Я поеду
-                </Link>
+                <div className="flex items-center gap-2 flex-wrap">
+                  {cluster.tripId !== null && (
+                    <Link
+                      href={`/trip/${cluster.tripId}`}
+                      className="flex items-center justify-center gap-1.5 bg-[#1c1c2b] hover:bg-white/10 transition rounded-xl px-4 py-2.5 text-sm font-medium"
+                    >
+                      Подробнее
+                    </Link>
+                  )}
+
+                  <Link
+                    href={fulfillHref(cluster)}
+                    className="flex items-center justify-center gap-1.5 flex-1 sm:flex-none bg-violet-600 hover:bg-violet-700 transition rounded-xl px-4 py-2.5 text-sm font-bold"
+                  >
+                    Я поеду
+                  </Link>
+                </div>
               }
             />
           ))}

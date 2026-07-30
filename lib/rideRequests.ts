@@ -1,6 +1,7 @@
 import "server-only";
 
 import { sql } from "@/lib/db";
+import { createFormingTrip, joinFormingTrip, leaveFormingTrip } from "@/lib/trips";
 
 export type RideRequestStatus = "open" | "closed" | "cancelled";
 
@@ -52,18 +53,54 @@ export type CreateRideRequestInput = {
 
 export async function createRideRequest(
   passengerId: number,
-  input: CreateRideRequestInput
+  input: CreateRideRequestInput,
+  tripId: number | null
 ): Promise<number> {
   const [row] = await sql<{ id: number }[]>`
-    INSERT INTO ride_requests (passenger_id, from_city, to_city, trip_date, trip_time, passengers_count, comment)
+    INSERT INTO ride_requests (passenger_id, from_city, to_city, trip_date, trip_time, passengers_count, comment, trip_id)
     VALUES (
       ${passengerId}, ${input.from}, ${input.to}, ${input.date}, ${input.time},
-      ${input.passengersCount}, ${input.comment ?? null}
+      ${input.passengersCount}, ${input.comment ?? null}, ${tripId}
     )
     RETURNING id
   `;
 
   return row.id;
+}
+
+/**
+ * Создаёт заявку и сразу привязывает её к формирующейся поездке (trips,
+ * owner_id = NULL) — присоединяется к уже существующей группе на этот
+ * маршрут/время, либо заводит новую. trip_id не меняется до конца жизни
+ * поездки: та же строка потом становится обычной поездкой, когда её
+ * заберёт водитель (см. claimFormingTrip в lib/trips.ts).
+ */
+export async function createRideRequestForming(
+  passengerId: number,
+  input: CreateRideRequestInput
+): Promise<{ requestId: number; tripId: number; existingCluster: RideRequestCluster | null }> {
+  const existingCluster = await findMatchingCluster(input.from, input.to, input.date, input.time);
+  const existingTripId = existingCluster?.requests.find((r) => r.tripId !== null)?.tripId ?? null;
+
+  let tripId: number;
+
+  if (existingTripId !== null) {
+    tripId = existingTripId;
+    await joinFormingTrip(tripId, passengerId, input.passengersCount);
+  } else {
+    tripId = await createFormingTrip({
+      from: input.from,
+      to: input.to,
+      date: input.date,
+      time: input.time,
+      totalSeats: input.passengersCount,
+    });
+    await joinFormingTrip(tripId, passengerId, 0);
+  }
+
+  const requestId = await createRideRequest(passengerId, input, tripId);
+
+  return { requestId, tripId, existingCluster };
 }
 
 /** Открытые заявки — сырой список, для группировки в кластеры на JS-стороне. */
@@ -82,6 +119,23 @@ export async function getRideRequest(id: number): Promise<RideRequest | null> {
   `;
 
   return rows[0] ?? null;
+}
+
+export async function getRideRequestsByIds(ids: number[]): Promise<RideRequest[]> {
+  if (ids.length === 0) return [];
+
+  return sql<RideRequest[]>`
+    ${REQUEST_SELECT}
+    WHERE r.id = ANY(${ids})
+  `;
+}
+
+/** Открытые заявки, уже привязанные к конкретной формирующейся поездке — для CTA "Стать водителем" на странице поездки. */
+export async function listOpenRideRequestsByTrip(tripId: number): Promise<RideRequest[]> {
+  return sql<RideRequest[]>`
+    ${REQUEST_SELECT}
+    WHERE r.trip_id = ${tripId} AND r.status = 'open'
+  `;
 }
 
 export async function listMyRideRequests(passengerId: number): Promise<RideRequest[]> {
@@ -200,8 +254,11 @@ export async function cancelRideRequest(
   requestId: number,
   passengerId: number
 ): Promise<{ ok: true } | { ok: false; error: string }> {
-  const rows = await sql<{ id: number; passengerId: number; status: RideRequestStatus }[]>`
-    SELECT id, passenger_id as "passengerId", status FROM ride_requests WHERE id = ${requestId}
+  const rows = await sql<
+    { id: number; passengerId: number; status: RideRequestStatus; tripId: number | null; passengersCount: number }[]
+  >`
+    SELECT id, passenger_id as "passengerId", status, trip_id as "tripId", passengers_count as "passengersCount"
+    FROM ride_requests WHERE id = ${requestId}
   `;
 
   const request = rows[0];
@@ -211,6 +268,12 @@ export async function cancelRideRequest(
   if (request.status !== "open") return { ok: false, error: "Заявка уже закрыта" };
 
   await sql`UPDATE ride_requests SET status = 'cancelled', closed_at = now() WHERE id = ${requestId}`;
+
+  // Пока поездка ещё формируется (водитель не найден) — покинуть группу/чат,
+  // чтобы место и список участников оставались честными.
+  if (request.tripId !== null) {
+    await leaveFormingTrip(request.tripId, passengerId, request.passengersCount);
+  }
 
   return { ok: true };
 }

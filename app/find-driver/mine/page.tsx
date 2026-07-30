@@ -130,6 +130,20 @@ export default function MyRideRequestsPage() {
                   </div>
 
                   <div className="flex items-center gap-4 mt-3">
+                    {r.tripId && (
+                      <Link
+                        href={`/trip/${r.tripId}`}
+                        className={`flex items-center gap-1.5 text-xs font-medium transition ${
+                          r.status === "closed"
+                            ? "text-green-400 hover:text-green-300"
+                            : "text-violet-400 hover:text-violet-300"
+                        }`}
+                      >
+                        <Car size={12} />
+                        {r.status === "closed" ? "Открыть поездку" : "Открыть поездку и чат"}
+                      </Link>
+                    )}
+
                     {r.status === "open" && (
                       <button
                         onClick={() => cancelRequest(r.id)}
@@ -139,16 +153,6 @@ export default function MyRideRequestsPage() {
                         <X size={12} />
                         Отменить заявку
                       </button>
-                    )}
-
-                    {r.status === "closed" && r.tripId && (
-                      <Link
-                        href={`/trip/${r.tripId}`}
-                        className="flex items-center gap-1.5 text-xs font-medium text-green-400 hover:text-green-300 transition"
-                      >
-                        <Car size={12} />
-                        Открыть поездку
-                      </Link>
                     )}
                   </div>
                 </div>

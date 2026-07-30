@@ -16,6 +16,7 @@ export async function GET() {
         date: c.date,
         time: c.time,
         waitingCount: c.waitingCount,
+        tripId: c.requests.find((r) => r.tripId !== null)?.tripId ?? null,
         requestIds: c.requests.map((r) => r.id),
         passengers: c.requests.map((r) => ({
           id: r.passengerId,

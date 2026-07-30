@@ -65,22 +65,27 @@ export async function GET(_req: Request, { params }: Props) {
 
   const isStaffViewer = user ? STAFF_ROLES.has(user.role) : false;
   const isPartyMember = user ? await isTripPartyMember(tripId, user.id) : false;
+  const canView = isPartyMember || isStaffViewer;
 
   return NextResponse.json(
     {
-      messages: rows.map((r) => ({
-        id: r.id,
-        authorName: r.name,
-        avatarUrl: r.avatar_url,
-        avatarPreset: r.avatar_preset,
-        text: r.text,
-        attachmentUrl: r.attachment_url,
-        attachmentType: r.attachment_type,
-        createdAt: r.created_at,
-        isYou: user ? r.user_id === user.id : false,
-        isDriver: r.user_id === ownerId,
-        isStaff: STAFF_ROLES.has(r.role),
-      })),
+      // Чат поездки виден только участникам (и модерации) — иначе содержимое
+      // можно было бы прочитать простой подстановкой чужого id поездки в URL.
+      messages: canView
+        ? rows.map((r) => ({
+            id: r.id,
+            authorName: r.name,
+            avatarUrl: r.avatar_url,
+            avatarPreset: r.avatar_preset,
+            text: r.text,
+            attachmentUrl: r.attachment_url,
+            attachmentType: r.attachment_type,
+            createdAt: r.created_at,
+            isYou: user ? r.user_id === user.id : false,
+            isDriver: r.user_id === ownerId,
+            isStaff: STAFF_ROLES.has(r.role),
+          }))
+        : [],
       canPost: (isPartyMember || isStaffViewer) && !isChatLocked(lifecycle.completedAt),
       completedAt: lifecycle.completedAt,
       chatLocked: isChatLocked(lifecycle.completedAt),

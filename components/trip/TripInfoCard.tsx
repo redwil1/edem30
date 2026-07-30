@@ -13,8 +13,19 @@ type Props = {
 };
 
 export default function TripInfoCard({ trip, joined, hideJoin }: Props) {
+  // Формирующаяся поездка ("Ищу водителя") ещё не имеет водителя, driver_name
+  // у неё пустой. Не путать с историческими поездками, где владелец был
+  // удалён (owner_id тоже NULL, но driver_name сохранён) — те не "формируются".
+  const isForming = trip.driverId === null && trip.driver === "";
+
   return (
     <div className="bg-[#12121c] border border-white/5 rounded-3xl p-4 sm:p-6">
+      {isForming && (
+        <span className="inline-flex items-center gap-1.5 text-xs font-medium px-2.5 py-1 rounded-full whitespace-nowrap bg-yellow-500/15 text-yellow-400 border border-yellow-500/20 mb-3">
+          🟡 Ищем водителя
+        </span>
+      )}
+
       <div className="text-sm leading-none">
         <span className="font-display font-bold text-lg">{trip.time}</span>{" "}
         <span className="text-violet-400">{formatDate(trip.date)}</span>
@@ -24,10 +35,16 @@ export default function TripInfoCard({ trip, joined, hideJoin }: Props) {
         {trip.from} → {trip.to}
       </div>
 
-      <div className="text-gray-500 text-sm mt-1 leading-none">
-        {trip.transport}
-        {trip.carModel ? ` · ${trip.carModel}` : ""} · {trip.totalSeats} мест
-      </div>
+      {isForming ? (
+        <div className="text-gray-500 text-sm mt-1 leading-none">
+          {trip.totalSeats} {trip.totalSeats === 1 ? "пассажир" : "пассажиров"} ищут поездку
+        </div>
+      ) : (
+        <div className="text-gray-500 text-sm mt-1 leading-none">
+          {trip.transport}
+          {trip.carModel ? ` · ${trip.carModel}` : ""} · {trip.totalSeats} мест
+        </div>
+      )}
 
       {trip.licensePlate && (
         <span className="inline-block bg-[#1c1c2b] border border-white/10 rounded-lg px-2 py-1 text-xs font-mono tracking-wide mt-2">
@@ -35,15 +52,23 @@ export default function TripInfoCard({ trip, joined, hideJoin }: Props) {
         </span>
       )}
 
-      <div className="mt-4 leading-none">
-        <span className="font-display text-violet-400 font-bold text-xl">
-          {formatPrice(trip.price)}
-        </span>{" "}
-        <span className="text-gray-500 text-sm">с места</span>
-      </div>
+      {isForming ? (
+        <div className="mt-4 leading-none text-gray-500 text-sm">
+          Цену и место назначит водитель, когда присоединится
+        </div>
+      ) : (
+        <div className="mt-4 leading-none">
+          <span className="font-display text-violet-400 font-bold text-xl">
+            {formatPrice(trip.price)}
+          </span>{" "}
+          <span className="text-gray-500 text-sm">с места</span>
+        </div>
+      )}
 
       <div className="flex items-center justify-between mt-5 pt-5 border-t border-white/5">
-        {trip.driverId ? (
+        {isForming ? (
+          <div className="text-sm text-gray-400">Водитель ещё не найден</div>
+        ) : (
           <Link
             href={`/profile/${trip.driverId}`}
             className="flex items-center gap-3 hover:opacity-80 transition"
@@ -65,25 +90,6 @@ export default function TripInfoCard({ trip, joined, hideJoin }: Props) {
               </div>
             </div>
           </Link>
-        ) : (
-          <div className="flex items-center gap-3">
-            <Avatar
-              name={trip.driver}
-              size={40}
-              avatarUrl={trip.driverAvatarUrl}
-              avatarPreset={trip.driverAvatarPreset}
-            />
-
-            <div>
-              <div className="font-medium text-sm">{trip.driver}</div>
-
-              <div className="text-xs text-yellow-400 flex items-center gap-1">
-                <Star size={11} className="fill-yellow-400" />
-                {formatRating(trip.rating)}{" "}
-                <span className="text-gray-500">({trip.tripsCount} отзывов)</span>
-              </div>
-            </div>
-          </div>
         )}
 
         <span className="bg-violet-600/15 text-violet-300 text-xs font-medium px-2.5 py-1 rounded-full whitespace-nowrap">

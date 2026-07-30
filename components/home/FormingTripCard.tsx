@@ -9,6 +9,7 @@ export type FormingCluster = {
   date: string;
   time: string;
   waitingCount: number;
+  tripId: number | null;
   requestIds: number[];
   passengers: {
     id: number;

@@ -22,6 +22,7 @@ type FormingCluster = {
   date: string;
   time: string;
   waitingCount: number;
+  tripId: number | null;
   requestIds: number[];
   passengers: FormingPassenger[];
 };
@@ -75,7 +76,7 @@ export default function FormingTripsLiveFeed() {
           return (
             <Link
               key={`${c.from}-${c.to}-${c.date}-${c.time}`}
-              href="/find-driver"
+              href={c.tripId !== null ? `/trip/${c.tripId}` : "/find-driver"}
               className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 py-4 sm:py-5 border-b border-white/5 last:border-0 hover:bg-white/[0.02] -mx-2 px-2 rounded-xl transition"
             >
               <div className="min-w-0 flex-1">
@@ -119,7 +120,7 @@ export default function FormingTripsLiveFeed() {
                 </span>
 
                 <span className="text-sm font-bold text-violet-400 whitespace-nowrap">
-                  {c.waitingCount > 1 ? "Предложить поездку" : "Откликнуться"}
+                  Открыть поездку
                 </span>
               </div>
             </Link>
