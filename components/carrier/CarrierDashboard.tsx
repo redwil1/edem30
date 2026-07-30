@@ -1,7 +1,19 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Eye, Flame, Loader2, Minus, Plus, Users } from "lucide-react";
+import {
+  BarChart3,
+  Bus,
+  Calendar,
+  Eye,
+  Flame,
+  Loader2,
+  Minus,
+  Plus,
+  Settings,
+  Users,
+  X,
+} from "lucide-react";
 
 type Ride = {
   id: number;
@@ -55,12 +67,26 @@ type Stats = {
 };
 
 type DashboardData = {
+  carrier: { id: number; slug: string; name: string; tagline: string | null; verified: boolean; active: boolean };
+  readOnly?: boolean;
   rides: Ride[];
   vehicles: Vehicle[];
   schedules: Schedule[];
   matches: Match[];
   stats: Stats;
 };
+
+type Tab = "today" | "rides" | "schedule" | "passengers" | "fleet" | "analytics" | "settings";
+
+const TABS: { id: Tab; label: string; icon: typeof Calendar }[] = [
+  { id: "today", label: "Сегодня", icon: Calendar },
+  { id: "rides", label: "Рейсы", icon: Bus },
+  { id: "schedule", label: "Расписание", icon: Calendar },
+  { id: "passengers", label: "Пассажиры", icon: Users },
+  { id: "fleet", label: "Автопарк", icon: Bus },
+  { id: "analytics", label: "Аналитика", icon: BarChart3 },
+  { id: "settings", label: "Настройки", icon: Settings },
+];
 
 const DAY_LABELS = ["Пн", "Вт", "Ср", "Чт", "Пт", "Сб", "Вс"];
 
@@ -75,15 +101,31 @@ function dateLabel(dateStr: string) {
   return new Date(`${dateStr}T00:00:00`).toLocaleDateString("ru-RU", { day: "numeric", month: "long" });
 }
 
-export default function CarrierDashboard({ carrierName }: { carrierName: string }) {
+function withCarrierId(url: string, carrierId?: number) {
+  if (!carrierId) return url;
+  return `${url}${url.includes("?") ? "&" : "?"}carrierId=${carrierId}`;
+}
+
+export default function CarrierDashboard({
+  carrierName,
+  carrierId,
+}: {
+  carrierName: string;
+  carrierId?: number;
+}) {
+  const [tab, setTab] = useState<Tab>("today");
   const [data, setData] = useState<DashboardData | null>(null);
   const [busyRideId, setBusyRideId] = useState<number | null>(null);
   const [offeringId, setOfferingId] = useState<number | null>(null);
   const [showVehicleForm, setShowVehicleForm] = useState(false);
   const [showScheduleForm, setShowScheduleForm] = useState(false);
+  const [passengersRideId, setPassengersRideId] = useState<number | null>(null);
+  const [swapRideId, setSwapRideId] = useState<number | null>(null);
+
+  const readOnly = !!data?.readOnly;
 
   async function load() {
-    const res = await fetch("/api/carrier/dashboard", { cache: "no-store" });
+    const res = await fetch(withCarrierId("/api/carrier/dashboard", carrierId), { cache: "no-store" });
     if (res.ok) setData(await res.json());
   }
 
@@ -91,7 +133,8 @@ export default function CarrierDashboard({ carrierName }: { carrierName: string 
     load();
     const interval = setInterval(load, 20000);
     return () => clearInterval(interval);
-  }, []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [carrierId]);
 
   async function changeSeats(rideId: number, delta: 1 | -1) {
     setBusyRideId(rideId);
@@ -138,6 +181,35 @@ export default function CarrierDashboard({ carrierName }: { carrierName: string 
     }
   }
 
+  async function cancelRide(rideId: number) {
+    if (!confirm("Отменить этот рейс? Записавшиеся пассажиры получат уведомление.")) return;
+
+    await fetch(`/api/carrier/dashboard/rides/${rideId}/cancel`, { method: "POST" });
+    await load();
+  }
+
+  async function swapVehicle(rideId: number, vehicleId: number) {
+    setBusyRideId(rideId);
+
+    try {
+      const res = await fetch(`/api/carrier/dashboard/rides/${rideId}/vehicle`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ vehicleId }),
+      });
+
+      if (res.ok) {
+        setSwapRideId(null);
+        await load();
+      } else {
+        const err = await res.json().catch(() => null);
+        alert(err?.error ?? "Не удалось заменить машину");
+      }
+    } finally {
+      setBusyRideId(null);
+    }
+  }
+
   if (!data) {
     return (
       <div className="py-16 flex items-center justify-center text-gray-500">
@@ -147,13 +219,117 @@ export default function CarrierDashboard({ carrierName }: { carrierName: string 
   }
 
   const todayRides = data.rides.filter((r) => r.rideDate === todayStr());
-  const otherRides = data.rides.filter((r) => r.rideDate !== todayStr());
 
   return (
     <div>
+      <div className="flex items-center gap-2 text-amber-400 text-xs font-bold mb-1">👑 Едем30 Business</div>
       <h1 className="text-2xl font-bold mb-1">{carrierName}</h1>
-      <p className="text-gray-500 text-sm mb-6">Кабинет перевозчика</p>
+      {readOnly && (
+        <p className="text-violet-400 text-sm mb-4">Режим просмотра администратором — изменения недоступны</p>
+      )}
+      {!readOnly && <p className="text-gray-500 text-sm mb-6">Кабинет перевозчика</p>}
 
+      <div className="flex gap-1 bg-[#12121c] border border-white/5 rounded-2xl p-1 mb-6 overflow-x-auto">
+        {TABS.map((t) => (
+          <button
+            key={t.id}
+            type="button"
+            onClick={() => setTab(t.id)}
+            className={`flex items-center gap-1.5 whitespace-nowrap rounded-xl px-3.5 py-2.5 text-sm font-medium transition ${
+              tab === t.id ? "bg-violet-600 text-white" : "text-gray-400 hover:text-white"
+            }`}
+          >
+            <t.icon size={14} />
+            {t.label}
+          </button>
+        ))}
+      </div>
+
+      {tab === "today" && (
+        <TodayTab
+          data={data}
+          todayRides={todayRides}
+          busyRideId={busyRideId}
+          offeringId={offeringId}
+          readOnly={readOnly}
+          onChangeSeats={changeSeats}
+          onOffer={offerSeats}
+        />
+      )}
+
+      {tab === "rides" && (
+        <RidesTab
+          rides={data.rides}
+          vehicles={data.vehicles}
+          readOnly={readOnly}
+          busyRideId={busyRideId}
+          swapRideId={swapRideId}
+          setSwapRideId={setSwapRideId}
+          onChangeSeats={changeSeats}
+          onCancel={cancelRide}
+          onSwap={swapVehicle}
+          onOpenPassengers={setPassengersRideId}
+        />
+      )}
+
+      {tab === "schedule" && (
+        <SchedulesSection
+          schedules={data.schedules}
+          vehicles={data.vehicles}
+          show={showScheduleForm}
+          setShow={setShowScheduleForm}
+          onCreated={load}
+          readOnly={readOnly}
+        />
+      )}
+
+      {tab === "passengers" && (
+        <PassengersTab rides={data.rides} onOpen={setPassengersRideId} />
+      )}
+
+      {tab === "fleet" && (
+        <VehiclesSection
+          vehicles={data.vehicles}
+          show={showVehicleForm}
+          setShow={setShowVehicleForm}
+          onCreated={load}
+          readOnly={readOnly}
+        />
+      )}
+
+      {tab === "analytics" && <AnalyticsTab carrierId={carrierId} />}
+
+      {tab === "settings" && <SettingsTab carrier={data.carrier} />}
+
+      {passengersRideId !== null && (
+        <PassengersModal
+          ride={data.rides.find((r) => r.id === passengersRideId) ?? null}
+          onClose={() => setPassengersRideId(null)}
+        />
+      )}
+    </div>
+  );
+}
+
+function TodayTab({
+  data,
+  todayRides,
+  busyRideId,
+  offeringId,
+  readOnly,
+  onChangeSeats,
+  onOffer,
+}: {
+  data: DashboardData;
+  todayRides: Ride[];
+  busyRideId: number | null;
+  offeringId: number | null;
+  readOnly: boolean;
+  onChangeSeats: (rideId: number, delta: 1 | -1) => void;
+  onOffer: (carrierRideId: number) => void;
+}) {
+  return (
+    <div>
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-8">
         <div className="bg-[#12121c] border border-white/5 rounded-2xl p-4">
           <div className="flex items-center gap-1.5 text-gray-500 text-xs mb-2">
@@ -175,13 +351,10 @@ export default function CarrierDashboard({ carrierName }: { carrierName: string 
         </div>
       </div>
 
-      {data.matches.length > 0 && (
+      {!readOnly && data.matches.length > 0 && (
         <div className="mb-8 space-y-3">
           {data.matches.map((m) => (
-            <div
-              key={m.carrierRideId}
-              className="bg-[#171726] border border-amber-500/30 rounded-3xl p-5"
-            >
+            <div key={m.carrierRideId} className="bg-[#171726] border border-amber-500/30 rounded-3xl p-5">
               <div className="flex items-center gap-1.5 text-amber-400 text-xs font-bold mb-2">
                 <Flame size={14} />
                 Подходящая заявка
@@ -195,7 +368,7 @@ export default function CarrierDashboard({ carrierName }: { carrierName: string 
 
               <button
                 type="button"
-                onClick={() => offerSeats(m.carrierRideId)}
+                onClick={() => onOffer(m.carrierRideId)}
                 disabled={offeringId === m.carrierRideId}
                 className="btn-gradient rounded-xl px-5 py-2.5 text-sm font-bold mt-3 disabled:opacity-60"
               >
@@ -207,36 +380,257 @@ export default function CarrierDashboard({ carrierName }: { carrierName: string 
       )}
 
       <h2 className="text-lg font-bold mb-3">Сегодня</h2>
-      <RideList rides={todayRides} busyRideId={busyRideId} onChange={changeSeats} />
-
-      {otherRides.length > 0 && (
-        <>
-          <h2 className="text-lg font-bold mb-3 mt-8">Завтра</h2>
-          <RideList rides={otherRides} busyRideId={busyRideId} onChange={changeSeats} />
-        </>
-      )}
+      <RideList rides={todayRides} busyRideId={busyRideId} readOnly={readOnly} onChange={onChangeSeats} />
 
       {data.rides.length === 0 && (
         <div className="bg-[#12121c] border border-white/5 rounded-3xl p-6 text-center text-gray-500">
-          Рейсов пока нет — добавьте машину и регулярное расписание ниже.
+          Рейсов пока нет — добавьте машину и регулярное расписание во вкладке «Расписание».
         </div>
       )}
+    </div>
+  );
+}
 
-      <div className="mt-10 space-y-6">
-        <VehiclesSection
-          vehicles={data.vehicles}
-          show={showVehicleForm}
-          setShow={setShowVehicleForm}
-          onCreated={load}
-        />
+function RidesTab({
+  rides,
+  vehicles,
+  readOnly,
+  busyRideId,
+  swapRideId,
+  setSwapRideId,
+  onChangeSeats,
+  onCancel,
+  onSwap,
+  onOpenPassengers,
+}: {
+  rides: Ride[];
+  vehicles: Vehicle[];
+  readOnly: boolean;
+  busyRideId: number | null;
+  swapRideId: number | null;
+  setSwapRideId: (id: number | null) => void;
+  onChangeSeats: (rideId: number, delta: 1 | -1) => void;
+  onCancel: (rideId: number) => void;
+  onSwap: (rideId: number, vehicleId: number) => void;
+  onOpenPassengers: (rideId: number) => void;
+}) {
+  const grouped = rides.reduce<Record<string, Ride[]>>((acc, r) => {
+    (acc[r.rideDate] ??= []).push(r);
+    return acc;
+  }, {});
 
-        <SchedulesSection
-          schedules={data.schedules}
-          vehicles={data.vehicles}
-          show={showScheduleForm}
-          setShow={setShowScheduleForm}
-          onCreated={load}
-        />
+  const dates = Object.keys(grouped).sort();
+
+  if (dates.length === 0) {
+    return <div className="text-gray-500 text-sm">Рейсов пока нет</div>;
+  }
+
+  return (
+    <div className="space-y-8">
+      {dates.map((date) => (
+        <div key={date}>
+          <h2 className="text-lg font-bold mb-3">{dateLabel(date)}</h2>
+
+          <div className="space-y-3">
+            {grouped[date].map((ride) => (
+              <div key={ride.id} className="bg-[#12121c] border border-white/5 rounded-3xl p-5">
+                <div className="flex items-center justify-between gap-3 flex-wrap mb-3">
+                  <div>
+                    <div className="text-violet-400 font-bold">{ride.departureTime}</div>
+                    <div className="font-medium">
+                      {ride.fromCity} → {ride.toCity}
+                    </div>
+                    <div className="text-gray-500 text-xs mt-0.5">
+                      {ride.vehicleLabel} · {ride.occupiedSeats}/{ride.totalSeats} мест
+                    </div>
+                  </div>
+
+                  <span
+                    className={`text-xs font-medium px-2.5 py-1 rounded-full ${
+                      ride.status === "cancelled"
+                        ? "bg-gray-500/15 text-gray-400"
+                        : ride.status === "full"
+                        ? "bg-red-500/15 text-red-400"
+                        : "bg-green-500/15 text-green-400"
+                    }`}
+                  >
+                    {ride.status === "cancelled" ? "Отменён" : ride.status === "full" ? "Мест нет" : "Открыт"}
+                  </span>
+                </div>
+
+                {!readOnly && ride.status !== "cancelled" && (
+                  <div className="flex items-center gap-4 mb-3">
+                    <button
+                      type="button"
+                      onClick={() => onChangeSeats(ride.id, -1)}
+                      disabled={busyRideId === ride.id || ride.occupiedSeats <= 0}
+                      aria-label="Убрать пассажира"
+                      className="w-12 h-12 rounded-2xl bg-[#1c1c2b] hover:bg-white/10 disabled:opacity-30 flex items-center justify-center transition active:scale-95"
+                    >
+                      <Minus size={18} />
+                    </button>
+                    <div className="w-8 text-center font-bold">{ride.occupiedSeats}</div>
+                    <button
+                      type="button"
+                      onClick={() => onChangeSeats(ride.id, 1)}
+                      disabled={busyRideId === ride.id || ride.freeSeats <= 0}
+                      aria-label="Добавить пассажира"
+                      className="w-12 h-12 rounded-2xl bg-violet-600 hover:bg-violet-700 disabled:opacity-30 flex items-center justify-center transition active:scale-95"
+                    >
+                      <Plus size={18} />
+                    </button>
+                  </div>
+                )}
+
+                <div className="flex items-center gap-2 flex-wrap text-xs">
+                  <button
+                    type="button"
+                    onClick={() => onOpenPassengers(ride.id)}
+                    className="px-3 py-2 rounded-xl bg-[#1c1c2b] hover:bg-white/10 transition font-medium"
+                  >
+                    Пассажиры
+                  </button>
+
+                  {!readOnly && ride.status !== "cancelled" && (
+                    <>
+                      <button
+                        type="button"
+                        onClick={() => setSwapRideId(swapRideId === ride.id ? null : ride.id)}
+                        className="px-3 py-2 rounded-xl bg-[#1c1c2b] hover:bg-white/10 transition font-medium"
+                      >
+                        Заменить машину
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => onCancel(ride.id)}
+                        className="px-3 py-2 rounded-xl bg-red-500/10 text-red-400 hover:bg-red-500/20 transition font-medium"
+                      >
+                        Отменить рейс
+                      </button>
+                    </>
+                  )}
+                </div>
+
+                {swapRideId === ride.id && (
+                  <div className="flex gap-2 flex-wrap mt-3">
+                    {vehicles
+                      .filter((v) => v.active && v.id !== ride.vehicleId)
+                      .map((v) => (
+                        <button
+                          key={v.id}
+                          type="button"
+                          onClick={() => onSwap(ride.id, v.id)}
+                          className="px-3 py-2 rounded-xl bg-violet-600/15 text-violet-300 hover:bg-violet-600/25 transition text-xs font-medium"
+                        >
+                          {v.label} ({v.seats} мест)
+                        </button>
+                      ))}
+                    {vehicles.filter((v) => v.active && v.id !== ride.vehicleId).length === 0 && (
+                      <span className="text-gray-500 text-xs">Нет других активных машин</span>
+                    )}
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function PassengersTab({ rides, onOpen }: { rides: Ride[]; onOpen: (rideId: number) => void }) {
+  const upcoming = [...rides]
+    .filter((r) => r.status !== "cancelled")
+    .sort((a, b) => (a.rideDate + a.departureTime).localeCompare(b.rideDate + b.departureTime));
+
+  if (upcoming.length === 0) {
+    return <div className="text-gray-500 text-sm">Рейсов пока нет</div>;
+  }
+
+  return (
+    <div className="space-y-2">
+      {upcoming.map((ride) => (
+        <button
+          key={ride.id}
+          type="button"
+          onClick={() => onOpen(ride.id)}
+          className="w-full flex items-center justify-between gap-3 bg-[#12121c] border border-white/5 rounded-2xl px-4 py-3 text-left hover:border-violet-500/30 transition"
+        >
+          <div>
+            <div className="text-sm font-medium">
+              {dateLabel(ride.rideDate)} {ride.departureTime} · {ride.fromCity} → {ride.toCity}
+            </div>
+            <div className="text-xs text-gray-500 mt-0.5">
+              {ride.occupiedSeats}/{ride.totalSeats} занято
+            </div>
+          </div>
+          <Users size={16} className="text-gray-500 shrink-0" />
+        </button>
+      ))}
+    </div>
+  );
+}
+
+function PassengersModal({ ride, onClose }: { ride: Ride | null; onClose: () => void }) {
+  const [passengers, setPassengers] = useState<{ id: number; name: string; createdAt: string }[] | null>(null);
+
+  useEffect(() => {
+    if (!ride) return;
+    setPassengers(null);
+
+    fetch(`/api/carrier/dashboard/rides/${ride.id}/passengers`, { cache: "no-store" })
+      .then((res) => res.json())
+      .then((data) => setPassengers(data.passengers ?? []));
+  }, [ride]);
+
+  if (!ride) return null;
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 px-5" onClick={onClose}>
+      <div
+        className="bg-[#171726] border border-white/10 rounded-3xl p-6 w-full max-w-sm max-h-[80vh] overflow-y-auto"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="flex items-center justify-between mb-4">
+          <div>
+            <div className="font-display font-bold">
+              {ride.fromCity} → {ride.toCity}
+            </div>
+            <div className="text-xs text-gray-500 mt-0.5">
+              {dateLabel(ride.rideDate)} {ride.departureTime} · {ride.occupiedSeats}/{ride.totalSeats} мест
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            className="w-8 h-8 rounded-full flex items-center justify-center text-gray-400 hover:bg-white/5 transition shrink-0"
+            aria-label="Закрыть"
+          >
+            <X size={16} />
+          </button>
+        </div>
+
+        <div className="text-xs text-gray-500 mb-3">Заявки «Хочу поехать» из Едем30:</div>
+
+        {!passengers ? (
+          <div className="py-8 flex items-center justify-center text-gray-500">
+            <Loader2 size={18} className="animate-spin" />
+          </div>
+        ) : passengers.length === 0 ? (
+          <div className="text-gray-500 text-sm py-4 text-center">
+            Пока нет заявок через приложение — заполнение мест отслеживается вручную кнопками +/-.
+          </div>
+        ) : (
+          <div className="space-y-2">
+            {passengers.map((p, i) => (
+              <div key={p.id} className="bg-[#1c1c2b] rounded-xl px-4 py-2.5 text-sm">
+                {i + 1}. {p.name}
+              </div>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   );
@@ -245,10 +639,12 @@ export default function CarrierDashboard({ carrierName }: { carrierName: string 
 function RideList({
   rides,
   busyRideId,
+  readOnly,
   onChange,
 }: {
   rides: Ride[];
   busyRideId: number | null;
+  readOnly: boolean;
   onChange: (rideId: number, delta: 1 | -1) => void;
 }) {
   if (rides.length === 0) {
@@ -283,29 +679,31 @@ function RideList({
               <span className="text-white font-bold">{ride.freeSeats}</span>
             </div>
 
-            <div className="flex items-center gap-3">
-              <button
-                type="button"
-                onClick={() => onChange(ride.id, -1)}
-                disabled={busyRideId === ride.id || ride.occupiedSeats <= 0}
-                aria-label="Убрать пассажира"
-                className="w-14 h-14 rounded-2xl bg-[#1c1c2b] hover:bg-white/10 disabled:opacity-30 flex items-center justify-center transition active:scale-95"
-              >
-                <Minus size={22} />
-              </button>
+            {!readOnly && (
+              <div className="flex items-center gap-3">
+                <button
+                  type="button"
+                  onClick={() => onChange(ride.id, -1)}
+                  disabled={busyRideId === ride.id || ride.occupiedSeats <= 0}
+                  aria-label="Убрать пассажира"
+                  className="w-14 h-14 rounded-2xl bg-[#1c1c2b] hover:bg-white/10 disabled:opacity-30 flex items-center justify-center transition active:scale-95"
+                >
+                  <Minus size={22} />
+                </button>
 
-              <div className="w-10 text-center font-bold text-xl">{ride.occupiedSeats}</div>
+                <div className="w-10 text-center font-bold text-xl">{ride.occupiedSeats}</div>
 
-              <button
-                type="button"
-                onClick={() => onChange(ride.id, 1)}
-                disabled={busyRideId === ride.id || ride.freeSeats <= 0}
-                aria-label="Добавить пассажира"
-                className="w-14 h-14 rounded-2xl bg-violet-600 hover:bg-violet-700 disabled:opacity-30 flex items-center justify-center transition active:scale-95"
-              >
-                <Plus size={22} />
-              </button>
-            </div>
+                <button
+                  type="button"
+                  onClick={() => onChange(ride.id, 1)}
+                  disabled={busyRideId === ride.id || ride.freeSeats <= 0}
+                  aria-label="Добавить пассажира"
+                  className="w-14 h-14 rounded-2xl bg-violet-600 hover:bg-violet-700 disabled:opacity-30 flex items-center justify-center transition active:scale-95"
+                >
+                  <Plus size={22} />
+                </button>
+              </div>
+            )}
           </div>
         </div>
       ))}
@@ -318,11 +716,13 @@ function VehiclesSection({
   show,
   setShow,
   onCreated,
+  readOnly,
 }: {
   vehicles: Vehicle[];
   show: boolean;
   setShow: (v: boolean) => void;
   onCreated: () => void;
+  readOnly: boolean;
 }) {
   const [label, setLabel] = useState("");
   const [seats, setSeats] = useState("20");
@@ -353,14 +753,16 @@ function VehiclesSection({
   return (
     <div className="bg-[#12121c] border border-white/5 rounded-3xl p-5">
       <div className="flex items-center justify-between mb-4">
-        <h3 className="font-bold">Машины</h3>
-        <button
-          type="button"
-          onClick={() => setShow(!show)}
-          className="text-xs font-medium text-violet-400 hover:text-violet-300"
-        >
-          {show ? "Отмена" : "+ Добавить"}
-        </button>
+        <h3 className="font-bold">🚐 Автопарк</h3>
+        {!readOnly && (
+          <button
+            type="button"
+            onClick={() => setShow(!show)}
+            className="text-xs font-medium text-violet-400 hover:text-violet-300"
+          >
+            {show ? "Отмена" : "+ Добавить"}
+          </button>
+        )}
       </div>
 
       <div className="space-y-2 mb-3">
@@ -412,12 +814,14 @@ function SchedulesSection({
   show,
   setShow,
   onCreated,
+  readOnly,
 }: {
   schedules: Schedule[];
   vehicles: Vehicle[];
   show: boolean;
   setShow: (v: boolean) => void;
   onCreated: () => void;
+  readOnly: boolean;
 }) {
   const [vehicleId, setVehicleId] = useState<number | "">("");
   const [fromCity, setFromCity] = useState("");
@@ -466,14 +870,16 @@ function SchedulesSection({
     <div className="bg-[#12121c] border border-white/5 rounded-3xl p-5">
       <div className="flex items-center justify-between mb-4">
         <h3 className="font-bold">Регулярное расписание</h3>
-        <button
-          type="button"
-          onClick={() => setShow(!show)}
-          disabled={vehicles.length === 0}
-          className="text-xs font-medium text-violet-400 hover:text-violet-300 disabled:opacity-40"
-        >
-          {show ? "Отмена" : "+ Добавить"}
-        </button>
+        {!readOnly && (
+          <button
+            type="button"
+            onClick={() => setShow(!show)}
+            disabled={vehicles.length === 0}
+            className="text-xs font-medium text-violet-400 hover:text-violet-300 disabled:opacity-40"
+          >
+            {show ? "Отмена" : "+ Добавить"}
+          </button>
+        )}
       </div>
 
       <div className="space-y-2 mb-3">
@@ -488,9 +894,7 @@ function SchedulesSection({
         {schedules.length === 0 && <div className="text-gray-500 text-sm">Расписания ещё нет</div>}
       </div>
 
-      {vehicles.length === 0 && (
-        <div className="text-gray-500 text-xs">Сначала добавьте машину</div>
-      )}
+      {vehicles.length === 0 && <div className="text-gray-500 text-xs">Сначала добавьте машину во вкладке «Автопарк»</div>}
 
       {show && (
         <form onSubmit={submit} className="space-y-2">
@@ -573,6 +977,167 @@ function SchedulesSection({
           </button>
         </form>
       )}
+    </div>
+  );
+}
+
+type Analytics = {
+  today: { rides: number; passengers: number; avgLoadPct: number | null; requests: number };
+  byRide: { label: string; avgLoadPct: number; sampleCount: number }[];
+  byVehicle: { label: string; avgLoadPct: number; sampleCount: number }[];
+  byWeekday: { label: string; avgLoadPct: number; sampleCount: number }[];
+  minSamples: number;
+  recommendations: { type: "hot" | "low"; label: string; loadPct: number }[];
+};
+
+function LoadBar({ label, pct, sampleCount, minSamples }: { label: string; pct: number; sampleCount: number; minSamples: number }) {
+  if (sampleCount < minSamples) {
+    return (
+      <div className="flex items-center justify-between gap-3 py-2 text-sm">
+        <span className="text-gray-400">{label}</span>
+        <span className="text-gray-600 text-xs">Недостаточно данных</span>
+      </div>
+    );
+  }
+
+  return (
+    <div className="py-2">
+      <div className="flex items-center justify-between gap-3 text-sm mb-1.5">
+        <span className="text-gray-300">{label}</span>
+        <span className="font-bold">{pct}%</span>
+      </div>
+      <div className="h-2 rounded-full bg-[#1c1c2b] overflow-hidden">
+        <div
+          className={`h-full rounded-full ${pct >= 85 ? "bg-orange-500" : pct <= 40 ? "bg-gray-500" : "bg-violet-500"}`}
+          style={{ width: `${Math.min(100, pct)}%` }}
+        />
+      </div>
+    </div>
+  );
+}
+
+function AnalyticsTab({ carrierId }: { carrierId?: number }) {
+  const [data, setData] = useState<Analytics | null>(null);
+
+  useEffect(() => {
+    fetch(withCarrierId("/api/carrier/dashboard/analytics", carrierId), { cache: "no-store" })
+      .then((res) => res.json())
+      .then(setData);
+  }, [carrierId]);
+
+  if (!data) {
+    return (
+      <div className="py-16 flex items-center justify-center text-gray-500">
+        <Loader2 size={20} className="animate-spin" />
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-6">
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        <div className="bg-[#12121c] border border-white/5 rounded-2xl p-4">
+          <div className="text-gray-500 text-xs mb-2">Рейсов сегодня</div>
+          <div className="text-xl font-bold">{data.today.rides}</div>
+        </div>
+        <div className="bg-[#12121c] border border-white/5 rounded-2xl p-4">
+          <div className="text-gray-500 text-xs mb-2">Пассажиров сегодня</div>
+          <div className="text-xl font-bold">{data.today.passengers}</div>
+        </div>
+        <div className="bg-[#12121c] border border-white/5 rounded-2xl p-4">
+          <div className="text-gray-500 text-xs mb-2">Средняя загрузка</div>
+          <div className="text-xl font-bold">{data.today.avgLoadPct !== null ? `${data.today.avgLoadPct}%` : "—"}</div>
+        </div>
+        <div className="bg-[#12121c] border border-white/5 rounded-2xl p-4">
+          <div className="text-gray-500 text-xs mb-2">Заявок сегодня</div>
+          <div className="text-xl font-bold">{data.today.requests}</div>
+        </div>
+      </div>
+
+      {data.recommendations.length > 0 && (
+        <div className="space-y-3">
+          {data.recommendations.map((r, i) => (
+            <div
+              key={i}
+              className={`rounded-3xl p-4 border ${
+                r.type === "hot" ? "bg-orange-500/10 border-orange-500/30" : "bg-[#171726] border-white/5"
+              }`}
+            >
+              <div className="flex items-center gap-1.5 text-sm font-bold mb-1">
+                {r.type === "hot" ? "🔥 Рекомендация" : "💡 Рекомендация"}
+              </div>
+              <div className="text-sm text-gray-300">
+                {r.type === "hot"
+                  ? `Рейс ${r.label} в среднем загружен на ${r.loadPct}%. Можно рассмотреть увеличение количества машин.`
+                  : `Рейс ${r.label} имеет среднюю загрузку ${r.loadPct}%. Можно проверить востребованность этого времени.`}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      <div className="bg-[#12121c] border border-white/5 rounded-3xl p-5">
+        <h3 className="font-bold mb-2">Загрузка по рейсам</h3>
+        {data.byRide.length === 0 ? (
+          <div className="text-gray-500 text-sm py-4">Недостаточно данных</div>
+        ) : (
+          data.byRide.map((s) => (
+            <LoadBar key={s.label} label={s.label} pct={s.avgLoadPct} sampleCount={s.sampleCount} minSamples={data.minSamples} />
+          ))
+        )}
+      </div>
+
+      <div className="bg-[#12121c] border border-white/5 rounded-3xl p-5">
+        <h3 className="font-bold mb-2">Загрузка по машинам</h3>
+        {data.byVehicle.length === 0 ? (
+          <div className="text-gray-500 text-sm py-4">Недостаточно данных</div>
+        ) : (
+          data.byVehicle.map((s) => (
+            <LoadBar key={s.label} label={s.label} pct={s.avgLoadPct} sampleCount={s.sampleCount} minSamples={data.minSamples} />
+          ))
+        )}
+      </div>
+
+      <div className="bg-[#12121c] border border-white/5 rounded-3xl p-5">
+        <h3 className="font-bold mb-2">Загрузка по дням недели</h3>
+        {data.byWeekday.length === 0 ? (
+          <div className="text-gray-500 text-sm py-4">Недостаточно данных</div>
+        ) : (
+          data.byWeekday.map((s) => (
+            <LoadBar key={s.label} label={s.label} pct={s.avgLoadPct} sampleCount={s.sampleCount} minSamples={data.minSamples} />
+          ))
+        )}
+      </div>
+    </div>
+  );
+}
+
+function SettingsTab({ carrier }: { carrier: DashboardData["carrier"] }) {
+  return (
+    <div className="bg-[#12121c] border border-white/5 rounded-3xl p-5 space-y-4">
+      <div>
+        <div className="text-gray-500 text-xs mb-1">Название</div>
+        <div className="font-medium">{carrier.name}</div>
+      </div>
+      <div>
+        <div className="text-gray-500 text-xs mb-1">Публичная страница</div>
+        <a href={`/carrier/${carrier.slug}`} target="_blank" className="text-violet-400 font-medium hover:text-violet-300">
+          edem30.ru/carrier/{carrier.slug}
+        </a>
+      </div>
+      <div>
+        <div className="text-gray-500 text-xs mb-1">Статус</div>
+        <span
+          className={`inline-flex text-xs font-medium px-2.5 py-1 rounded-full ${
+            carrier.active ? "bg-green-500/15 text-green-400" : "bg-gray-500/15 text-gray-400"
+          }`}
+        >
+          {carrier.active ? "Активен" : "Отключён администратором"}
+        </span>
+      </div>
+      <p className="text-gray-500 text-xs">
+        Изменение названия, тарифного плана и статуса VIP-партнёра — через администратора Едем30.
+      </p>
     </div>
   );
 }

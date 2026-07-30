@@ -51,6 +51,18 @@ export async function requireCarrierOperator(): Promise<{ userId: number; carrie
   return { userId: user.id, carrier };
 }
 
+/**
+ * Только для чтения: даёт админу открыть чужой Business-кабинет для
+ * просмотра (без права менять места/машины/расписание — это остаётся
+ * только у оператора перевозчика через requireCarrierOperator).
+ */
+export async function getCarrierForAdminView(carrierId: number): Promise<Carrier | null> {
+  const user = await getCurrentUser();
+  if (!user || user.role !== "admin") return null;
+
+  return getCarrierById(carrierId);
+}
+
 export type CarrierVehicle = {
   id: number;
   carrierId: number;
@@ -280,6 +292,199 @@ export async function adjustSeats(carrierId: number, rideId: number, delta: numb
 
 export function freeSeats(ride: CarrierRide): number {
   return Math.max(0, ride.totalSeats - ride.occupiedSeats);
+}
+
+const NOT_EDITABLE_STATUSES: CarrierRideStatus[] = ["departed", "completed", "cancelled"];
+
+export type VehicleSwapResult =
+  | { ok: true; ride: CarrierRide }
+  | { ok: false; reason: "not_found" | "vehicle_not_found" | "too_small" | "not_editable" };
+
+/**
+ * Замена машины на уже созданном рейсе (сломалась/задержалась) — рейс и
+ * записавшиеся пассажиры сохраняются, меняется только vehicle_id/total_seats.
+ * Нельзя поставить машину с местами меньше уже занятых.
+ */
+export async function swapRideVehicle(
+  carrierId: number,
+  rideId: number,
+  newVehicleId: number
+): Promise<VehicleSwapResult> {
+  const ride = await getCarrierRide(rideId);
+  if (!ride || ride.carrierId !== carrierId) return { ok: false, reason: "not_found" };
+  if (NOT_EDITABLE_STATUSES.includes(ride.status)) return { ok: false, reason: "not_editable" };
+
+  const vehicles = await sql<{ seats: number }[]>`
+    SELECT seats FROM carrier_vehicles WHERE id = ${newVehicleId} AND carrier_id = ${carrierId} AND active = true
+  `;
+  const vehicle = vehicles[0];
+  if (!vehicle) return { ok: false, reason: "vehicle_not_found" };
+  if (vehicle.seats < ride.occupiedSeats) return { ok: false, reason: "too_small" };
+
+  await sql`
+    UPDATE carrier_rides
+    SET vehicle_id = ${newVehicleId}, total_seats = ${vehicle.seats},
+        status = CASE
+          WHEN occupied_seats >= ${vehicle.seats} THEN 'full'
+          WHEN status = 'full' AND occupied_seats < ${vehicle.seats} THEN 'open'
+          ELSE status
+        END
+    WHERE id = ${rideId} AND carrier_id = ${carrierId}
+  `;
+
+  const updated = await getCarrierRide(rideId);
+  return { ok: true, ride: updated! };
+}
+
+export type CancelRideResult =
+  | { ok: true; ride: CarrierRide }
+  | { ok: false; reason: "not_found" | "already_done" };
+
+/** Отменяет конкретный рейс (история сохраняется, статус CANCELLED) и уведомляет записавшихся. */
+export async function cancelCarrierRide(carrierId: number, rideId: number): Promise<CancelRideResult> {
+  const ride = await getCarrierRide(rideId);
+  if (!ride || ride.carrierId !== carrierId) return { ok: false, reason: "not_found" };
+  if (ride.status === "cancelled" || ride.status === "completed") {
+    return { ok: false, reason: "already_done" };
+  }
+
+  await sql`UPDATE carrier_rides SET status = 'cancelled' WHERE id = ${rideId} AND carrier_id = ${carrierId}`;
+
+  const carrier = await getCarrierById(carrierId);
+  const interested = await sql<{ userId: number }[]>`
+    SELECT user_id as "userId" FROM carrier_ride_interests WHERE carrier_ride_id = ${rideId}
+  `;
+
+  for (const { userId } of interested) {
+    sendPushToUser(userId, {
+      title: "Рейс отменён",
+      body: `${carrier?.name ?? "Перевозчик"}: ${ride.fromCity} → ${ride.toCity} в ${ride.departureTime} отменён.`,
+      url: carrier ? `/carrier/${carrier.slug}` : "/",
+    });
+  }
+
+  const updated = await getCarrierRide(rideId);
+  return { ok: true, ride: updated! };
+}
+
+export type RideInterestedUser = { id: number; name: string; createdAt: string };
+
+/** Пассажиры, оставившие заявку «Хочу поехать» на конкретный рейс через Едем30. */
+export async function getRideInterestedUsers(rideId: number): Promise<RideInterestedUser[]> {
+  return sql<RideInterestedUser[]>`
+    SELECT u.id as id, u.name as name, i.created_at as "createdAt"
+    FROM carrier_ride_interests i
+    JOIN users u ON u.id = i.user_id
+    WHERE i.carrier_ride_id = ${rideId}
+    ORDER BY i.created_at ASC
+  `;
+}
+
+export const ANALYTICS_MIN_SAMPLES = 3;
+
+export type LoadStat = { label: string; avgLoadPct: number; sampleCount: number };
+
+export type CarrierAnalytics = {
+  today: { rides: number; passengers: number; avgLoadPct: number | null; requests: number };
+  byRide: LoadStat[];
+  byVehicle: LoadStat[];
+  byWeekday: LoadStat[];
+  minSamples: number;
+  recommendations: { type: "hot" | "low"; label: string; loadPct: number }[];
+};
+
+const WEEKDAY_LABELS = ["Пн", "Вт", "Ср", "Чт", "Пт", "Сб", "Вс"];
+
+/** Реальная загрузка — по прошедшим/сегодняшним рейсам, будущие не учитываются (нет данных). */
+export async function getCarrierAnalytics(carrierId: number): Promise<CarrierAnalytics> {
+  const today = dateStrOffset(0);
+
+  const [todayRides, byRideRows, byVehicleRows, byWeekdayRows, requestsToday] = await Promise.all([
+    sql<{ occupied_seats: number; total_seats: number }[]>`
+      SELECT occupied_seats, total_seats FROM carrier_rides
+      WHERE carrier_id = ${carrierId} AND ride_date = ${today} AND status != 'cancelled'
+    `,
+    sql<{ label: string; avg_load: number | null; sample_count: string }[]>`
+      SELECT (from_city || ' → ' || to_city || ' ' || departure_time) as label,
+             AVG(occupied_seats::float / NULLIF(total_seats, 0) * 100) as avg_load,
+             COUNT(*) as sample_count
+      FROM carrier_rides
+      WHERE carrier_id = ${carrierId} AND ride_date <= ${today} AND status != 'cancelled'
+      GROUP BY from_city, to_city, departure_time
+      ORDER BY avg_load DESC NULLS LAST
+    `,
+    sql<{ label: string; avg_load: number | null; sample_count: string }[]>`
+      SELECT v.label as label,
+             AVG(r.occupied_seats::float / NULLIF(r.total_seats, 0) * 100) as avg_load,
+             COUNT(*) as sample_count
+      FROM carrier_rides r
+      JOIN carrier_vehicles v ON v.id = r.vehicle_id
+      WHERE r.carrier_id = ${carrierId} AND r.ride_date <= ${today} AND r.status != 'cancelled'
+      GROUP BY v.id, v.label
+      ORDER BY avg_load DESC NULLS LAST
+    `,
+    sql<{ dow: number; avg_load: number | null; sample_count: string }[]>`
+      SELECT EXTRACT(ISODOW FROM ride_date::date)::int as dow,
+             AVG(occupied_seats::float / NULLIF(total_seats, 0) * 100) as avg_load,
+             COUNT(*) as sample_count
+      FROM carrier_rides
+      WHERE carrier_id = ${carrierId} AND ride_date <= ${today} AND status != 'cancelled'
+      GROUP BY dow
+      ORDER BY dow ASC
+    `,
+    sql<{ c: string }[]>`
+      SELECT
+        (SELECT COUNT(*) FROM carrier_ride_interests i JOIN carrier_rides r ON r.id = i.carrier_ride_id
+          WHERE r.carrier_id = ${carrierId} AND i.created_at >= date_trunc('day', now()))
+        +
+        (SELECT COUNT(*) FROM carrier_ride_offers o JOIN carrier_rides r ON r.id = o.carrier_ride_id
+          WHERE r.carrier_id = ${carrierId} AND o.created_at >= date_trunc('day', now()))
+        as c
+    `,
+  ]);
+
+  const passengersToday = todayRides.reduce((sum, r) => sum + r.occupied_seats, 0);
+  const avgLoadToday =
+    todayRides.length > 0
+      ? Math.round(
+          todayRides.reduce((sum, r) => sum + (r.total_seats > 0 ? (r.occupied_seats / r.total_seats) * 100 : 0), 0) /
+            todayRides.length
+        )
+      : null;
+
+  const byRide: LoadStat[] = byRideRows.map((r) => ({
+    label: r.label,
+    avgLoadPct: r.avg_load !== null ? Math.round(r.avg_load) : 0,
+    sampleCount: Number(r.sample_count),
+  }));
+
+  const byVehicle: LoadStat[] = byVehicleRows.map((r) => ({
+    label: r.label,
+    avgLoadPct: r.avg_load !== null ? Math.round(r.avg_load) : 0,
+    sampleCount: Number(r.sample_count),
+  }));
+
+  const byWeekday: LoadStat[] = byWeekdayRows.map((r) => ({
+    label: WEEKDAY_LABELS[r.dow - 1] ?? String(r.dow),
+    avgLoadPct: r.avg_load !== null ? Math.round(r.avg_load) : 0,
+    sampleCount: Number(r.sample_count),
+  }));
+
+  const recommendations: CarrierAnalytics["recommendations"] = [];
+  for (const stat of byRide) {
+    if (stat.sampleCount < ANALYTICS_MIN_SAMPLES) continue;
+    if (stat.avgLoadPct >= 85) recommendations.push({ type: "hot", label: stat.label, loadPct: stat.avgLoadPct });
+    else if (stat.avgLoadPct <= 40) recommendations.push({ type: "low", label: stat.label, loadPct: stat.avgLoadPct });
+  }
+
+  return {
+    today: { rides: todayRides.length, passengers: passengersToday, avgLoadPct: avgLoadToday, requests: Number(requestsToday[0].c) },
+    byRide,
+    byVehicle,
+    byWeekday,
+    minSamples: ANALYTICS_MIN_SAMPLES,
+    recommendations,
+  };
 }
 
 /** Ближайший реальный рейс перевозчика — для блока на главной и в поиске. */

@@ -3,16 +3,26 @@ import type { Metadata } from "next";
 import Navbar from "@/components/layout/Navbar";
 import Footer from "@/components/layout/Footer";
 import CarrierDashboard from "@/components/carrier/CarrierDashboard";
-import { requireCarrierOperator } from "@/lib/carriers";
+import { getCarrierForAdminView, requireCarrierOperator } from "@/lib/carriers";
 
 export const metadata: Metadata = {
   robots: { index: false, follow: false },
 };
 
-export default async function CarrierDashboardPage() {
-  const operator = await requireCarrierOperator();
+type Props = {
+  searchParams: Promise<{ carrierId?: string }>;
+};
 
-  if (!operator) {
+export default async function CarrierDashboardPage({ searchParams }: Props) {
+  const operator = await requireCarrierOperator();
+  const { carrierId: carrierIdParam } = await searchParams;
+
+  const adminCarrier =
+    !operator && carrierIdParam ? await getCarrierForAdminView(Number(carrierIdParam)) : null;
+
+  const carrier = operator?.carrier ?? adminCarrier;
+
+  if (!carrier) {
     return (
       <main className="min-h-screen bg-[#0b0b13] text-white flex flex-col">
         <Navbar />
@@ -29,7 +39,7 @@ export default async function CarrierDashboardPage() {
       <Navbar />
 
       <div className="max-w-3xl w-full mx-auto px-5 py-8 flex-1">
-        <CarrierDashboard carrierName={operator.carrier.name} />
+        <CarrierDashboard carrierName={carrier.name} carrierId={operator ? undefined : carrier.id} />
       </div>
 
       <Footer />

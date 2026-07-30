@@ -1,9 +1,10 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 
 import {
   ensureRidesForDateRange,
   findMatchingRideRequestClusters,
   freeSeats,
+  getCarrierForAdminView,
   getCarrierTodayStats,
   listRidesForCarrier,
   listSchedules,
@@ -13,35 +14,46 @@ import {
 
 export const runtime = "nodejs";
 
-const DAYS_AHEAD = 2;
+const DAYS_AHEAD = 14;
 
-export async function GET() {
+export async function GET(req: NextRequest) {
   const operator = await requireCarrierOperator();
+  const adminCarrierId = Number(req.nextUrl.searchParams.get("carrierId"));
+  const readOnly = !operator && Number.isInteger(adminCarrierId) && adminCarrierId > 0;
 
-  if (!operator) {
+  const carrier = operator
+    ? operator.carrier
+    : readOnly
+    ? await getCarrierForAdminView(adminCarrierId)
+    : null;
+
+  if (!carrier) {
     return NextResponse.json({ error: "Доступ запрещён" }, { status: 403 });
   }
 
-  await ensureRidesForDateRange(operator.carrier.id, DAYS_AHEAD);
+  const operatorCarrierId = carrier.id;
+
+  await ensureRidesForDateRange(operatorCarrierId, DAYS_AHEAD);
 
   const today = new Date().toISOString().slice(0, 10);
   const end = new Date();
   end.setDate(end.getDate() + DAYS_AHEAD);
 
   const [rides, vehicles, schedules, stats, matches] = await Promise.all([
-    listRidesForCarrier(operator.carrier.id, {
+    listRidesForCarrier(operatorCarrierId, {
       fromDate: today,
       toDate: end.toISOString().slice(0, 10),
     }),
-    listVehicles(operator.carrier.id),
-    listSchedules(operator.carrier.id),
-    getCarrierTodayStats(operator.carrier.id),
-    findMatchingRideRequestClusters(operator.carrier.id),
+    listVehicles(operatorCarrierId),
+    listSchedules(operatorCarrierId),
+    getCarrierTodayStats(operatorCarrierId),
+    readOnly ? [] : findMatchingRideRequestClusters(operatorCarrierId),
   ]);
 
   return NextResponse.json(
     {
-      carrier: operator.carrier,
+      carrier,
+      readOnly,
       rides: rides.map((r) => ({
         id: r.id,
         fromCity: r.fromCity,

@@ -2,7 +2,9 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { Bus, Crown, Eye, Loader2, MessageSquare, Truck } from "lucide-react";
+import { Bus, Crown, Eye, Loader2, MessageSquare, Power, Truck } from "lucide-react";
+
+import { useAuth } from "@/components/auth/AuthProvider";
 
 type CarrierOverview = {
   carriersCount: number;
@@ -24,13 +26,34 @@ type CarrierOverview = {
 };
 
 export default function AdminCarriersPanel() {
-  const [data, setData] = useState<CarrierOverview | null>(null);
+  const { user } = useAuth();
+  const isAdmin = user?.role === "admin";
 
-  useEffect(() => {
+  const [data, setData] = useState<CarrierOverview | null>(null);
+  const [togglingId, setTogglingId] = useState<number | null>(null);
+
+  function load() {
     fetch("/api/admin/carriers", { cache: "no-store" })
       .then((res) => res.json())
       .then(setData);
-  }, []);
+  }
+
+  useEffect(load, []);
+
+  async function toggleActive(carrierId: number, active: boolean) {
+    setTogglingId(carrierId);
+
+    try {
+      await fetch(`/api/admin/carriers/${carrierId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ active }),
+      });
+      load();
+    } finally {
+      setTogglingId(null);
+    }
+  }
 
   if (!data) {
     return (
@@ -81,13 +104,39 @@ export default function AdminCarriersPanel() {
                 </span>
               </div>
 
-              <Link
-                href={`/carrier/${c.slug}`}
-                target="_blank"
-                className="text-violet-400 text-sm font-medium hover:text-violet-300"
-              >
-                Открыть страницу →
-              </Link>
+              <div className="flex items-center gap-3 flex-wrap">
+                <Link
+                  href={`/carrier/${c.slug}`}
+                  target="_blank"
+                  className="text-violet-400 text-sm font-medium hover:text-violet-300"
+                >
+                  Открыть страницу →
+                </Link>
+
+                <Link
+                  href={`/carrier/dashboard?carrierId=${c.id}`}
+                  target="_blank"
+                  className="text-violet-400 text-sm font-medium hover:text-violet-300"
+                >
+                  Business-кабинет →
+                </Link>
+
+                {isAdmin && (
+                  <button
+                    type="button"
+                    onClick={() => toggleActive(c.id, !c.active)}
+                    disabled={togglingId === c.id}
+                    className={`inline-flex items-center gap-1.5 text-xs font-medium px-2.5 py-1.5 rounded-full transition disabled:opacity-50 ${
+                      c.active
+                        ? "bg-red-500/10 text-red-400 hover:bg-red-500/20"
+                        : "bg-green-500/10 text-green-400 hover:bg-green-500/20"
+                    }`}
+                  >
+                    <Power size={11} />
+                    {c.active ? "Отключить" : "Включить"}
+                  </button>
+                )}
+              </div>
             </div>
 
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-sm">

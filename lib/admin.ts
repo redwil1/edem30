@@ -271,6 +271,12 @@ export async function setUserCarrier(userId: number, carrierId: number | null): 
   return true;
 }
 
+/** Полностью включает/выключает перевозчика (публичная страница и кабинет перестают быть доступны). */
+export async function setCarrierActive(carrierId: number, active: boolean): Promise<boolean> {
+  const result = await sql`UPDATE carriers SET active = ${active} WHERE id = ${carrierId}`;
+  return result.count > 0;
+}
+
 export type CarrierAdminOverview = {
   carriersCount: number;
   vipCount: number;
