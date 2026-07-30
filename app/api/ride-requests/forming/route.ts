@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 
-import { clusterRideRequests, listOpenRideRequests } from "@/lib/rideRequests";
+import { clusterRideRequests, listOpenRideRequests, uniqueByPassenger } from "@/lib/rideRequests";
 
 export const runtime = "nodejs";
 
@@ -18,7 +18,7 @@ export async function GET() {
         waitingCount: c.waitingCount,
         tripId: c.requests.find((r) => r.tripId !== null)?.tripId ?? null,
         requestIds: c.requests.map((r) => r.id),
-        passengers: c.requests.map((r) => ({
+        passengers: uniqueByPassenger(c.requests).map((r) => ({
           id: r.passengerId,
           name: r.passengerName,
           avatarUrl: r.passengerAvatarUrl,

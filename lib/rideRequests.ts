@@ -205,8 +205,25 @@ function buildCluster(requests: RideRequest[]): RideRequestCluster {
     date: requests[0].date,
     time: requests[0].time,
     requests,
-    waitingCount: requests.reduce((sum, r) => sum + r.passengersCount, 0),
+    waitingCount: uniqueByPassenger(requests).reduce((sum, r) => sum + r.passengersCount, 0),
   };
+}
+
+/**
+ * Один и тот же пассажир может оставить несколько заявок на один и тот же
+ * формирующийся маршрут (например поменял желаемое время) — при подсчёте
+ * "сколько людей ждут" и в списке участников он не должен считаться
+ * дважды. Оставляем самую раннюю (по id) заявку каждого пассажира.
+ */
+export function uniqueByPassenger(requests: RideRequest[]): RideRequest[] {
+  const byPassenger = new Map<number, RideRequest>();
+
+  for (const r of requests) {
+    const existing = byPassenger.get(r.passengerId);
+    if (!existing || r.id < existing.id) byPassenger.set(r.passengerId, r);
+  }
+
+  return [...byPassenger.values()];
 }
 
 /** Кластер, к которому присоединилась бы заявка с такими параметрами (если есть). */
