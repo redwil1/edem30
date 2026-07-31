@@ -11,6 +11,7 @@ type Props = {
 };
 
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
+const TIME_RE = /^\d{2}:\d{2}$/;
 
 export async function PATCH(req: NextRequest, { params }: Props) {
   if (!isTrustedOrigin(req)) {
@@ -41,12 +42,14 @@ export async function PATCH(req: NextRequest, { params }: Props) {
 
   const body = await req.json().catch(() => null);
 
-  const input: { price?: number; date?: string } = {};
+  const input: { price?: number; date?: string; from?: string; to?: string; time?: string } = {};
 
   if (body?.price !== undefined) {
     const price = Number(body.price);
 
-    if (!Number.isInteger(price) || price <= 0 || price > 100_000) {
+    // 0 допустим — так у формирующихся поездок ("Ищет водителя"), у которых
+    // цена ещё не назначена (её выставляет водитель при принятии заявки).
+    if (!Number.isInteger(price) || price < 0 || price > 100_000) {
       return NextResponse.json({ error: "Укажите корректную цену" }, { status: 400 });
     }
 
@@ -59,6 +62,29 @@ export async function PATCH(req: NextRequest, { params }: Props) {
     }
 
     input.date = body.date;
+  }
+
+  if (body?.from !== undefined) {
+    const from = typeof body.from === "string" ? body.from.trim() : "";
+    if (!from || from.length > 80) {
+      return NextResponse.json({ error: "Укажите корректный город отправления" }, { status: 400 });
+    }
+    input.from = from;
+  }
+
+  if (body?.to !== undefined) {
+    const to = typeof body.to === "string" ? body.to.trim() : "";
+    if (!to || to.length > 80) {
+      return NextResponse.json({ error: "Укажите корректный город назначения" }, { status: 400 });
+    }
+    input.to = to;
+  }
+
+  if (body?.time !== undefined) {
+    if (typeof body.time !== "string" || !TIME_RE.test(body.time)) {
+      return NextResponse.json({ error: "Укажите корректное время" }, { status: 400 });
+    }
+    input.time = body.time;
   }
 
   const ok = await updateAdminTrip(tripId, input);

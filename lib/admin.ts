@@ -6,6 +6,7 @@ import { sql } from "@/lib/db";
 import { getCurrentUser, hashPassword, UserRole } from "@/lib/auth";
 import { ACTIVE_TRIP_CLAUSE } from "@/lib/liveStats";
 import { isPlaceholderName } from "@/lib/nameValidation";
+import { restoreRideRequestsForTrip } from "@/lib/rideRequests";
 
 export async function requireAdmin() {
   const user = await getCurrentUser();
@@ -459,6 +460,7 @@ export type AdminTrip = {
   price: number;
   status: AdminTripStatus;
   driverName: string;
+  isForming: boolean;
 };
 
 type AdminTripRow = {
@@ -493,6 +495,9 @@ function toAdminTrip(row: AdminTripRow): AdminTrip {
     price: row.price,
     status: tripStatus(row),
     driverName: row.driver_name,
+    // Формирующаяся поездка ("Ищет водителя") — driver_name пуст, owner_id
+    // ещё не назначен (см. createFormingTrip в lib/trips.ts).
+    isForming: row.driver_name === "",
   };
 }
 
@@ -516,18 +521,24 @@ export async function listAdminTrips(search?: string): Promise<AdminTrip[]> {
 export type UpdateAdminTripInput = {
   price?: number;
   date?: string;
+  from?: string;
+  to?: string;
+  time?: string;
 };
 
 export async function updateAdminTrip(
   tripId: number,
   input: UpdateAdminTripInput
 ): Promise<boolean> {
-  if (input.price === undefined && input.date === undefined) return false;
-
   const patch: Record<string, unknown> = {};
 
   if (input.price !== undefined) patch.price = input.price;
   if (input.date !== undefined) patch.trip_date = input.date;
+  if (input.from !== undefined) patch.from_city = input.from;
+  if (input.to !== undefined) patch.to_city = input.to;
+  if (input.time !== undefined) patch.trip_time = input.time;
+
+  if (Object.keys(patch).length === 0) return false;
 
   const result = await sql`
     UPDATE trips SET ${sql(patch)} WHERE id = ${tripId}
@@ -538,12 +549,13 @@ export async function updateAdminTrip(
 
 export async function adminCancelTrip(tripId: number): Promise<boolean> {
   const [tripResult] = await Promise.all([
-    sql`
+    sql<{ id: number; ownerId: number | null }[]>`
       UPDATE trips SET cancelled_at = COALESCE(
         cancelled_at,
         to_char(now() AT TIME ZONE 'utc', 'YYYY-MM-DD"T"HH24:MI:SS"Z"')
       )
-      WHERE id = ${tripId}
+      WHERE id = ${tripId} AND cancelled_at IS NULL
+      RETURNING id, owner_id as "ownerId"
     `,
     sql`
       UPDATE taxi_orders SET status = 'cancelled'
@@ -551,7 +563,27 @@ export async function adminCancelTrip(tripId: number): Promise<boolean> {
     `,
   ]);
 
-  return tripResult.count > 0;
+  if (tripResult.count === 0) return false;
+
+  if (tripResult[0].ownerId !== null) {
+    // Обычная поездка с водителем: как при отмене самим водителем
+    // (app/api/trips/[id]/cancel) — переоткрываем заявки «Ищу водителя»,
+    // которые эта поездка закрыла, чтобы пассажиры не остались молча
+    // привязаны к отменённой поездке.
+    await restoreRideRequestsForTrip(tripId);
+  } else {
+    // Формирующаяся поездка без водителя ("Ищет водителя"): заявки на неё
+    // остаются 'open' (водителя ещё не было, закрывать было нечего) — их
+    // нужно закрыть как отменённые, тем же способом, каким пассажир
+    // отменяет заявку сам (см. cancelRideRequest), иначе они молча
+    // останутся 'open' с trip_id, указывающим на отменённую поездку.
+    await sql`
+      UPDATE ride_requests SET status = 'cancelled', closed_at = now()
+      WHERE trip_id = ${tripId} AND status = 'open'
+    `;
+  }
+
+  return true;
 }
 
 /** Отменяет отмену: возвращает поездку в исходный статус (снимает cancelled_at). */

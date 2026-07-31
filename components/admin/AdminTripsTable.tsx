@@ -16,6 +16,7 @@ type Trip = {
   price: number;
   status: Status;
   driverName: string;
+  isForming: boolean;
 };
 
 const STATUS_LABELS: Record<Status, string> = {
@@ -52,6 +53,9 @@ export default function AdminTripsTable() {
   const [editingId, setEditingId] = useState<number | null>(null);
   const [editPrice, setEditPrice] = useState("");
   const [editDate, setEditDate] = useState("");
+  const [editFrom, setEditFrom] = useState("");
+  const [editTo, setEditTo] = useState("");
+  const [editTime, setEditTime] = useState("");
   const [busyId, setBusyId] = useState<number | null>(null);
 
   async function load(query: string) {
@@ -88,6 +92,9 @@ export default function AdminTripsTable() {
     setEditingId(trip.id);
     setEditPrice(String(trip.price));
     setEditDate(trip.date);
+    setEditFrom(trip.from);
+    setEditTo(trip.to);
+    setEditTime(trip.time);
   }
 
   async function saveEdit(tripId: number) {
@@ -96,7 +103,13 @@ export default function AdminTripsTable() {
     await fetch(`/api/admin/trips/${tripId}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ price: Number(editPrice), date: editDate }),
+      body: JSON.stringify({
+        price: Number(editPrice),
+        date: editDate,
+        from: editFrom,
+        to: editTo,
+        time: editTime,
+      }),
     });
 
     await load(search);
@@ -167,7 +180,7 @@ export default function AdminTripsTable() {
                 <th className="px-4 py-3 font-medium">ID</th>
                 <th className="px-4 py-3 font-medium">Откуда</th>
                 <th className="px-4 py-3 font-medium">Куда</th>
-                <th className="px-4 py-3 font-medium">Дата</th>
+                <th className="px-4 py-3 font-medium">Дата/время</th>
                 <th className="px-4 py-3 font-medium">Цена</th>
                 <th className="px-4 py-3 font-medium">Статус</th>
                 <th className="px-4 py-3 font-medium">Водитель</th>
@@ -190,25 +203,53 @@ export default function AdminTripsTable() {
                     }`}
                   >
                     <td className="px-4 py-3 text-gray-500">{t.id}</td>
-                    <td className="px-4 py-3">{t.from}</td>
-                    <td className="px-4 py-3">{t.to}</td>
-                    <td className="px-4 py-3 whitespace-nowrap">
+                    <td className="px-4 py-3">
                       {editing ? (
                         <input
-                          type="date"
-                          value={editDate}
-                          onChange={(e) => setEditDate(e.target.value)}
-                          className="bg-[#1c1c2b] rounded-lg px-2 py-1 outline-none w-36"
+                          value={editFrom}
+                          onChange={(e) => setEditFrom(e.target.value)}
+                          className="bg-[#1c1c2b] rounded-lg px-2 py-1 outline-none w-28"
                         />
                       ) : (
-                        formatDate(t.date)
+                        t.from
+                      )}
+                    </td>
+                    <td className="px-4 py-3">
+                      {editing ? (
+                        <input
+                          value={editTo}
+                          onChange={(e) => setEditTo(e.target.value)}
+                          className="bg-[#1c1c2b] rounded-lg px-2 py-1 outline-none w-28"
+                        />
+                      ) : (
+                        t.to
+                      )}
+                    </td>
+                    <td className="px-4 py-3 whitespace-nowrap">
+                      {editing ? (
+                        <div className="flex items-center gap-1.5">
+                          <input
+                            type="date"
+                            value={editDate}
+                            onChange={(e) => setEditDate(e.target.value)}
+                            className="bg-[#1c1c2b] rounded-lg px-2 py-1 outline-none w-36"
+                          />
+                          <input
+                            type="time"
+                            value={editTime}
+                            onChange={(e) => setEditTime(e.target.value)}
+                            className="bg-[#1c1c2b] rounded-lg px-2 py-1 outline-none w-24"
+                          />
+                        </div>
+                      ) : (
+                        `${formatDate(t.date)} ${t.time}`
                       )}
                     </td>
                     <td className="px-4 py-3 whitespace-nowrap">
                       {editing ? (
                         <input
                           type="number"
-                          min={1}
+                          min={0}
                           value={editPrice}
                           onChange={(e) => setEditPrice(e.target.value)}
                           className="bg-[#1c1c2b] rounded-lg px-2 py-1 outline-none w-24"
@@ -225,7 +266,11 @@ export default function AdminTripsTable() {
                       </span>
                     </td>
                     <td className="px-4 py-3 text-gray-400 whitespace-nowrap">
-                      {t.driverName}
+                      {t.isForming ? (
+                        <span className="text-violet-400">Ищет водителя</span>
+                      ) : (
+                        t.driverName
+                      )}
                     </td>
                     <td className="px-4 py-3">
                       {editing ? (
@@ -254,7 +299,7 @@ export default function AdminTripsTable() {
                             onClick={() => startEdit(t)}
                             disabled={locked || busy}
                             className="text-violet-400 hover:text-violet-300 disabled:opacity-40 disabled:cursor-not-allowed"
-                            title="Изменить цену/дату"
+                            title="Изменить маршрут/дату/время/цену"
                           >
                             <Pencil size={15} />
                           </button>
