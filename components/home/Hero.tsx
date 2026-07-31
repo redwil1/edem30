@@ -64,7 +64,7 @@ export default function Hero({ city, onCityChange }: Props) {
               </Link>
 
               <Link
-                href="#taxi"
+                href="/taxi"
                 className="group bg-[#14141f] border border-violet-500/20 rounded-2xl p-3.5 sm:p-5 flex items-center gap-3 sm:gap-4 hover:border-violet-500 transition"
               >
                 <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-violet-600/20 flex items-center justify-center shrink-0">
