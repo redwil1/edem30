@@ -1511,11 +1511,13 @@ export async function removeEmployee(carrierId: number, employeeCarrierUserId: n
   let freedRides: number[] = [];
 
   if (employee.role === "driver") {
+    // ride_date хранится как TEXT 'YYYY-MM-DD' (см. dateStrOffset), поэтому
+    // сравнение с датой должно быть текстовым, а не через CURRENT_DATE.
     const freed = await sql<{ id: number }[]>`
       UPDATE carrier_rides
       SET driver_user_id = NULL
       WHERE carrier_id = ${carrierId} AND driver_user_id = ${employee.userId}
-        AND status IN ('open', 'full') AND ride_date >= CURRENT_DATE
+        AND status IN ('open', 'full') AND ride_date >= to_char(now() AT TIME ZONE 'utc', 'YYYY-MM-DD')
       RETURNING id
     `;
     freedRides = freed.map((r) => r.id);
