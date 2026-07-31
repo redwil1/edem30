@@ -112,6 +112,13 @@ export async function POST(req: NextRequest) {
     );
   }
 
+  if (from.trim().toLowerCase() === to.trim().toLowerCase()) {
+    return NextResponse.json(
+      { error: "Пункт отправления и назначения не могут совпадать" },
+      { status: 400 }
+    );
+  }
+
   if (type === "city") {
     if (!isValidAddress(from, city) || !isValidAddress(to, city)) {
       return NextResponse.json(

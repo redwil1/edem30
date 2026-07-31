@@ -92,8 +92,11 @@ export async function getRecentActivity(limit = 8): Promise<ActivityItem[]> {
       LIMIT ${limit}
     `,
     sql<EventRow[]>`
+      -- owner_id IS NULL — формирующаяся заявка "Ищу водителя" без водителя,
+      -- driver_name у неё всегда '' — показать нечего, поэтому исключаем.
       SELECT id, driver_name as name, from_city, to_city, created_at as at
       FROM trips
+      WHERE owner_id IS NOT NULL
       ORDER BY created_at DESC
       LIMIT ${limit}
     `,
@@ -152,7 +155,7 @@ export async function getActivityWindow(minutes = 10): Promise<ActivityWindow> {
       SELECT COUNT(*) as c FROM trip_participants WHERE joined_at >= ${since}
     `,
     sql<{ c: string }[]>`
-      SELECT COUNT(*) as c FROM trips WHERE created_at >= ${since}
+      SELECT COUNT(*) as c FROM trips WHERE created_at >= ${since} AND owner_id IS NOT NULL
     `,
   ]);
 

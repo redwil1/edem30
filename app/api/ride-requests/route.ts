@@ -47,6 +47,9 @@ export async function POST(req: NextRequest) {
   if (!from || !to) {
     return NextResponse.json({ error: "Укажите откуда и куда" }, { status: 400 });
   }
+  if (from.toLowerCase() === to.toLowerCase()) {
+    return NextResponse.json({ error: "Пункт отправления и назначения не могут совпадать" }, { status: 400 });
+  }
   if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) {
     return NextResponse.json({ error: "Укажите дату" }, { status: 400 });
   }
