@@ -16,6 +16,7 @@ type PublicRide = {
   totalSeats: number;
   freeSeats: number;
   status: string;
+  ridersCount: number;
 };
 
 type Props = {
@@ -116,11 +117,19 @@ export default function CarrierPublicRides({ slug }: Props) {
             </div>
 
             <div className="flex items-center justify-between gap-3 mt-4 flex-wrap">
-              <span
-                className={`inline-flex items-center gap-1 text-xs font-medium px-2.5 py-1.5 rounded-full ${badge.className}`}
-              >
-                {badge.label}
-              </span>
+              <div className="flex items-center gap-2 flex-wrap">
+                <span
+                  className={`inline-flex items-center gap-1 text-xs font-medium px-2.5 py-1.5 rounded-full ${badge.className}`}
+                >
+                  {badge.label}
+                </span>
+
+                {ride.ridersCount > 0 && (
+                  <span className="inline-flex items-center gap-1 text-xs font-medium px-2.5 py-1.5 rounded-full bg-violet-600/15 text-violet-300">
+                    👥 Уже едут: {ride.ridersCount}
+                  </span>
+                )}
+              </div>
 
               {ride.freeSeats > 0 && (
                 <button

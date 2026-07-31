@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { redirect } from "next/navigation";
 
 import Navbar from "@/components/layout/Navbar";
 import Footer from "@/components/layout/Footer";
@@ -15,6 +16,12 @@ type Props = {
 
 export default async function CarrierDashboardPage({ searchParams }: Props) {
   const operator = await requireCarrierOperator();
+
+  // У водителя отдельный простой мобильный кабинет — CRM менеджера ему не нужна.
+  if (operator && operator.role === "driver") {
+    redirect("/carrier/driver");
+  }
+
   const { carrierId: carrierIdParam } = await searchParams;
 
   const adminCarrier =

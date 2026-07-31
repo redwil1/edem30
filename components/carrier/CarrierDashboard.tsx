@@ -8,12 +8,15 @@ import {
   Eye,
   Flame,
   Loader2,
-  Minus,
   Plus,
   Settings,
+  UserCog,
   Users,
   X,
 } from "lucide-react";
+
+import BookingsTab from "./BookingsTab";
+import EmployeesTab from "./EmployeesTab";
 
 type Ride = {
   id: number;
@@ -66,9 +69,12 @@ type Stats = {
   ridesToday: number;
 };
 
+type Role = "manager" | "operator" | "driver";
+
 type DashboardData = {
   carrier: { id: number; slug: string; name: string; tagline: string | null; verified: boolean; active: boolean };
   readOnly?: boolean;
+  role: Role;
   rides: Ride[];
   vehicles: Vehicle[];
   schedules: Schedule[];
@@ -76,16 +82,18 @@ type DashboardData = {
   stats: Stats;
 };
 
-type Tab = "today" | "rides" | "schedule" | "passengers" | "fleet" | "analytics" | "settings";
+type Tab = "today" | "rides" | "bookings" | "schedule" | "passengers" | "fleet" | "employees" | "analytics" | "settings";
 
-const TABS: { id: Tab; label: string; icon: typeof Calendar }[] = [
-  { id: "today", label: "Сегодня", icon: Calendar },
-  { id: "rides", label: "Рейсы", icon: Bus },
-  { id: "schedule", label: "Расписание", icon: Calendar },
-  { id: "passengers", label: "Пассажиры", icon: Users },
-  { id: "fleet", label: "Автопарк", icon: Bus },
-  { id: "analytics", label: "Аналитика", icon: BarChart3 },
-  { id: "settings", label: "Настройки", icon: Settings },
+const TABS: { id: Tab; label: string; icon: typeof Calendar; roles: Role[] }[] = [
+  { id: "today", label: "Сегодня", icon: Calendar, roles: ["manager", "operator"] },
+  { id: "rides", label: "Рейсы", icon: Bus, roles: ["manager", "operator"] },
+  { id: "bookings", label: "Бронирования", icon: Plus, roles: ["manager", "operator"] },
+  { id: "schedule", label: "Расписание", icon: Calendar, roles: ["manager"] },
+  { id: "passengers", label: "Пассажиры", icon: Users, roles: ["manager", "operator"] },
+  { id: "fleet", label: "Автопарк", icon: Bus, roles: ["manager"] },
+  { id: "employees", label: "Сотрудники", icon: UserCog, roles: ["manager"] },
+  { id: "analytics", label: "Аналитика", icon: BarChart3, roles: ["manager"] },
+  { id: "settings", label: "Настройки", icon: Settings, roles: ["manager"] },
 ];
 
 const DAY_LABELS = ["Пн", "Вт", "Ср", "Чт", "Пт", "Сб", "Вс"];
@@ -121,6 +129,7 @@ export default function CarrierDashboard({
   const [showScheduleForm, setShowScheduleForm] = useState(false);
   const [passengersRideId, setPassengersRideId] = useState<number | null>(null);
   const [swapRideId, setSwapRideId] = useState<number | null>(null);
+  const [preselectedRideId, setPreselectedRideId] = useState<number | null>(null);
 
   const readOnly = !!data?.readOnly;
 
@@ -135,36 +144,6 @@ export default function CarrierDashboard({
     return () => clearInterval(interval);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [carrierId]);
-
-  async function changeSeats(rideId: number, delta: 1 | -1) {
-    setBusyRideId(rideId);
-
-    try {
-      const res = await fetch(`/api/carrier/dashboard/rides/${rideId}/seats`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ delta }),
-      });
-
-      if (res.ok) {
-        const result = await res.json();
-        setData((prev) =>
-          prev
-            ? {
-                ...prev,
-                rides: prev.rides.map((r) =>
-                  r.id === rideId
-                    ? { ...r, occupiedSeats: result.occupiedSeats, freeSeats: result.freeSeats, status: result.status }
-                    : r
-                ),
-              }
-            : prev
-        );
-      }
-    } finally {
-      setBusyRideId(null);
-    }
-  }
 
   async function offerSeats(carrierRideId: number) {
     setOfferingId(carrierRideId);
@@ -219,6 +198,12 @@ export default function CarrierDashboard({
   }
 
   const todayRides = data.rides.filter((r) => r.rideDate === todayStr());
+  const visibleTabs = TABS.filter((t) => t.roles.includes(data.role));
+
+  function goToBooking(rideId: number) {
+    setPreselectedRideId(rideId);
+    setTab("bookings");
+  }
 
   return (
     <div>
@@ -227,10 +212,14 @@ export default function CarrierDashboard({
       {readOnly && (
         <p className="text-violet-400 text-sm mb-4">Режим просмотра администратором — изменения недоступны</p>
       )}
-      {!readOnly && <p className="text-gray-500 text-sm mb-6">Кабинет перевозчика</p>}
+      {!readOnly && (
+        <p className="text-gray-500 text-sm mb-6">
+          Кабинет перевозчика · {data.role === "manager" ? "Менеджер" : "Оператор"}
+        </p>
+      )}
 
       <div className="flex gap-1 bg-[#12121c] border border-white/5 rounded-2xl p-1 mb-6 overflow-x-auto">
-        {TABS.map((t) => (
+        {visibleTabs.map((t) => (
           <button
             key={t.id}
             type="button"
@@ -249,11 +238,10 @@ export default function CarrierDashboard({
         <TodayTab
           data={data}
           todayRides={todayRides}
-          busyRideId={busyRideId}
           offeringId={offeringId}
           readOnly={readOnly}
-          onChangeSeats={changeSeats}
           onOffer={offerSeats}
+          onAddBooking={goToBooking}
         />
       )}
 
@@ -265,10 +253,21 @@ export default function CarrierDashboard({
           busyRideId={busyRideId}
           swapRideId={swapRideId}
           setSwapRideId={setSwapRideId}
-          onChangeSeats={changeSeats}
           onCancel={cancelRide}
           onSwap={swapVehicle}
           onOpenPassengers={setPassengersRideId}
+          onAddBooking={goToBooking}
+        />
+      )}
+
+      {tab === "bookings" && (
+        <BookingsTab
+          carrierId={carrierId}
+          rides={data.rides}
+          readOnly={readOnly}
+          preselectedRideId={preselectedRideId}
+          onConsumePreselect={() => setPreselectedRideId(null)}
+          onChanged={load}
         />
       )}
 
@@ -297,6 +296,8 @@ export default function CarrierDashboard({
         />
       )}
 
+      {tab === "employees" && <EmployeesTab carrierId={carrierId} vehicles={data.vehicles} readOnly={readOnly} />}
+
       {tab === "analytics" && <AnalyticsTab carrierId={carrierId} />}
 
       {tab === "settings" && <SettingsTab carrier={data.carrier} />}
@@ -305,6 +306,8 @@ export default function CarrierDashboard({
         <PassengersModal
           ride={data.rides.find((r) => r.id === passengersRideId) ?? null}
           onClose={() => setPassengersRideId(null)}
+          readOnly={readOnly}
+          onCancelled={load}
         />
       )}
     </div>
@@ -314,19 +317,17 @@ export default function CarrierDashboard({
 function TodayTab({
   data,
   todayRides,
-  busyRideId,
   offeringId,
   readOnly,
-  onChangeSeats,
   onOffer,
+  onAddBooking,
 }: {
   data: DashboardData;
   todayRides: Ride[];
-  busyRideId: number | null;
   offeringId: number | null;
   readOnly: boolean;
-  onChangeSeats: (rideId: number, delta: 1 | -1) => void;
   onOffer: (carrierRideId: number) => void;
+  onAddBooking: (rideId: number) => void;
 }) {
   return (
     <div>
@@ -380,7 +381,7 @@ function TodayTab({
       )}
 
       <h2 className="text-lg font-bold mb-3">Сегодня</h2>
-      <RideList rides={todayRides} busyRideId={busyRideId} readOnly={readOnly} onChange={onChangeSeats} />
+      <RideList rides={todayRides} readOnly={readOnly} onAddBooking={onAddBooking} />
 
       {data.rides.length === 0 && (
         <div className="bg-[#12121c] border border-white/5 rounded-3xl p-6 text-center text-gray-500">
@@ -398,10 +399,10 @@ function RidesTab({
   busyRideId,
   swapRideId,
   setSwapRideId,
-  onChangeSeats,
   onCancel,
   onSwap,
   onOpenPassengers,
+  onAddBooking,
 }: {
   rides: Ride[];
   vehicles: Vehicle[];
@@ -409,10 +410,10 @@ function RidesTab({
   busyRideId: number | null;
   swapRideId: number | null;
   setSwapRideId: (id: number | null) => void;
-  onChangeSeats: (rideId: number, delta: 1 | -1) => void;
   onCancel: (rideId: number) => void;
   onSwap: (rideId: number, vehicleId: number) => void;
   onOpenPassengers: (rideId: number) => void;
+  onAddBooking: (rideId: number) => void;
 }) {
   const grouped = rides.reduce<Record<string, Ride[]>>((acc, r) => {
     (acc[r.rideDate] ??= []).push(r);
@@ -458,30 +459,6 @@ function RidesTab({
                   </span>
                 </div>
 
-                {!readOnly && ride.status !== "cancelled" && (
-                  <div className="flex items-center gap-4 mb-3">
-                    <button
-                      type="button"
-                      onClick={() => onChangeSeats(ride.id, -1)}
-                      disabled={busyRideId === ride.id || ride.occupiedSeats <= 0}
-                      aria-label="Убрать пассажира"
-                      className="w-12 h-12 rounded-2xl bg-[#1c1c2b] hover:bg-white/10 disabled:opacity-30 flex items-center justify-center transition active:scale-95"
-                    >
-                      <Minus size={18} />
-                    </button>
-                    <div className="w-8 text-center font-bold">{ride.occupiedSeats}</div>
-                    <button
-                      type="button"
-                      onClick={() => onChangeSeats(ride.id, 1)}
-                      disabled={busyRideId === ride.id || ride.freeSeats <= 0}
-                      aria-label="Добавить пассажира"
-                      className="w-12 h-12 rounded-2xl bg-violet-600 hover:bg-violet-700 disabled:opacity-30 flex items-center justify-center transition active:scale-95"
-                    >
-                      <Plus size={18} />
-                    </button>
-                  </div>
-                )}
-
                 <div className="flex items-center gap-2 flex-wrap text-xs">
                   <button
                     type="button"
@@ -493,6 +470,15 @@ function RidesTab({
 
                   {!readOnly && ride.status !== "cancelled" && (
                     <>
+                      <button
+                        type="button"
+                        onClick={() => onAddBooking(ride.id)}
+                        disabled={ride.freeSeats <= 0}
+                        className="px-3 py-2 rounded-xl bg-violet-600/15 text-violet-300 hover:bg-violet-600/25 transition font-medium disabled:opacity-40"
+                      >
+                        + Бронь
+                      </button>
+
                       <button
                         type="button"
                         onClick={() => setSwapRideId(swapRideId === ride.id ? null : ride.id)}
@@ -573,19 +559,64 @@ function PassengersTab({ rides, onOpen }: { rides: Ride[]; onOpen: (rideId: numb
   );
 }
 
-function PassengersModal({ ride, onClose }: { ride: Ride | null; onClose: () => void }) {
-  const [passengers, setPassengers] = useState<{ id: number; name: string; createdAt: string }[] | null>(null);
+type ModalBooking = {
+  id: number;
+  seats: number;
+  passengerName: string;
+  passengerPhone: string | null;
+  pickup: string | null;
+  dropoff: string | null;
+  comment: string | null;
+  source: "operator" | "edem30";
+  userId: number | null;
+};
 
-  useEffect(() => {
+function PassengersModal({
+  ride,
+  onClose,
+  readOnly,
+  onCancelled,
+}: {
+  ride: Ride | null;
+  onClose: () => void;
+  readOnly: boolean;
+  onCancelled: () => void;
+}) {
+  const [bookings, setBookings] = useState<ModalBooking[] | null>(null);
+  const [interests, setInterests] = useState<{ id: number; name: string }[] | null>(null);
+  const [cancellingId, setCancellingId] = useState<number | null>(null);
+
+  function load() {
     if (!ride) return;
-    setPassengers(null);
-
     fetch(`/api/carrier/dashboard/rides/${ride.id}/passengers`, { cache: "no-store" })
       .then((res) => res.json())
-      .then((data) => setPassengers(data.passengers ?? []));
+      .then((data) => {
+        setBookings(data.bookings ?? []);
+        setInterests(data.interests ?? []);
+      });
+  }
+
+  useEffect(() => {
+    setBookings(null);
+    setInterests(null);
+    load();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [ride]);
 
   if (!ride) return null;
+
+  async function cancelBooking(bookingId: number) {
+    setCancellingId(bookingId);
+    try {
+      const res = await fetch(`/api/carrier/dashboard/bookings/${bookingId}/cancel`, { method: "POST" });
+      if (res.ok) {
+        load();
+        onCancelled();
+      }
+    } finally {
+      setCancellingId(null);
+    }
+  }
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 px-5" onClick={onClose}>
@@ -612,24 +643,66 @@ function PassengersModal({ ride, onClose }: { ride: Ride | null; onClose: () => 
           </button>
         </div>
 
-        <div className="text-xs text-gray-500 mb-3">Заявки «Хочу поехать» из Едем30:</div>
+        <div className="text-xs text-gray-500 mb-2">Пассажиры (подтверждённая бронь):</div>
 
-        {!passengers ? (
+        {!bookings ? (
           <div className="py-8 flex items-center justify-center text-gray-500">
             <Loader2 size={18} className="animate-spin" />
           </div>
-        ) : passengers.length === 0 ? (
-          <div className="text-gray-500 text-sm py-4 text-center">
-            Пока нет заявок через приложение — заполнение мест отслеживается вручную кнопками +/-.
-          </div>
+        ) : bookings.length === 0 ? (
+          <div className="text-gray-500 text-sm py-3">Пока никто не забронирован</div>
         ) : (
-          <div className="space-y-2">
-            {passengers.map((p, i) => (
-              <div key={p.id} className="bg-[#1c1c2b] rounded-xl px-4 py-2.5 text-sm">
-                {i + 1}. {p.name}
+          <div className="space-y-2 mb-4">
+            {bookings.map((b) => (
+              <div key={b.id} className="bg-[#1c1c2b] rounded-xl px-4 py-2.5 text-sm">
+                <div className="flex items-center justify-between gap-2">
+                  <div className="font-medium">
+                    {b.passengerName} <span className="text-gray-500 font-normal">· {b.seats} мест</span>
+                  </div>
+                  <span
+                    className={`text-[10px] font-medium px-1.5 py-0.5 rounded-full whitespace-nowrap ${
+                      b.source === "edem30" ? "bg-violet-600/20 text-violet-300" : "bg-white/10 text-gray-400"
+                    }`}
+                  >
+                    {b.source === "edem30" ? "🌐 Едем30" : "📞 Оператор"}
+                  </span>
+                </div>
+                {b.passengerPhone && <div className="text-gray-500 text-xs mt-1">📞 {b.passengerPhone}</div>}
+                {(b.pickup || b.dropoff) && (
+                  <div className="text-gray-500 text-xs mt-0.5">
+                    {b.pickup && `Откуда: ${b.pickup}`}
+                    {b.pickup && b.dropoff && " · "}
+                    {b.dropoff && `Куда: ${b.dropoff}`}
+                  </div>
+                )}
+                {b.comment && <div className="text-gray-500 text-xs mt-0.5">💬 {b.comment}</div>}
+
+                {!readOnly && (
+                  <button
+                    type="button"
+                    onClick={() => cancelBooking(b.id)}
+                    disabled={cancellingId === b.id}
+                    className="text-red-400 hover:text-red-300 text-xs font-medium mt-2 disabled:opacity-50"
+                  >
+                    Отменить бронь
+                  </button>
+                )}
               </div>
             ))}
           </div>
+        )}
+
+        {interests && interests.length > 0 && (
+          <>
+            <div className="text-xs text-gray-500 mb-2">Хотят поехать (не подтверждено):</div>
+            <div className="space-y-2">
+              {interests.map((p) => (
+                <div key={p.id} className="bg-[#1c1c2b]/60 rounded-xl px-4 py-2 text-sm text-gray-400">
+                  {p.name}
+                </div>
+              ))}
+            </div>
+          </>
         )}
       </div>
     </div>
@@ -638,14 +711,12 @@ function PassengersModal({ ride, onClose }: { ride: Ride | null; onClose: () => 
 
 function RideList({
   rides,
-  busyRideId,
   readOnly,
-  onChange,
+  onAddBooking,
 }: {
   rides: Ride[];
-  busyRideId: number | null;
   readOnly: boolean;
-  onChange: (rideId: number, delta: 1 | -1) => void;
+  onAddBooking: (rideId: number) => void;
 }) {
   if (rides.length === 0) {
     return <div className="text-gray-500 text-sm mb-6">Рейсов нет</div>;
@@ -680,29 +751,15 @@ function RideList({
             </div>
 
             {!readOnly && (
-              <div className="flex items-center gap-3">
-                <button
-                  type="button"
-                  onClick={() => onChange(ride.id, -1)}
-                  disabled={busyRideId === ride.id || ride.occupiedSeats <= 0}
-                  aria-label="Убрать пассажира"
-                  className="w-14 h-14 rounded-2xl bg-[#1c1c2b] hover:bg-white/10 disabled:opacity-30 flex items-center justify-center transition active:scale-95"
-                >
-                  <Minus size={22} />
-                </button>
-
-                <div className="w-10 text-center font-bold text-xl">{ride.occupiedSeats}</div>
-
-                <button
-                  type="button"
-                  onClick={() => onChange(ride.id, 1)}
-                  disabled={busyRideId === ride.id || ride.freeSeats <= 0}
-                  aria-label="Добавить пассажира"
-                  className="w-14 h-14 rounded-2xl bg-violet-600 hover:bg-violet-700 disabled:opacity-30 flex items-center justify-center transition active:scale-95"
-                >
-                  <Plus size={22} />
-                </button>
-              </div>
+              <button
+                type="button"
+                onClick={() => onAddBooking(ride.id)}
+                disabled={ride.freeSeats <= 0}
+                className="flex items-center gap-1.5 bg-violet-600 hover:bg-violet-700 disabled:opacity-40 transition rounded-xl px-4 py-2.5 text-sm font-bold"
+              >
+                <Plus size={16} />
+                Бронь
+              </button>
             )}
           </div>
         </div>
@@ -982,7 +1039,14 @@ function SchedulesSection({
 }
 
 type Analytics = {
-  today: { rides: number; passengers: number; avgLoadPct: number | null; requests: number };
+  today: {
+    rides: number;
+    passengers: number;
+    avgLoadPct: number | null;
+    requests: number;
+    estimatedRevenue: number;
+    bookingsBySource: { operator: number; edem30: number };
+  };
   byRide: { label: string; avgLoadPct: number; sampleCount: number }[];
   byVehicle: { label: string; avgLoadPct: number; sampleCount: number }[];
   byWeekday: { label: string; avgLoadPct: number; sampleCount: number }[];
@@ -1051,6 +1115,29 @@ function AnalyticsTab({ carrierId }: { carrierId?: number }) {
         <div className="bg-[#12121c] border border-white/5 rounded-2xl p-4">
           <div className="text-gray-500 text-xs mb-2">Заявок сегодня</div>
           <div className="text-xl font-bold">{data.today.requests}</div>
+        </div>
+      </div>
+
+      <div className="bg-[#12121c] border border-amber-500/20 rounded-3xl p-5">
+        <div className="flex items-center justify-between gap-3 flex-wrap">
+          <div>
+            <div className="text-gray-500 text-xs mb-1">Расчётная выручка сегодня</div>
+            <div className="text-2xl font-bold text-amber-400">
+              {new Intl.NumberFormat("ru-RU").format(data.today.estimatedRevenue)} ₽
+            </div>
+            <div className="text-gray-500 text-xs mt-1">Места активных броней × цена рейса — не факт оплаты</div>
+          </div>
+
+          <div className="flex gap-4 text-sm">
+            <div>
+              <div className="text-gray-500 text-xs">📞 Оператор</div>
+              <div className="font-bold">{data.today.bookingsBySource.operator}</div>
+            </div>
+            <div>
+              <div className="text-gray-500 text-xs">🌐 Едем30</div>
+              <div className="font-bold">{data.today.bookingsBySource.edem30}</div>
+            </div>
+          </div>
         </div>
       </div>
 

@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 
-import { getCarrierRide, getRideInterestedUsers, requireCarrierOperator } from "@/lib/carriers";
+import { getCarrierRide, getRideInterestedUsers, listBookingsForRide, requireCarrierOperator } from "@/lib/carriers";
 
 export const runtime = "nodejs";
 
@@ -26,7 +26,28 @@ export async function GET(_req: Request, { params }: Props) {
     return NextResponse.json({ error: "Рейс не найден" }, { status: 404 });
   }
 
-  const passengers = await getRideInterestedUsers(rideId);
+  const [bookings, interests] = await Promise.all([
+    listBookingsForRide(rideId),
+    getRideInterestedUsers(rideId),
+  ]);
 
-  return NextResponse.json({ passengers }, { headers: { "Cache-Control": "no-store" } });
+  return NextResponse.json(
+    {
+      bookings: bookings
+        .filter((b) => b.status === "active")
+        .map((b) => ({
+          id: b.id,
+          seats: b.seats,
+          passengerName: b.passengerName,
+          passengerPhone: b.passengerPhone,
+          pickup: b.pickup,
+          dropoff: b.dropoff,
+          comment: b.comment,
+          source: b.source,
+          userId: b.userId,
+        })),
+      interests,
+    },
+    { headers: { "Cache-Control": "no-store" } }
+  );
 }

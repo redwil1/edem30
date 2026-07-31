@@ -6,6 +6,11 @@ export const runtime = "nodejs";
 
 export async function GET(req: NextRequest) {
   const operator = await requireCarrierOperator();
+
+  if (operator && operator.role !== "manager") {
+    return NextResponse.json({ error: "Доступ запрещён" }, { status: 403 });
+  }
+
   const adminCarrierId = Number(req.nextUrl.searchParams.get("carrierId"));
 
   const carrier = operator

@@ -18,6 +18,12 @@ const DAYS_AHEAD = 14;
 
 export async function GET(req: NextRequest) {
   const operator = await requireCarrierOperator();
+
+  // У водителя отдельный простой мобильный кабинет /carrier/driver — сюда доступа нет.
+  if (operator && operator.role === "driver") {
+    return NextResponse.json({ error: "Доступ запрещён" }, { status: 403 });
+  }
+
   const adminCarrierId = Number(req.nextUrl.searchParams.get("carrierId"));
   const readOnly = !operator && Number.isInteger(adminCarrierId) && adminCarrierId > 0;
 
@@ -32,6 +38,7 @@ export async function GET(req: NextRequest) {
   }
 
   const operatorCarrierId = carrier.id;
+  const role = operator?.role ?? "manager";
 
   await ensureRidesForDateRange(operatorCarrierId, DAYS_AHEAD);
 
@@ -54,6 +61,7 @@ export async function GET(req: NextRequest) {
     {
       carrier,
       readOnly,
+      role,
       rides: rides.map((r) => ({
         id: r.id,
         fromCity: r.fromCity,

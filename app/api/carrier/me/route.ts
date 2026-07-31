@@ -8,7 +8,7 @@ export async function GET() {
   const operator = await requireCarrierOperator();
 
   return NextResponse.json(
-    { linked: !!operator, carrierName: operator?.carrier.name ?? null },
+    { linked: !!operator, carrierName: operator?.carrier.name ?? null, role: operator?.role ?? null },
     { headers: { "Cache-Control": "no-store" } }
   );
 }

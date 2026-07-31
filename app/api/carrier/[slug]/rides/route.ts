@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 
+import { sql } from "@/lib/db";
 import { ensureRidesForDateRange, freeSeats, getCarrierBySlug, listRidesForCarrier } from "@/lib/carriers";
 
 export const runtime = "nodejs";
@@ -30,9 +31,18 @@ export async function GET(_req: Request, { params }: Props) {
     publicOnly: true,
   });
 
-  return NextResponse.json(
-    {
-      rides: rides.map((r) => ({
+  const withRidersCount = await Promise.all(
+    rides.map(async (r) => {
+      let ridersCount = 0;
+
+      if (r.tripId !== null) {
+        const [row] = await sql<{ c: string }[]>`
+          SELECT COUNT(*) as c FROM trip_participants WHERE trip_id = ${r.tripId}
+        `;
+        ridersCount = Number(row.c);
+      }
+
+      return {
         id: r.id,
         fromCity: r.fromCity,
         toCity: r.toCity,
@@ -43,8 +53,10 @@ export async function GET(_req: Request, { params }: Props) {
         totalSeats: r.totalSeats,
         freeSeats: freeSeats(r),
         status: r.status,
-      })),
-    },
-    { headers: { "Cache-Control": "no-store" } }
+        ridersCount,
+      };
+    })
   );
+
+  return NextResponse.json({ rides: withRidersCount }, { headers: { "Cache-Control": "no-store" } });
 }
