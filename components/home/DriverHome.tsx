@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Bus, Car, Search } from "lucide-react";
+import { Bus, Search } from "lucide-react";
 
 import DriverOrdersFeed from "@/components/taxi/DriverOrdersFeed";
 import RoleSwitch from "./RoleSwitch";
@@ -13,7 +13,7 @@ import CarrierDashboardLink from "@/components/carrier/CarrierDashboardLink";
 type Tab = "taxi" | "intercity" | "passengers";
 
 export default function DriverHome() {
-  const [tab, setTab] = useState<Tab>("taxi");
+  const [tab, setTab] = useState<Tab>("passengers");
 
   return (
     <div>
@@ -27,18 +27,20 @@ export default function DriverHome() {
         <NotificationsCard />
       </div>
 
+      {/* Такси временно скрыто из вкладок водителя — DriverOrdersFeed ниже
+          оставлен нерендерящимся, чтобы вернуть в один шаг. */}
       <div className="flex bg-[#12121c] border border-white/5 rounded-2xl p-1 mb-6 max-w-md">
         <button
           type="button"
-          onClick={() => setTab("taxi")}
+          onClick={() => setTab("passengers")}
           className={`flex-1 flex items-center justify-center gap-1.5 rounded-xl py-2.5 text-sm font-medium transition ${
-            tab === "taxi"
+            tab === "passengers"
               ? "bg-violet-600 text-white"
               : "text-gray-400 hover:text-white"
           }`}
         >
-          <Car size={15} />
-          Такси
+          <Search size={15} />
+          Пассажиры
         </button>
 
         <button
@@ -52,19 +54,6 @@ export default function DriverHome() {
         >
           <Bus size={15} />
           Межгород
-        </button>
-
-        <button
-          type="button"
-          onClick={() => setTab("passengers")}
-          className={`flex-1 flex items-center justify-center gap-1.5 rounded-xl py-2.5 text-sm font-medium transition ${
-            tab === "passengers"
-              ? "bg-violet-600 text-white"
-              : "text-gray-400 hover:text-white"
-          }`}
-        >
-          <Search size={15} />
-          Пассажиры
         </button>
       </div>
 
