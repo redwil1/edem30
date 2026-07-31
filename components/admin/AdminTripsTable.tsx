@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { Loader2, Search, Pencil, Ban, Check, X, TriangleAlert } from "lucide-react";
+import { Loader2, Search, Pencil, Ban, Check, X, TriangleAlert, RotateCcw } from "lucide-react";
 
 import { formatDate, formatPrice } from "@/lib/utils";
 
@@ -108,6 +108,15 @@ export default function AdminTripsTable() {
     setBusyId(tripId);
 
     await fetch(`/api/admin/trips/${tripId}/cancel`, { method: "POST" });
+
+    await load(search);
+    setBusyId(null);
+  }
+
+  async function restoreTrip(tripId: number) {
+    setBusyId(tripId);
+
+    await fetch(`/api/admin/trips/${tripId}/restore`, { method: "POST" });
 
     await load(search);
     setBusyId(null);
@@ -250,14 +259,25 @@ export default function AdminTripsTable() {
                             <Pencil size={15} />
                           </button>
 
-                          <button
-                            onClick={() => cancelTrip(t.id)}
-                            disabled={locked || busy}
-                            className="text-red-400 hover:text-red-300 disabled:opacity-40 disabled:cursor-not-allowed"
-                            title="Отменить поездку"
-                          >
-                            <Ban size={15} />
-                          </button>
+                          {t.status === "cancelled" ? (
+                            <button
+                              onClick={() => restoreTrip(t.id)}
+                              disabled={busy}
+                              className="text-green-400 hover:text-green-300 disabled:opacity-40 disabled:cursor-not-allowed"
+                              title="Восстановить поездку"
+                            >
+                              <RotateCcw size={15} />
+                            </button>
+                          ) : (
+                            <button
+                              onClick={() => cancelTrip(t.id)}
+                              disabled={locked || busy}
+                              className="text-red-400 hover:text-red-300 disabled:opacity-40 disabled:cursor-not-allowed"
+                              title="Отменить поездку"
+                            >
+                              <Ban size={15} />
+                            </button>
+                          )}
                         </div>
                       )}
                     </td>

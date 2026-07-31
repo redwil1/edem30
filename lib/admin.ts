@@ -554,6 +554,17 @@ export async function adminCancelTrip(tripId: number): Promise<boolean> {
   return tripResult.count > 0;
 }
 
+/** Отменяет отмену: возвращает поездку в исходный статус (снимает cancelled_at). */
+export async function adminRestoreTrip(tripId: number): Promise<boolean> {
+  const result = await sql<{ id: number }[]>`
+    UPDATE trips SET cancelled_at = NULL
+    WHERE id = ${tripId} AND cancelled_at IS NOT NULL
+    RETURNING id
+  `;
+
+  return result.length > 0;
+}
+
 export type AdminReview = {
   id: number;
   authorName: string;
