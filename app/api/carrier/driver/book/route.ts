@@ -23,6 +23,8 @@ export async function POST(req: NextRequest) {
 
   const body = await req.json().catch(() => null);
   const rideId = Number(body?.rideId);
+  const seatNumber =
+    Number.isInteger(Number(body?.seatNumber)) && Number(body?.seatNumber) > 0 ? Number(body.seatNumber) : undefined;
 
   if (!Number.isInteger(rideId) || rideId <= 0) {
     return NextResponse.json({ error: "Некорректный рейс" }, { status: 400 });
@@ -38,6 +40,7 @@ export async function POST(req: NextRequest) {
     passengerName: "Пассажир",
     source: "operator",
     createdBy: operator.userId,
+    seatNumber,
   });
 
   if (!result.ok) {
@@ -46,6 +49,7 @@ export async function POST(req: NextRequest) {
       not_open: "Рейс закрыт",
       not_enough_seats: "Мест не осталось",
       missing_user_id: "Некорректные данные",
+      seat_taken: "Это место уже занято",
     };
     return NextResponse.json({ error: messages[result.reason] }, { status: 409 });
   }

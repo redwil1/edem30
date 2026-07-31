@@ -22,6 +22,7 @@ type CarrierOverview = {
     viewsTotal: number;
     requestsTotal: number;
     operator: { id: number; name: string } | null;
+    employeeCounts: { manager: number; operator: number; driver: number };
   }[];
 };
 
@@ -159,7 +160,11 @@ export default function AdminCarriersPanel() {
             </div>
 
             <div className="text-xs text-gray-500 mt-3">
-              Оператор: {c.operator ? c.operator.name : "не привязан — назначьте во вкладке «Пользователи»"}
+              Менеджер: {c.operator ? c.operator.name : "не привязан — назначьте во вкладке «Пользователи»"}
+            </div>
+            <div className="text-xs text-gray-500 mt-1">
+              Сотрудники: 👑 {c.employeeCounts.manager} менеджер(ов) · 📞 {c.employeeCounts.operator} операторов ·
+              🧑‍✈️ {c.employeeCounts.driver} водителей
             </div>
           </div>
         ))}

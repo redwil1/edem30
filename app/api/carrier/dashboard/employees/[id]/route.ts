@@ -26,10 +26,10 @@ export async function DELETE(req: NextRequest, { params }: Props) {
     return NextResponse.json({ error: "Некорректный сотрудник" }, { status: 400 });
   }
 
-  const ok = await removeEmployee(operator.carrier.id, employeeId);
-  if (!ok) {
+  const result = await removeEmployee(operator.carrier.id, employeeId);
+  if (!result.ok) {
     return NextResponse.json({ error: "Сотрудник не найден" }, { status: 404 });
   }
 
-  return NextResponse.json({ ok: true });
+  return NextResponse.json({ ok: true, freedRides: result.freedRides });
 }

@@ -136,6 +136,9 @@ export default function CarrierDashboard({
   const [swapRideId, setSwapRideId] = useState<number | null>(null);
   const [assignDriverRideId, setAssignDriverRideId] = useState<number | null>(null);
   const [preselectedRideId, setPreselectedRideId] = useState<number | null>(null);
+  const [prefillInterest, setPrefillInterest] = useState<{ userId: number; name: string; phone: string | null } | null>(
+    null
+  );
 
   const readOnly = !!data?.readOnly;
 
@@ -233,6 +236,13 @@ export default function CarrierDashboard({
     setTab("bookings");
   }
 
+  function bookInterest(rideId: number, interest: { userId: number; name: string; phone: string | null }) {
+    setPreselectedRideId(rideId);
+    setPrefillInterest(interest);
+    setPassengersRideId(null);
+    setTab("bookings");
+  }
+
   return (
     <div>
       <div className="flex items-center gap-2 text-amber-400 text-xs font-bold mb-1">👑 Едем30 Business</div>
@@ -299,6 +309,8 @@ export default function CarrierDashboard({
           readOnly={readOnly}
           preselectedRideId={preselectedRideId}
           onConsumePreselect={() => setPreselectedRideId(null)}
+          prefillInterest={prefillInterest}
+          onConsumePrefillInterest={() => setPrefillInterest(null)}
           onChanged={load}
         />
       )}
@@ -340,6 +352,7 @@ export default function CarrierDashboard({
           onClose={() => setPassengersRideId(null)}
           readOnly={readOnly}
           onCancelled={load}
+          onBookInterest={bookInterest}
         />
       )}
     </div>
@@ -654,14 +667,16 @@ function PassengersModal({
   onClose,
   readOnly,
   onCancelled,
+  onBookInterest,
 }: {
   ride: Ride | null;
   onClose: () => void;
   readOnly: boolean;
   onCancelled: () => void;
+  onBookInterest: (rideId: number, interest: { userId: number; name: string; phone: string | null }) => void;
 }) {
   const [bookings, setBookings] = useState<ModalBooking[] | null>(null);
-  const [interests, setInterests] = useState<{ id: number; name: string }[] | null>(null);
+  const [interests, setInterests] = useState<{ id: number; name: string; phone: string | null }[] | null>(null);
   const [cancellingId, setCancellingId] = useState<number | null>(null);
 
   function load() {
@@ -775,8 +790,20 @@ function PassengersModal({
             <div className="text-xs text-gray-500 mb-2">Хотят поехать (не подтверждено):</div>
             <div className="space-y-2">
               {interests.map((p) => (
-                <div key={p.id} className="bg-[#1c1c2b]/60 rounded-xl px-4 py-2 text-sm text-gray-400">
+                <div
+                  key={p.id}
+                  className="flex items-center justify-between gap-2 bg-[#1c1c2b]/60 rounded-xl px-4 py-2 text-sm text-gray-400"
+                >
                   {p.name}
+                  {!readOnly && (
+                    <button
+                      type="button"
+                      onClick={() => onBookInterest(ride.id, { userId: p.id, name: p.name, phone: p.phone })}
+                      className="text-violet-400 hover:text-violet-300 text-xs font-medium shrink-0"
+                    >
+                      Оформить бронь →
+                    </button>
+                  )}
                 </div>
               ))}
             </div>
@@ -1196,27 +1223,16 @@ function AnalyticsTab({ carrierId }: { carrierId?: number }) {
         </div>
       </div>
 
-      <div className="bg-[#12121c] border border-amber-500/20 rounded-3xl p-5">
-        <div className="flex items-center justify-between gap-3 flex-wrap">
-          <div>
-            <div className="text-gray-500 text-xs mb-1">Расчётная выручка сегодня</div>
-            <div className="text-2xl font-bold text-amber-400">
-              {new Intl.NumberFormat("ru-RU").format(data.today.estimatedRevenue)} ₽
-            </div>
-            <div className="text-gray-500 text-xs mt-1">Места активных броней × цена рейса — не факт оплаты</div>
-          </div>
-
-          <div className="flex gap-4 text-sm">
-            <div>
-              <div className="text-gray-500 text-xs">📞 Оператор</div>
-              <div className="font-bold">{data.today.bookingsBySource.operator}</div>
-            </div>
-            <div>
-              <div className="text-gray-500 text-xs">🌐 Едем30</div>
-              <div className="font-bold">{data.today.bookingsBySource.edem30}</div>
-            </div>
-          </div>
-        </div>
+      <div className="flex items-center justify-between gap-3 flex-wrap text-xs text-gray-500 px-1">
+        <span>
+          Расчётная выручка сегодня (места броней × цена, не факт оплаты):{" "}
+          <span className="text-gray-300 font-medium">
+            {new Intl.NumberFormat("ru-RU").format(data.today.estimatedRevenue)} ₽
+          </span>
+        </span>
+        <span>
+          📞 Оператор: {data.today.bookingsBySource.operator} · 🌐 Едем30: {data.today.bookingsBySource.edem30}
+        </span>
       </div>
 
       {data.recommendations.length > 0 && (

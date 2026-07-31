@@ -548,12 +548,12 @@ export async function assignRideDriver(
   return { ok: true };
 }
 
-export type RideInterestedUser = { id: number; name: string; createdAt: string };
+export type RideInterestedUser = { id: number; name: string; phone: string | null; createdAt: string };
 
 /** Пассажиры, оставившие заявку «Хочу поехать» на конкретный рейс через Едем30. */
 export async function getRideInterestedUsers(rideId: number): Promise<RideInterestedUser[]> {
   return sql<RideInterestedUser[]>`
-    SELECT u.id as id, u.name as name, i.created_at as "createdAt"
+    SELECT u.id as id, u.name as name, u.phone as phone, i.created_at as "createdAt"
     FROM carrier_ride_interests i
     JOIN users u ON u.id = i.user_id
     WHERE i.carrier_ride_id = ${rideId}
@@ -938,11 +938,14 @@ export type CreateBookingInput = {
   source: BookingSource;
   userId?: number; // обязателен при source='edem30'
   createdBy?: number; // сотрудник-оператор/менеджер, оформивший бронь вручную
+  seatNumber?: number; // тап по конкретному месту на SeatMap — иначе первое свободное
 };
 
 export type CreateBookingResult =
   | { ok: true; booking: CarrierBooking; tripId: number | null; tripCreated: boolean }
-  | { ok: false; reason: "not_found" | "not_open" | "not_enough_seats" | "missing_user_id" };
+  | { ok: false; reason: "not_found" | "not_open" | "not_enough_seats" | "missing_user_id" | "seat_taken" };
+
+class SeatTakenError extends Error {}
 
 const CARRIER_TRANSPORT_LABEL = "Микроавтобус";
 const CARRIER_TRANSPORT_CATEGORY = "minibus";
@@ -967,7 +970,9 @@ export async function createBooking(
     return { ok: false, reason: "missing_user_id" };
   }
 
-  const result = await sql.begin(async (tx) => {
+  let result;
+  try {
+    result = await sql.begin(async (tx) => {
     // Атомарный захват мест — та же гарантия, что и adjustSeats/fulfillRideRequests:
     // Postgres сериализует конкурентные UPDATE по строке, поэтому эта строка
     // остаётся заблокированной для других транзакций до COMMIT/ROLLBACK ниже.
@@ -982,6 +987,7 @@ export async function createBooking(
         totalSeats: number;
         tripId: number | null;
         driverUserId: number | null;
+        occupiedSeatsAfter: number;
       }[]
     >`
       UPDATE carrier_rides
@@ -992,7 +998,8 @@ export async function createBooking(
         AND occupied_seats + ${input.seats} <= total_seats
       RETURNING vehicle_id as "vehicleId", from_city as "fromCity", to_city as "toCity",
                 ride_date as "rideDate", departure_time as "departureTime", price as "price",
-                total_seats as "totalSeats", trip_id as "tripId", driver_user_id as "driverUserId"
+                total_seats as "totalSeats", trip_id as "tripId", driver_user_id as "driverUserId",
+                occupied_seats as "occupiedSeatsAfter"
     `;
 
     if (reserved.length === 0) {
@@ -1012,6 +1019,34 @@ export async function createBooking(
       )
       RETURNING id
     `;
+
+    // Реальная привязка мест: carrier_rides уже заблокирован UPDATE выше,
+    // поэтому конкурентная бронь не может занять тот же номер места.
+    const freeSeatNumbers = await tx<{ seatNumber: number }[]>`
+      SELECT gs AS "seatNumber"
+      FROM generate_series(1, ${ride.totalSeats}) AS gs
+      WHERE gs NOT IN (SELECT seat_number FROM carrier_booking_seats WHERE carrier_ride_id = ${rideId})
+        ${input.seatNumber !== undefined ? tx`AND gs = ${input.seatNumber}` : tx``}
+      ORDER BY gs
+      LIMIT ${input.seats}
+    `;
+
+    if (freeSeatNumbers.length < input.seats) {
+      // Если запрашивалось конкретное место — это ожидаемая гонка (место
+      // заняли параллельно), иначе — рассинхронизация occupied_seats и
+      // carrier_booking_seats, чего быть не должно. В обоих случаях
+      // транзакцию нужно откатить (occupied_seats уже был увеличен выше).
+      throw new SeatTakenError();
+    }
+
+    for (const { seatNumber } of freeSeatNumbers) {
+      await tx`INSERT INTO carrier_booking_seats (carrier_ride_id, seat_number, booking_id) VALUES (${rideId}, ${seatNumber}, ${inserted.id})`;
+    }
+
+    if (input.source === "edem30" && input.userId) {
+      // Бронь подтверждена — заявка «Хочу поехать» больше не актуальна.
+      await tx`DELETE FROM carrier_ride_interests WHERE carrier_ride_id = ${rideId} AND user_id = ${input.userId}`;
+    }
 
     let tripId = ride.tripId;
     let tripCreated = false;
@@ -1087,8 +1122,27 @@ export async function createBooking(
       WHERE b.id = ${inserted.id}
     `;
 
-    return { ok: true as const, booking, tripId, tripCreated };
-  });
+    return {
+      ok: true as const,
+      booking,
+      tripId,
+      tripCreated,
+      rideSnapshot: {
+        fromCity: ride.fromCity,
+        toCity: ride.toCity,
+        rideDate: ride.rideDate,
+        departureTime: ride.departureTime,
+        totalSeats: ride.totalSeats,
+        occupiedSeatsBefore: ride.occupiedSeatsAfter - input.seats,
+        occupiedSeatsAfter: ride.occupiedSeatsAfter,
+        driverUserId: ride.driverUserId,
+      },
+    };
+    });
+  } catch (err) {
+    if (err instanceof SeatTakenError) return { ok: false, reason: "seat_taken" };
+    throw err;
+  }
 
   if (!result.ok) return result;
 
@@ -1100,7 +1154,174 @@ export async function createBooking(
     });
   }
 
+  notifyStaffAboutBooking(carrierId, rideId, result.rideSnapshot, input);
+
   return result;
+}
+
+const ALMOST_FULL_THRESHOLD = 0.8;
+
+/**
+ * Уведомляет персонал перевозчика о новой брони: менеджера/оператора — о
+ * самом факте брони и о пересечении порога «почти заполнен»/«заполнен»
+ * (только в момент пересечения, не при каждой брони — иначе спамило бы на
+ * заполненном рейсе), а назначенного на рейс водителя — о новом пассажире
+ * (кроме случая, когда бронь создал он сам через мобильный кабинет водителя).
+ */
+async function notifyStaffAboutBooking(
+  carrierId: number,
+  rideId: number,
+  ride: {
+    fromCity: string;
+    toCity: string;
+    rideDate: string;
+    departureTime: string;
+    totalSeats: number;
+    occupiedSeatsBefore: number;
+    occupiedSeatsAfter: number;
+    driverUserId: number | null;
+  },
+  input: CreateBookingInput
+): Promise<void> {
+  const carrier = await getCarrierById(carrierId);
+  const route = `${ride.fromCity} → ${ride.toCity}, ${ride.rideDate} ${ride.departureTime}`;
+
+  const staff = await sql<{ userId: number }[]>`
+    SELECT user_id as "userId" FROM carrier_users WHERE carrier_id = ${carrierId} AND role IN ('manager', 'operator')
+  `;
+  for (const { userId } of staff) {
+    if (userId === input.createdBy) continue;
+    sendPushToUser(userId, {
+      title: "Новая бронь",
+      body: `${carrier?.name ?? "Перевозчик"}: ${input.passengerName} · ${input.seats} мест · ${route}`,
+      url: `/carrier/dashboard`,
+    });
+  }
+
+  const pctBefore = ride.occupiedSeatsBefore / ride.totalSeats;
+  const pctAfter = ride.occupiedSeatsAfter / ride.totalSeats;
+  let thresholdMessage: string | null = null;
+  if (pctBefore < 1 && pctAfter >= 1) {
+    thresholdMessage = "Рейс полностью заполнен";
+  } else if (pctBefore < ALMOST_FULL_THRESHOLD && pctAfter >= ALMOST_FULL_THRESHOLD) {
+    thresholdMessage = "Рейс почти заполнен";
+  }
+  if (thresholdMessage) {
+    for (const { userId } of staff) {
+      sendPushToUser(userId, {
+        title: thresholdMessage,
+        body: `${carrier?.name ?? "Перевозчик"}: ${route} — ${ride.occupiedSeatsAfter}/${ride.totalSeats} мест`,
+        url: `/carrier/dashboard`,
+      });
+    }
+  }
+
+  if (ride.driverUserId !== null && ride.driverUserId !== input.createdBy) {
+    sendPushToUser(ride.driverUserId, {
+      title: "Новый пассажир на вашем рейсе",
+      body: `${input.passengerName} · ${input.seats} мест · ${route}`,
+      url: `/carrier/driver`,
+    });
+  }
+}
+
+export type UpdateBookingInput = {
+  seats?: number;
+  passengerName?: string;
+  passengerPhone?: string | null;
+  pickup?: string | null;
+  dropoff?: string | null;
+  comment?: string | null;
+};
+
+export type UpdateBookingResult =
+  | { ok: true; booking: CarrierBooking }
+  | { ok: false; reason: "not_found" | "not_open" | "not_enough_seats" };
+
+/**
+ * Редактирует существующую активную бронь. Если меняется число мест —
+ * применяет ту же атомарную гарантию, что и createBooking: одна строка
+ * carrier_rides обновляется в WHERE с проверкой границ, поэтому увеличение
+ * брони не может «перебронировать» последнее свободное место мимо
+ * параллельного запроса.
+ */
+export async function updateBooking(
+  carrierId: number,
+  bookingId: number,
+  patch: UpdateBookingInput
+): Promise<UpdateBookingResult> {
+  try {
+    return await sql.begin(async (tx) => {
+    const [booking] = await tx<CarrierBooking[]>`${BOOKING_SELECT} WHERE b.id = ${bookingId} AND b.status = 'active'`;
+    if (!booking) return { ok: false as const, reason: "not_found" as const };
+
+    const [ride] = await tx<{ id: number; status: CarrierRideStatus; totalSeats: number }[]>`
+      SELECT id, status, total_seats as "totalSeats" FROM carrier_rides
+      WHERE id = ${booking.carrierRideId} AND carrier_id = ${carrierId}
+    `;
+    if (!ride) return { ok: false as const, reason: "not_found" as const };
+
+    if (patch.seats !== undefined && patch.seats !== booking.seats) {
+      if (ride.status !== "open" && ride.status !== "full") {
+        return { ok: false as const, reason: "not_open" as const };
+      }
+
+      const delta = patch.seats - booking.seats;
+      const updated = await tx<{ id: number }[]>`
+        UPDATE carrier_rides
+        SET occupied_seats = occupied_seats + ${delta},
+            status = CASE
+              WHEN occupied_seats + ${delta} >= total_seats THEN 'full'
+              WHEN status = 'full' AND occupied_seats + ${delta} < total_seats THEN 'open'
+              ELSE status
+            END
+        WHERE id = ${ride.id} AND occupied_seats + ${delta} >= 0 AND occupied_seats + ${delta} <= total_seats
+        RETURNING id
+      `;
+      if (updated.length === 0) return { ok: false as const, reason: "not_enough_seats" as const };
+
+      if (delta > 0) {
+        const newSeatNumbers = await tx<{ seatNumber: number }[]>`
+          SELECT gs AS "seatNumber"
+          FROM generate_series(1, ${ride.totalSeats}) AS gs
+          WHERE gs NOT IN (SELECT seat_number FROM carrier_booking_seats WHERE carrier_ride_id = ${ride.id})
+          ORDER BY gs
+          LIMIT ${delta}
+        `;
+        if (newSeatNumbers.length < delta) {
+          throw new SeatTakenError();
+        }
+        for (const { seatNumber } of newSeatNumbers) {
+          await tx`INSERT INTO carrier_booking_seats (carrier_ride_id, seat_number, booking_id) VALUES (${ride.id}, ${seatNumber}, ${bookingId})`;
+        }
+      } else {
+        const seatsToRemove = await tx<{ id: number }[]>`
+          SELECT id FROM carrier_booking_seats WHERE booking_id = ${bookingId} LIMIT ${-delta}
+        `;
+        for (const { id } of seatsToRemove) {
+          await tx`DELETE FROM carrier_booking_seats WHERE id = ${id}`;
+        }
+      }
+    }
+
+    await tx`
+      UPDATE carrier_bookings SET
+        seats = ${patch.seats ?? booking.seats},
+        passenger_name = ${patch.passengerName ?? booking.passengerName},
+        passenger_phone = ${patch.passengerPhone !== undefined ? patch.passengerPhone : booking.passengerPhone},
+        pickup = ${patch.pickup !== undefined ? patch.pickup : booking.pickup},
+        dropoff = ${patch.dropoff !== undefined ? patch.dropoff : booking.dropoff},
+        comment = ${patch.comment !== undefined ? patch.comment : booking.comment}
+      WHERE id = ${bookingId}
+    `;
+
+    const [updatedBooking] = await tx<CarrierBooking[]>`${BOOKING_SELECT} WHERE b.id = ${bookingId}`;
+    return { ok: true as const, booking: updatedBooking };
+    });
+  } catch (err) {
+    if (err instanceof SeatTakenError) return { ok: false, reason: "not_enough_seats" };
+    throw err;
+  }
 }
 
 export type CancelBookingResult =
@@ -1151,6 +1372,8 @@ export async function cancelBooking(carrierId: number, bookingId: number): Promi
       RETURNING trip_id as "tripId"
     `;
 
+    await tx`DELETE FROM carrier_booking_seats WHERE booking_id = ${booking.id}`;
+
     if (booking.source === "edem30" && booking.userId && ride.tripId !== null) {
       const otherActive = await tx<{ id: number }[]>`
         SELECT id FROM carrier_bookings
@@ -1178,6 +1401,39 @@ export async function cancelBooking(carrierId: number, bookingId: number): Promi
   }
 
   return { ok: true };
+}
+
+export type SeatMapEntry = {
+  seatNumber: number;
+  booking: { id: number; passengerName: string; seats: number; source: BookingSource } | null;
+};
+
+/** Настоящая карта мест рейса — каждое место указывает на конкретную бронь (или пусто). */
+export async function getRideSeatMap(rideId: number): Promise<SeatMapEntry[]> {
+  const [ride] = await sql<{ totalSeats: number }[]>`SELECT total_seats as "totalSeats" FROM carrier_rides WHERE id = ${rideId}`;
+  if (!ride) return [];
+
+  const seatRows = await sql<
+    { seatNumber: number; bookingId: number; passengerName: string; seats: number; source: BookingSource }[]
+  >`
+    SELECT s.seat_number as "seatNumber", b.id as "bookingId", b.passenger_name as "passengerName",
+           b.seats as "seats", b.source as "source"
+    FROM carrier_booking_seats s
+    JOIN carrier_bookings b ON b.id = s.booking_id
+    WHERE s.carrier_ride_id = ${rideId} AND b.status = 'active'
+  `;
+  const bySeat = new Map(seatRows.map((r) => [r.seatNumber, r]));
+
+  return Array.from({ length: ride.totalSeats }, (_, i) => {
+    const seatNumber = i + 1;
+    const row = bySeat.get(seatNumber);
+    return {
+      seatNumber,
+      booking: row
+        ? { id: row.bookingId, passengerName: row.passengerName, seats: row.seats, source: row.source }
+        : null,
+    };
+  });
 }
 
 // ==================================================================
@@ -1238,11 +1494,53 @@ export async function assignEmployee(
   return { ok: true };
 }
 
-export async function removeEmployee(carrierId: number, employeeCarrierUserId: number): Promise<boolean> {
+export type RemoveEmployeeResult = { ok: boolean; freedRides: number };
+
+/**
+ * Отвязывает сотрудника от перевозчика. Если это был водитель — снимает его
+ * с ещё не выехавших будущих рейсов (иначе рейс остался бы с водителем,
+ * который больше не сотрудник) и уведомляет менеджеров/операторов, что
+ * рейсы нужно переназначить.
+ */
+export async function removeEmployee(carrierId: number, employeeCarrierUserId: number): Promise<RemoveEmployeeResult> {
+  const [employee] = await sql<{ userId: number; role: CarrierEmployeeRole }[]>`
+    SELECT user_id as "userId", role FROM carrier_users WHERE id = ${employeeCarrierUserId} AND carrier_id = ${carrierId}
+  `;
+  if (!employee) return { ok: false, freedRides: 0 };
+
+  let freedRides: number[] = [];
+
+  if (employee.role === "driver") {
+    const freed = await sql<{ id: number }[]>`
+      UPDATE carrier_rides
+      SET driver_user_id = NULL
+      WHERE carrier_id = ${carrierId} AND driver_user_id = ${employee.userId}
+        AND status IN ('open', 'full') AND ride_date >= CURRENT_DATE
+      RETURNING id
+    `;
+    freedRides = freed.map((r) => r.id);
+  }
+
   const result = await sql`
     DELETE FROM carrier_users WHERE id = ${employeeCarrierUserId} AND carrier_id = ${carrierId}
   `;
-  return result.count > 0;
+  if (result.count === 0) return { ok: false, freedRides: 0 };
+
+  if (freedRides.length > 0) {
+    const managers = await sql<{ userId: number }[]>`
+      SELECT user_id as "userId" FROM carrier_users WHERE carrier_id = ${carrierId} AND role IN ('manager', 'operator')
+    `;
+    const carrier = await getCarrierById(carrierId);
+    for (const { userId } of managers) {
+      sendPushToUser(userId, {
+        title: "Нужно назначить водителя",
+        body: `${carrier?.name ?? "Перевозчик"}: водитель отвязан, ${freedRides.length} рейс(ов) остались без водителя.`,
+        url: `/carrier/dashboard`,
+      });
+    }
+  }
+
+  return { ok: true, freedRides: freedRides.length };
 }
 
 // ==================================================================

@@ -30,6 +30,7 @@ export async function POST(req: NextRequest) {
   const pickup = typeof body?.pickup === "string" ? body.pickup.trim().slice(0, 200) : "";
   const dropoff = typeof body?.dropoff === "string" ? body.dropoff.trim().slice(0, 200) : "";
   const comment = typeof body?.comment === "string" ? body.comment.trim().slice(0, 300) : "";
+  const userId = Number.isInteger(Number(body?.userId)) && Number(body?.userId) > 0 ? Number(body.userId) : undefined;
 
   if (!Number.isInteger(rideId) || rideId <= 0) {
     return NextResponse.json({ error: "Некорректный рейс" }, { status: 400 });
@@ -48,7 +49,11 @@ export async function POST(req: NextRequest) {
     pickup: pickup || undefined,
     dropoff: dropoff || undefined,
     comment: comment || undefined,
-    source: "operator",
+    // Если бронь оформляется по известному пользователю Едем30 (например, из
+    // заявки «Хочу поехать») — она должна попасть в trip_participants/чат
+    // как обычная бронь через приложение, а не как звонок оператору.
+    source: userId ? "edem30" : "operator",
+    userId,
     createdBy: operator.userId,
   });
 
@@ -58,6 +63,7 @@ export async function POST(req: NextRequest) {
       not_open: "Рейс закрыт",
       not_enough_seats: "Недостаточно свободных мест",
       missing_user_id: "Некорректные данные",
+      seat_taken: "Это место уже занято",
     };
     return NextResponse.json({ error: messages[result.reason] }, { status: 409 });
   }

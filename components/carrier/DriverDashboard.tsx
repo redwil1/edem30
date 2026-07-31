@@ -18,6 +18,11 @@ type Passenger = {
   userId: number | null;
 };
 
+type SeatEntry = {
+  seatNumber: number;
+  booking: { id: number; passengerName: string; seats: number; source: "operator" | "edem30" } | null;
+};
+
 type DriverRide = {
   id: number;
   fromCity: string;
@@ -30,6 +35,7 @@ type DriverRide = {
   freeSeats: number;
   status: string;
   tripId: number | null;
+  seatMap: SeatEntry[];
   passengers: Passenger[];
 };
 
@@ -64,13 +70,13 @@ export default function DriverDashboard({ carrierName }: { carrierName: string }
     return () => clearInterval(interval);
   }, []);
 
-  async function tapFreeSeat(rideId: number) {
+  async function tapFreeSeat(rideId: number, seatNumber: number) {
     setBusy(true);
     try {
       const res = await fetch("/api/carrier/driver/book", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ rideId }),
+        body: JSON.stringify({ rideId, seatNumber }),
       });
       if (res.ok) load();
       else {
@@ -199,10 +205,10 @@ export default function DriverDashboard({ carrierName }: { carrierName: string }
 
       <div className="mb-5">
         <SeatMap
-          totalSeats={ride.totalSeats}
-          occupiedSeats={ride.occupiedSeats}
+          seats={ride.seatMap}
           disabled={busy || ride.status === "departed" || ride.status === "completed"}
-          onTapFreeSeat={() => tapFreeSeat(ride.id)}
+          onTapFreeSeat={(seatNumber) => tapFreeSeat(ride.id, seatNumber)}
+          onTapOccupiedSeat={(bookingId) => cancelPassenger(bookingId)}
         />
       </div>
 

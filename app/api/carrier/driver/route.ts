@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import {
   ensureRidesForDateRange,
   freeSeats,
+  getRideSeatMap,
   listBookingsForRide,
   listRidesForCarrier,
   requireCarrierOperator,
@@ -43,6 +44,7 @@ export async function GET() {
         freeSeats: freeSeats(r),
         status: r.status,
         tripId: r.tripId,
+        seatMap: await getRideSeatMap(r.id),
         passengers: (await listBookingsForRide(r.id))
           .filter((b) => b.status === "active")
           .map((b) => ({

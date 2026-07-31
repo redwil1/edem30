@@ -293,6 +293,7 @@ export type CarrierAdminOverview = {
     viewsTotal: number;
     requestsTotal: number;
     operator: { id: number; name: string } | null;
+    employeeCounts: { manager: number; operator: number; driver: number };
   }[];
 };
 
@@ -305,7 +306,7 @@ export async function getCarrierAdminOverview(): Promise<CarrierAdminOverview> {
 
   const details = await Promise.all(
     carriers.map(async (c) => {
-      const [vehicles, ridesToday, views, interests, offers, operator] = await Promise.all([
+      const [vehicles, ridesToday, views, interests, offers, operator, employeesByRole] = await Promise.all([
         sql<{ c: string }[]>`SELECT COUNT(*) as c FROM carrier_vehicles WHERE carrier_id = ${c.id} AND active = true`,
         sql<{ c: string }[]>`
           SELECT COUNT(*) as c FROM carrier_rides
@@ -324,9 +325,15 @@ export async function getCarrierAdminOverview(): Promise<CarrierAdminOverview> {
         sql<{ id: number; name: string }[]>`
           SELECT users.id as id, users.name as name FROM carrier_users
           JOIN users ON users.id = carrier_users.user_id
-          WHERE carrier_users.carrier_id = ${c.id} LIMIT 1
+          WHERE carrier_users.carrier_id = ${c.id} AND carrier_users.role = 'manager' LIMIT 1
+        `,
+        sql<{ role: "manager" | "operator" | "driver"; c: string }[]>`
+          SELECT role, COUNT(*) as c FROM carrier_users WHERE carrier_id = ${c.id} GROUP BY role
         `,
       ]);
+
+      const employeeCounts = { manager: 0, operator: 0, driver: 0 };
+      for (const row of employeesByRole) employeeCounts[row.role] = Number(row.c);
 
       return {
         id: c.id,
@@ -338,6 +345,7 @@ export async function getCarrierAdminOverview(): Promise<CarrierAdminOverview> {
         viewsTotal: Number(views[0].c),
         requestsTotal: Number(interests[0].c) + Number(offers[0].c),
         operator: operator[0] ?? null,
+        employeeCounts,
       };
     })
   );

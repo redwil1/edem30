@@ -44,6 +44,8 @@ export default function BookingsTab({
   readOnly,
   preselectedRideId,
   onConsumePreselect,
+  prefillInterest,
+  onConsumePrefillInterest,
   onChanged,
 }: {
   carrierId?: number;
@@ -51,6 +53,8 @@ export default function BookingsTab({
   readOnly: boolean;
   preselectedRideId: number | null;
   onConsumePreselect: () => void;
+  prefillInterest?: { userId: number; name: string; phone: string | null } | null;
+  onConsumePrefillInterest?: () => void;
   onChanged: () => void;
 }) {
   const [date, setDate] = useState(todayStr());
@@ -71,6 +75,7 @@ export default function BookingsTab({
   const [seats, setSeats] = useState("1");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
+  const [bookingUserId, setBookingUserId] = useState<number | null>(null);
 
   useEffect(() => {
     if (preselectedRideId === null) return;
@@ -79,6 +84,15 @@ export default function BookingsTab({
     onConsumePreselect();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [preselectedRideId]);
+
+  useEffect(() => {
+    if (!prefillInterest) return;
+    setName(prefillInterest.name);
+    setPhone(prefillInterest.phone ?? "");
+    setBookingUserId(prefillInterest.userId);
+    onConsumePrefillInterest?.();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [prefillInterest]);
 
   function loadBookings(rideId: number) {
     setBookings(null);
@@ -134,6 +148,7 @@ export default function BookingsTab({
           pickup: pickup || undefined,
           dropoff: dropoff || undefined,
           comment: comment || undefined,
+          userId: bookingUserId ?? undefined,
         }),
       });
 
@@ -150,6 +165,7 @@ export default function BookingsTab({
       setDropoff("");
       setComment("");
       setSeats("1");
+      setBookingUserId(null);
       loadBookings(selectedRide.id);
       search();
       onChanged();
@@ -173,6 +189,62 @@ export default function BookingsTab({
       }
     } finally {
       setCancellingId(null);
+    }
+  }
+
+  const [editingId, setEditingId] = useState<number | null>(null);
+  const [editName, setEditName] = useState("");
+  const [editPhone, setEditPhone] = useState("");
+  const [editPickup, setEditPickup] = useState("");
+  const [editDropoff, setEditDropoff] = useState("");
+  const [editComment, setEditComment] = useState("");
+  const [editSeats, setEditSeats] = useState("1");
+  const [editSaving, setEditSaving] = useState(false);
+  const [editError, setEditError] = useState("");
+
+  function startEdit(b: Booking) {
+    setEditingId(b.id);
+    setEditName(b.passengerName);
+    setEditPhone(b.passengerPhone ?? "");
+    setEditPickup(b.pickup ?? "");
+    setEditDropoff(b.dropoff ?? "");
+    setEditComment(b.comment ?? "");
+    setEditSeats(String(b.seats));
+    setEditError("");
+  }
+
+  async function submitEdit(bookingId: number) {
+    if (!selectedRide) return;
+    setEditError("");
+    setEditSaving(true);
+
+    try {
+      const res = await fetch(withCarrierId(`/api/carrier/dashboard/bookings/${bookingId}`, carrierId), {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          seats: Number(editSeats),
+          passengerName: editName,
+          passengerPhone: editPhone || null,
+          pickup: editPickup || null,
+          dropoff: editDropoff || null,
+          comment: editComment || null,
+        }),
+      });
+
+      const data = await res.json().catch(() => null);
+
+      if (!res.ok) {
+        setEditError(data?.error ?? "Не удалось сохранить изменения");
+        return;
+      }
+
+      setEditingId(null);
+      loadBookings(selectedRide.id);
+      search();
+      onChanged();
+    } finally {
+      setEditSaving(false);
     }
   }
 
@@ -281,6 +353,15 @@ export default function BookingsTab({
             <form onSubmit={submitBooking} className="bg-[#12121c] border border-white/5 rounded-3xl p-5 mb-5 space-y-3">
               <div className="font-bold mb-1">+ Новая бронь</div>
 
+              {bookingUserId !== null && (
+                <div className="flex items-center justify-between gap-2 text-xs text-violet-400 bg-violet-500/10 rounded-xl px-3 py-2">
+                  🌐 Бронь для пользователя Едем30 — попадёт в чат поездки после назначения водителя
+                  <button type="button" onClick={() => setBookingUserId(null)} className="text-gray-400 hover:text-white shrink-0">
+                    <X size={13} />
+                  </button>
+                </div>
+              )}
+
               <div className="flex gap-2 flex-wrap">
                 <input
                   value={name}
@@ -350,33 +431,107 @@ export default function BookingsTab({
             <div className="text-gray-500 text-sm">Пока никто не забронирован</div>
           ) : (
             <div className="space-y-2">
-              {bookings.map((b) => (
-                <div key={b.id} className="bg-[#12121c] border border-white/5 rounded-2xl px-4 py-3 text-sm">
-                  <div className="flex items-center justify-between gap-2">
-                    <div className="font-medium">
-                      {b.passengerName} <span className="text-gray-500 font-normal">· {b.seats} мест</span>
+              {bookings.map((b) =>
+                editingId === b.id ? (
+                  <div key={b.id} className="bg-[#12121c] border border-violet-500/30 rounded-2xl px-4 py-3 space-y-2">
+                    <div className="flex gap-2 flex-wrap">
+                      <input
+                        value={editName}
+                        onChange={(e) => setEditName(e.target.value)}
+                        placeholder="Имя / фамилия"
+                        className="flex-1 min-w-[140px] bg-[#1c1c2b] rounded-xl px-3 py-2 text-sm outline-none"
+                      />
+                      <input
+                        value={editPhone}
+                        onChange={(e) => setEditPhone(e.target.value)}
+                        placeholder="Телефон"
+                        className="flex-1 min-w-[120px] bg-[#1c1c2b] rounded-xl px-3 py-2 text-sm outline-none"
+                      />
+                      <input
+                        value={editSeats}
+                        onChange={(e) => setEditSeats(e.target.value)}
+                        type="number"
+                        min={1}
+                        max={selectedRide.freeSeats + b.seats || 1}
+                        className="w-20 bg-[#1c1c2b] rounded-xl px-3 py-2 text-sm outline-none"
+                      />
                     </div>
-                    <span
-                      className={`text-[10px] font-medium px-1.5 py-0.5 rounded-full whitespace-nowrap ${
-                        b.source === "edem30" ? "bg-violet-600/20 text-violet-300" : "bg-white/10 text-gray-400"
-                      }`}
-                    >
-                      {b.source === "edem30" ? "🌐 Едем30" : "📞 Оператор"}
-                    </span>
+                    <div className="flex gap-2 flex-wrap">
+                      <input
+                        value={editPickup}
+                        onChange={(e) => setEditPickup(e.target.value)}
+                        placeholder="Откуда забрать"
+                        className="flex-1 min-w-[120px] bg-[#1c1c2b] rounded-xl px-3 py-2 text-sm outline-none"
+                      />
+                      <input
+                        value={editDropoff}
+                        onChange={(e) => setEditDropoff(e.target.value)}
+                        placeholder="Куда высадить"
+                        className="flex-1 min-w-[120px] bg-[#1c1c2b] rounded-xl px-3 py-2 text-sm outline-none"
+                      />
+                    </div>
+                    <input
+                      value={editComment}
+                      onChange={(e) => setEditComment(e.target.value)}
+                      placeholder="Комментарий"
+                      className="w-full bg-[#1c1c2b] rounded-xl px-3 py-2 text-sm outline-none"
+                    />
+                    {editError && <p className="text-red-400 text-xs">{editError}</p>}
+                    <div className="flex items-center gap-3">
+                      <button
+                        type="button"
+                        onClick={() => submitEdit(b.id)}
+                        disabled={editSaving}
+                        className="btn-gradient rounded-xl px-4 py-2 text-xs font-bold disabled:opacity-60"
+                      >
+                        {editSaving ? "..." : "Сохранить"}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setEditingId(null)}
+                        className="text-gray-400 hover:text-white text-xs font-medium"
+                      >
+                        Отмена
+                      </button>
+                    </div>
                   </div>
-                  {b.passengerPhone && <div className="text-gray-500 text-xs mt-1">📞 {b.passengerPhone}</div>}
-                  {!readOnly && (
-                    <button
-                      type="button"
-                      onClick={() => cancelBooking(b.id)}
-                      disabled={cancellingId === b.id}
-                      className="text-red-400 hover:text-red-300 text-xs font-medium mt-1.5 disabled:opacity-50"
-                    >
-                      Отменить бронь
-                    </button>
-                  )}
-                </div>
-              ))}
+                ) : (
+                  <div key={b.id} className="bg-[#12121c] border border-white/5 rounded-2xl px-4 py-3 text-sm">
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="font-medium">
+                        {b.passengerName} <span className="text-gray-500 font-normal">· {b.seats} мест</span>
+                      </div>
+                      <span
+                        className={`text-[10px] font-medium px-1.5 py-0.5 rounded-full whitespace-nowrap ${
+                          b.source === "edem30" ? "bg-violet-600/20 text-violet-300" : "bg-white/10 text-gray-400"
+                        }`}
+                      >
+                        {b.source === "edem30" ? "🌐 Едем30" : "📞 Оператор"}
+                      </span>
+                    </div>
+                    {b.passengerPhone && <div className="text-gray-500 text-xs mt-1">📞 {b.passengerPhone}</div>}
+                    {!readOnly && (
+                      <div className="flex items-center gap-3 mt-1.5">
+                        <button
+                          type="button"
+                          onClick={() => startEdit(b)}
+                          className="text-violet-400 hover:text-violet-300 text-xs font-medium"
+                        >
+                          Редактировать
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => cancelBooking(b.id)}
+                          disabled={cancellingId === b.id}
+                          className="text-red-400 hover:text-red-300 text-xs font-medium disabled:opacity-50"
+                        >
+                          Отменить бронь
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                )
+              )}
             </div>
           )}
         </div>

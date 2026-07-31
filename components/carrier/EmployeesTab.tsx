@@ -3,6 +3,8 @@
 import { useEffect, useState } from "react";
 import { Loader2, Search, UserCog, X } from "lucide-react";
 
+import { formatTimeAgo, isOnline } from "@/lib/utils";
+
 type Employee = {
   id: number;
   userId: number;
@@ -102,7 +104,15 @@ export default function EmployeesTab({ carrierId, readOnly }: { carrierId?: numb
       const res = await fetch(withCarrierId(`/api/carrier/dashboard/employees/${employeeId}`, carrierId), {
         method: "DELETE",
       });
-      if (res.ok) load();
+      if (res.ok) {
+        const data = await res.json().catch(() => null);
+        if (data?.freedRides > 0) {
+          alert(
+            `Сотрудник отвязан. ${data.freedRides} рейс(ов) остались без водителя — назначьте нового во вкладке «Рейсы».`
+          );
+        }
+        load();
+      }
     } finally {
       setRemovingId(null);
     }
@@ -216,9 +226,18 @@ export default function EmployeesTab({ carrierId, readOnly }: { carrierId?: numb
             className="flex items-center justify-between gap-3 bg-[#12121c] border border-white/5 rounded-2xl px-4 py-3"
           >
             <div>
-              <div className="font-medium text-sm">{emp.name}</div>
+              <div className="flex items-center gap-1.5">
+                <div className="font-medium text-sm">{emp.name}</div>
+                {isOnline(emp.lastSeenAt) && (
+                  <span className="flex items-center gap-1 text-[10px] font-medium text-green-400">
+                    <span className="w-1.5 h-1.5 rounded-full bg-green-400" />
+                    онлайн
+                  </span>
+                )}
+              </div>
               <div className="text-gray-500 text-xs mt-0.5">
-                {ROLE_LABELS[emp.role]} · {phoneLabel(emp.phone)}
+                {ROLE_LABELS[emp.role]} · {phoneLabel(emp.phone)} ·{" "}
+                {isOnline(emp.lastSeenAt) ? "сейчас на связи" : `был(а) ${formatTimeAgo(emp.lastSeenAt)}`}
               </div>
             </div>
 
