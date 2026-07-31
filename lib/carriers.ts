@@ -6,7 +6,15 @@ import { sql } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
 import { clusterRideRequests, listOpenRideRequests, RideRequestCluster } from "@/lib/rideRequests";
 import { sendPushToUser } from "@/lib/push";
-import { createTrip } from "@/lib/trips";
+import {
+  carrierCompleteTrip,
+  carrierStartTrip,
+  confirmDriverArrival,
+  createTrip,
+  forceCancelTrip,
+  reassignTripOwner,
+  updateTripVehicleInfo,
+} from "@/lib/trips";
 
 export type Carrier = {
   id: number;
@@ -38,15 +46,20 @@ export async function listCarriers(): Promise<Carrier[]> {
 
 export type CarrierEmployeeRole = "manager" | "operator" | "driver";
 
-/** Перевозчик, к которому привязан текущий залогиненный пользователь (кабинет), с его внутренней ролью. */
+/**
+ * Перевозчик, к которому привязан текущий залогиненный пользователь
+ * (кабинет), с его внутренней ролью. Водитель НЕ привязан к машине
+ * навсегда — назначение водителя на конкретный рейс живёт в
+ * carrier_rides.driver_user_id (см. assignRideDriver).
+ */
 export async function requireCarrierOperator(): Promise<
-  { userId: number; carrier: Carrier; role: CarrierEmployeeRole; vehicleId: number | null } | null
+  { userId: number; carrier: Carrier; role: CarrierEmployeeRole } | null
 > {
   const user = await getCurrentUser();
   if (!user) return null;
 
-  const rows = await sql<{ carrierId: number; role: CarrierEmployeeRole; vehicleId: number | null }[]>`
-    SELECT carrier_id as "carrierId", role as "role", vehicle_id as "vehicleId"
+  const rows = await sql<{ carrierId: number; role: CarrierEmployeeRole }[]>`
+    SELECT carrier_id as "carrierId", role as "role"
     FROM carrier_users WHERE user_id = ${user.id}
   `;
 
@@ -56,7 +69,7 @@ export async function requireCarrierOperator(): Promise<
   const carrier = await getCarrierById(link.carrierId);
   if (!carrier || !carrier.active) return null;
 
-  return { userId: user.id, carrier, role: link.role, vehicleId: link.vehicleId };
+  return { userId: user.id, carrier, role: link.role };
 }
 
 /**
@@ -184,6 +197,8 @@ export type CarrierRide = {
   occupiedSeats: number;
   status: CarrierRideStatus;
   tripId: number | null;
+  driverUserId: number | null;
+  driverName: string | null;
 };
 
 const RIDE_SELECT = sql`
@@ -192,9 +207,10 @@ const RIDE_SELECT = sql`
          r.from_city as "fromCity", r.to_city as "toCity", r.ride_date as "rideDate",
          r.departure_time as "departureTime", r.price as "price",
          r.total_seats as "totalSeats", r.occupied_seats as "occupiedSeats", r.status as "status",
-         r.trip_id as "tripId"
+         r.trip_id as "tripId", r.driver_user_id as "driverUserId", du.name as "driverName"
   FROM carrier_rides r
   JOIN carrier_vehicles v ON v.id = r.vehicle_id
+  LEFT JOIN users du ON du.id = r.driver_user_id
 `;
 
 function isoDayOfWeek(dateStr: string): number {
@@ -245,7 +261,7 @@ export async function ensureRidesForDateRange(carrierId: number, daysAhead: numb
 
 export async function listRidesForCarrier(
   carrierId: number,
-  opts: { fromDate: string; toDate: string; publicOnly?: boolean; vehicleId?: number }
+  opts: { fromDate: string; toDate: string; publicOnly?: boolean; vehicleId?: number; driverUserId?: number }
 ): Promise<CarrierRide[]> {
   return sql<CarrierRide[]>`
     ${RIDE_SELECT}
@@ -253,6 +269,7 @@ export async function listRidesForCarrier(
       AND r.ride_date >= ${opts.fromDate} AND r.ride_date <= ${opts.toDate}
       ${opts.publicOnly ? sql`AND r.status IN ('open', 'full')` : sql``}
       ${opts.vehicleId ? sql`AND r.vehicle_id = ${opts.vehicleId}` : sql``}
+      ${opts.driverUserId ? sql`AND r.driver_user_id = ${opts.driverUserId}` : sql``}
     ORDER BY r.ride_date ASC, r.departure_time ASC, r.id ASC
   `;
 }
@@ -352,6 +369,34 @@ export async function swapRideVehicle(
   `;
 
   const updated = await getCarrierRide(rideId);
+
+  // Если под рейс уже сформирована поездка Едем30 — обновляем данные о
+  // машине и там же, иначе пассажиры в чате продолжат видеть старую машину.
+  if (updated && updated.tripId !== null) {
+    const newVehicleRow = await sql<{ label: string; plate: string | null; showPlate: boolean }[]>`
+      SELECT label, plate, show_plate as "showPlate" FROM carrier_vehicles WHERE id = ${newVehicleId}
+    `;
+    const nv = newVehicleRow[0];
+
+    await updateTripVehicleInfo(updated.tripId, {
+      carModel: nv?.label,
+      licensePlate: nv?.showPlate ? nv.plate ?? undefined : undefined,
+      totalSeats: updated.totalSeats,
+    });
+
+    const carrier = await getCarrierById(carrierId);
+    const participantIds = await sql<{ userId: number }[]>`
+      SELECT user_id as "userId" FROM trip_participants WHERE trip_id = ${updated.tripId}
+    `;
+    for (const { userId } of participantIds) {
+      sendPushToUser(userId, {
+        title: "🚐 Машина рейса изменена",
+        body: `${carrier?.name ?? "Перевозчик"}: ваш рейс ${updated.fromCity} → ${updated.toCity} состоится, машина заменена.`,
+        url: `/trip/${updated.tripId}`,
+      });
+    }
+  }
+
   return { ok: true, ride: updated! };
 }
 
@@ -374,6 +419,25 @@ export async function cancelCarrierRide(carrierId: number, rideId: number): Prom
   await sql`UPDATE carrier_bookings SET status = 'cancelled' WHERE carrier_ride_id = ${rideId} AND status = 'active'`;
 
   const carrier = await getCarrierById(carrierId);
+
+  // Если уже сформирована поездка Едем30 — отменяем и её одним действием,
+  // а не оставляем два несинхронных состояния (carrier_ride отменён, а
+  // trip продолжает висеть активным для пассажиров).
+  if (ride.tripId !== null) {
+    await forceCancelTrip(ride.tripId);
+
+    const participantIds = await sql<{ userId: number }[]>`
+      SELECT user_id as "userId" FROM trip_participants WHERE trip_id = ${ride.tripId}
+    `;
+    for (const { userId } of participantIds) {
+      sendPushToUser(userId, {
+        title: "Рейс отменён",
+        body: `${carrier?.name ?? "Перевозчик"}: ${ride.fromCity} → ${ride.toCity} в ${ride.departureTime} отменён.`,
+        url: `/trip/${ride.tripId}`,
+      });
+    }
+  }
+
   const interested = await sql<{ userId: number }[]>`
     SELECT user_id as "userId" FROM carrier_ride_interests WHERE carrier_ride_id = ${rideId}
   `;
@@ -395,6 +459,9 @@ export type SetRideStatusResult = { ok: true } | { ok: false; reason: "not_found
 /**
  * Переключает рейс между "выехал" (departed) и "завершён" (completed) —
  * используем уже существующие значения status, новых состояний не вводим.
+ * Если под рейсом уже сформирована поездка Едем30 — синхронно двигаем и
+ * её жизненный цикл (одно действие водителя меняет статус сразу для всех
+ * пассажиров, а не ждёт индивидуального подтверждения каждого из них).
  */
 export async function setRideDepartedOrCompleted(
   carrierId: number,
@@ -412,6 +479,72 @@ export async function setRideDepartedOrCompleted(
   }
 
   await sql`UPDATE carrier_rides SET status = ${status} WHERE id = ${rideId} AND carrier_id = ${carrierId}`;
+
+  if (ride.tripId !== null) {
+    if (status === "departed") await carrierStartTrip(ride.tripId);
+    else await carrierCompleteTrip(ride.tripId);
+  }
+
+  return { ok: true };
+}
+
+export type MarkArrivedResult = { ok: true } | { ok: false; reason: "not_found" | "no_trip" };
+
+/** «Прибыли» — отдельная от departed/completed отметка, не меняет carrier_rides.status, только trips.driver_arrived_at. */
+export async function markRideArrived(carrierId: number, rideId: number): Promise<MarkArrivedResult> {
+  const ride = await getCarrierRide(rideId);
+  if (!ride || ride.carrierId !== carrierId) return { ok: false, reason: "not_found" };
+  if (ride.tripId === null || ride.driverUserId === null) return { ok: false, reason: "no_trip" };
+
+  await confirmDriverArrival(ride.tripId, ride.driverUserId);
+  return { ok: true };
+}
+
+export type AssignDriverResult = { ok: true } | { ok: false; reason: "not_found" | "not_a_driver" };
+
+/**
+ * Назначает водителя на КОНКРЕТНЫЙ рейс (не навсегда на машину) — можно
+ * менять от рейса к рейсу. Если под рейсом уже сформирована поездка
+ * Едем30 — переназначает и её владельца, чтобы пассажиры в чате видели
+ * актуального водителя.
+ */
+export async function assignRideDriver(
+  carrierId: number,
+  rideId: number,
+  driverUserId: number | null
+): Promise<AssignDriverResult> {
+  const ride = await getCarrierRide(rideId);
+  if (!ride || ride.carrierId !== carrierId) return { ok: false, reason: "not_found" };
+
+  let driverName: string | null = null;
+
+  if (driverUserId !== null) {
+    const [employee] = await sql<{ name: string }[]>`
+      SELECT u.name as name FROM carrier_users cu JOIN users u ON u.id = cu.user_id
+      WHERE cu.carrier_id = ${carrierId} AND cu.user_id = ${driverUserId} AND cu.role = 'driver'
+    `;
+    if (!employee) return { ok: false, reason: "not_a_driver" };
+    driverName = employee.name;
+  }
+
+  await sql`UPDATE carrier_rides SET driver_user_id = ${driverUserId} WHERE id = ${rideId} AND carrier_id = ${carrierId}`;
+
+  if (ride.tripId !== null && driverUserId !== null && driverName !== null) {
+    await reassignTripOwner(ride.tripId, { id: driverUserId, name: driverName });
+
+    const carrier = await getCarrierById(carrierId);
+    const participantIds = await sql<{ userId: number }[]>`
+      SELECT user_id as "userId" FROM trip_participants WHERE trip_id = ${ride.tripId}
+    `;
+    for (const { userId } of participantIds) {
+      sendPushToUser(userId, {
+        title: "Водитель рейса изменён",
+        body: `${carrier?.name ?? "Перевозчик"}: на ваш рейс ${ride.fromCity} → ${ride.toCity} назначен другой водитель.`,
+        url: `/trip/${ride.tripId}`,
+      });
+    }
+  }
+
   return { ok: true };
 }
 
@@ -795,22 +928,6 @@ export async function listBookingsForRide(rideId: number): Promise<CarrierBookin
   `;
 }
 
-/** Сотрудник-водитель, назначенный на конкретную машину перевозчика (может отсутствовать). */
-async function getAssignedDriver(
-  carrierId: number,
-  vehicleId: number,
-  executor: postgres.ISql = sql
-): Promise<{ userId: number; name: string } | null> {
-  const rows = await executor<{ userId: number; name: string }[]>`
-    SELECT cu.user_id as "userId", u.name as "name"
-    FROM carrier_users cu
-    JOIN users u ON u.id = cu.user_id
-    WHERE cu.carrier_id = ${carrierId} AND cu.role = 'driver' AND cu.vehicle_id = ${vehicleId}
-    LIMIT 1
-  `;
-  return rows[0] ?? null;
-}
-
 export type CreateBookingInput = {
   seats: number;
   passengerName: string;
@@ -864,6 +981,7 @@ export async function createBooking(
         price: number;
         totalSeats: number;
         tripId: number | null;
+        driverUserId: number | null;
       }[]
     >`
       UPDATE carrier_rides
@@ -874,7 +992,7 @@ export async function createBooking(
         AND occupied_seats + ${input.seats} <= total_seats
       RETURNING vehicle_id as "vehicleId", from_city as "fromCity", to_city as "toCity",
                 ride_date as "rideDate", departure_time as "departureTime", price as "price",
-                total_seats as "totalSeats", trip_id as "tripId"
+                total_seats as "totalSeats", trip_id as "tripId", driver_user_id as "driverUserId"
     `;
 
     if (reserved.length === 0) {
@@ -900,11 +1018,15 @@ export async function createBooking(
 
     if (input.source === "edem30" && input.userId) {
       if (tripId === null) {
-        const driver = await getAssignedDriver(carrierId, ride.vehicleId, tx);
+        // Требование: если у рейса ещё нет назначенного на НЕГО водителя —
+        // trips НЕ создаём. Бронь всё равно засчитывается (место занято),
+        // просто без чата/страницы поездки, пока менеджер не назначит
+        // водителя на этот конкретный рейс (carrier_rides.driver_user_id).
+        const driverRows = ride.driverUserId
+          ? await tx<{ name: string }[]>`SELECT name FROM users WHERE id = ${ride.driverUserId}`
+          : [];
+        const driver = ride.driverUserId && driverRows[0] ? { userId: ride.driverUserId, name: driverRows[0].name } : null;
 
-        // Требование: если у рейса ещё нет назначенного водителя — trips НЕ создаём.
-        // Бронь всё равно засчитывается (место занято), просто без чата/страницы
-        // поездки до момента, пока перевозчик не назначит водителя.
         if (driver) {
           const vehicleRows = await tx<{ label: string; plate: string | null; showPlate: boolean }[]>`
             SELECT label, plate, show_plate as "showPlate" FROM carrier_vehicles WHERE id = ${ride.vehicleId}
@@ -1069,19 +1191,15 @@ export type CarrierEmployee = {
   name: string;
   phone: string | null;
   role: CarrierEmployeeRole;
-  vehicleId: number | null;
-  vehicleLabel: string | null;
   lastSeenAt: string | null;
 };
 
 export async function listEmployees(carrierId: number): Promise<CarrierEmployee[]> {
   return sql<CarrierEmployee[]>`
     SELECT cu.id as "id", u.id as "userId", u.name as "name", u.phone as "phone",
-           cu.role as "role", cu.vehicle_id as "vehicleId", v.label as "vehicleLabel",
-           u.last_seen_at as "lastSeenAt"
+           cu.role as "role", u.last_seen_at as "lastSeenAt"
     FROM carrier_users cu
     JOIN users u ON u.id = cu.user_id
-    LEFT JOIN carrier_vehicles v ON v.id = cu.vehicle_id
     WHERE cu.carrier_id = ${carrierId}
     ORDER BY (cu.role = 'manager') DESC, (cu.role = 'operator') DESC, u.name ASC
   `;
@@ -1089,26 +1207,20 @@ export async function listEmployees(carrierId: number): Promise<CarrierEmployee[
 
 export type AssignEmployeeResult =
   | { ok: true }
-  | { ok: false; reason: "user_not_found" | "already_linked_elsewhere" | "invalid_vehicle" };
+  | { ok: false; reason: "user_not_found" | "already_linked_elsewhere" };
 
-/** Назначает сотруднику роль (и, для водителя, машину) — переиспользует carrier_users, users.role не трогает. */
+/**
+ * Назначает сотруднику роль — переиспользует carrier_users, users.role не
+ * трогает. Водитель НЕ привязывается к машине здесь — машина/водитель
+ * назначаются на конкретный рейс отдельно, через assignRideDriver.
+ */
 export async function assignEmployee(
   carrierId: number,
   userId: number,
-  role: CarrierEmployeeRole,
-  vehicleId: number | null
+  role: CarrierEmployeeRole
 ): Promise<AssignEmployeeResult> {
   const [target] = await sql<{ id: number }[]>`SELECT id FROM users WHERE id = ${userId}`;
   if (!target) return { ok: false, reason: "user_not_found" };
-
-  if (role === "driver" && vehicleId !== null) {
-    const [vehicle] = await sql<{ id: number }[]>`
-      SELECT id FROM carrier_vehicles WHERE id = ${vehicleId} AND carrier_id = ${carrierId}
-    `;
-    if (!vehicle) return { ok: false, reason: "invalid_vehicle" };
-  }
-
-  const effectiveVehicleId = role === "driver" ? vehicleId : null;
 
   const [existing] = await sql<{ carrierId: number }[]>`
     SELECT carrier_id as "carrierId" FROM carrier_users WHERE user_id = ${userId}
@@ -1118,9 +1230,9 @@ export async function assignEmployee(
   }
 
   await sql`
-    INSERT INTO carrier_users (carrier_id, user_id, role, vehicle_id)
-    VALUES (${carrierId}, ${userId}, ${role}, ${effectiveVehicleId})
-    ON CONFLICT (user_id) DO UPDATE SET role = EXCLUDED.role, vehicle_id = EXCLUDED.vehicle_id
+    INSERT INTO carrier_users (carrier_id, user_id, role)
+    VALUES (${carrierId}, ${userId}, ${role})
+    ON CONFLICT (user_id) DO UPDATE SET role = EXCLUDED.role
   `;
 
   return { ok: true };

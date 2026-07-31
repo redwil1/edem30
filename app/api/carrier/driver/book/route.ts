@@ -12,7 +12,7 @@ export async function POST(req: NextRequest) {
   }
 
   const operator = await requireCarrierOperator();
-  if (!operator || operator.role !== "driver" || !operator.vehicleId) {
+  if (!operator || operator.role !== "driver") {
     return NextResponse.json({ error: "Доступ запрещён" }, { status: 403 });
   }
 
@@ -29,7 +29,7 @@ export async function POST(req: NextRequest) {
   }
 
   const ride = await getCarrierRide(rideId);
-  if (!ride || ride.carrierId !== operator.carrier.id || ride.vehicleId !== operator.vehicleId) {
+  if (!ride || ride.carrierId !== operator.carrier.id || ride.driverUserId !== operator.userId) {
     return NextResponse.json({ error: "Рейс не найден" }, { status: 404 });
   }
 

@@ -46,7 +46,6 @@ function dateLabel(dateStr: string) {
 
 export default function DriverDashboard({ carrierName }: { carrierName: string }) {
   const [rides, setRides] = useState<DriverRide[] | null>(null);
-  const [noVehicle, setNoVehicle] = useState(false);
   const [selectedId, setSelectedId] = useState<number | null>(null);
   const [busy, setBusy] = useState(false);
 
@@ -55,7 +54,6 @@ export default function DriverDashboard({ carrierName }: { carrierName: string }
       .then((res) => res.json())
       .then((data) => {
         setRides(data.rides ?? []);
-        setNoVehicle(!!data.noVehicle);
         setSelectedId((prev) => prev ?? data.rides?.[0]?.id ?? null);
       });
   }
@@ -95,7 +93,7 @@ export default function DriverDashboard({ carrierName }: { carrierName: string }
     }
   }
 
-  async function setStatus(rideId: number, status: "departed" | "completed") {
+  async function setStatus(rideId: number, status: "departed" | "arrived" | "completed") {
     setBusy(true);
     try {
       const res = await fetch(`/api/carrier/driver/rides/${rideId}/status`, {
@@ -117,18 +115,10 @@ export default function DriverDashboard({ carrierName }: { carrierName: string }
     );
   }
 
-  if (noVehicle) {
-    return (
-      <div className="bg-[#12121c] border border-white/5 rounded-3xl p-6 text-center text-gray-400">
-        Вам ещё не назначена машина. Обратитесь к менеджеру перевозчика.
-      </div>
-    );
-  }
-
   if (rides.length === 0) {
     return (
       <div className="bg-[#12121c] border border-white/5 rounded-3xl p-6 text-center text-gray-400">
-        На сегодня и завтра рейсов нет.
+        На сегодня и завтра рейсов, назначенных вам, нет. Обратитесь к менеджеру перевозчика.
       </div>
     );
   }
@@ -182,14 +172,24 @@ export default function DriverDashboard({ carrierName }: { carrierName: string }
             </button>
           )}
           {ride.status === "departed" && (
-            <button
-              type="button"
-              onClick={() => setStatus(ride.id, "completed")}
-              disabled={busy}
-              className="flex-1 bg-green-600 hover:bg-green-700 transition rounded-xl py-3 text-sm font-bold disabled:opacity-60"
-            >
-              Завершить рейс
-            </button>
+            <>
+              <button
+                type="button"
+                onClick={() => setStatus(ride.id, "arrived")}
+                disabled={busy}
+                className="flex-1 bg-[#1c1c2b] hover:bg-white/10 transition rounded-xl py-3 text-sm font-bold disabled:opacity-60"
+              >
+                Прибыли
+              </button>
+              <button
+                type="button"
+                onClick={() => setStatus(ride.id, "completed")}
+                disabled={busy}
+                className="flex-1 bg-green-600 hover:bg-green-700 transition rounded-xl py-3 text-sm font-bold disabled:opacity-60"
+              >
+                Завершить рейс
+              </button>
+            </>
           )}
           {ride.status === "completed" && (
             <div className="flex-1 text-center text-green-400 text-sm font-bold py-3">✓ Рейс завершён</div>

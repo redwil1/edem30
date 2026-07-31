@@ -31,7 +31,11 @@ type Ride = {
   occupiedSeats: number;
   freeSeats: number;
   status: string;
+  driverUserId: number | null;
+  driverName: string | null;
 };
+
+type Driver = { userId: number; name: string };
 
 type Vehicle = {
   id: number;
@@ -78,6 +82,7 @@ type DashboardData = {
   rides: Ride[];
   vehicles: Vehicle[];
   schedules: Schedule[];
+  drivers: Driver[];
   matches: Match[];
   stats: Stats;
 };
@@ -129,6 +134,7 @@ export default function CarrierDashboard({
   const [showScheduleForm, setShowScheduleForm] = useState(false);
   const [passengersRideId, setPassengersRideId] = useState<number | null>(null);
   const [swapRideId, setSwapRideId] = useState<number | null>(null);
+  const [assignDriverRideId, setAssignDriverRideId] = useState<number | null>(null);
   const [preselectedRideId, setPreselectedRideId] = useState<number | null>(null);
 
   const readOnly = !!data?.readOnly;
@@ -183,6 +189,28 @@ export default function CarrierDashboard({
       } else {
         const err = await res.json().catch(() => null);
         alert(err?.error ?? "Не удалось заменить машину");
+      }
+    } finally {
+      setBusyRideId(null);
+    }
+  }
+
+  async function assignDriver(rideId: number, driverUserId: number | null) {
+    setBusyRideId(rideId);
+
+    try {
+      const res = await fetch(`/api/carrier/dashboard/rides/${rideId}/driver`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ driverUserId }),
+      });
+
+      if (res.ok) {
+        setAssignDriverRideId(null);
+        await load();
+      } else {
+        const err = await res.json().catch(() => null);
+        alert(err?.error ?? "Не удалось назначить водителя");
       }
     } finally {
       setBusyRideId(null);
@@ -249,12 +277,16 @@ export default function CarrierDashboard({
         <RidesTab
           rides={data.rides}
           vehicles={data.vehicles}
+          drivers={data.drivers}
           readOnly={readOnly}
           busyRideId={busyRideId}
           swapRideId={swapRideId}
           setSwapRideId={setSwapRideId}
+          assignDriverRideId={assignDriverRideId}
+          setAssignDriverRideId={setAssignDriverRideId}
           onCancel={cancelRide}
           onSwap={swapVehicle}
+          onAssignDriver={assignDriver}
           onOpenPassengers={setPassengersRideId}
           onAddBooking={goToBooking}
         />
@@ -296,7 +328,7 @@ export default function CarrierDashboard({
         />
       )}
 
-      {tab === "employees" && <EmployeesTab carrierId={carrierId} vehicles={data.vehicles} readOnly={readOnly} />}
+      {tab === "employees" && <EmployeesTab carrierId={carrierId} readOnly={readOnly} />}
 
       {tab === "analytics" && <AnalyticsTab carrierId={carrierId} />}
 
@@ -395,23 +427,31 @@ function TodayTab({
 function RidesTab({
   rides,
   vehicles,
+  drivers,
   readOnly,
   busyRideId,
   swapRideId,
   setSwapRideId,
+  assignDriverRideId,
+  setAssignDriverRideId,
   onCancel,
   onSwap,
+  onAssignDriver,
   onOpenPassengers,
   onAddBooking,
 }: {
   rides: Ride[];
   vehicles: Vehicle[];
+  drivers: Driver[];
   readOnly: boolean;
   busyRideId: number | null;
   swapRideId: number | null;
   setSwapRideId: (id: number | null) => void;
+  assignDriverRideId: number | null;
+  setAssignDriverRideId: (id: number | null) => void;
   onCancel: (rideId: number) => void;
   onSwap: (rideId: number, vehicleId: number) => void;
+  onAssignDriver: (rideId: number, driverUserId: number | null) => void;
   onOpenPassengers: (rideId: number) => void;
   onAddBooking: (rideId: number) => void;
 }) {
@@ -443,6 +483,13 @@ function RidesTab({
                     </div>
                     <div className="text-gray-500 text-xs mt-0.5">
                       {ride.vehicleLabel} · {ride.occupiedSeats}/{ride.totalSeats} мест
+                    </div>
+                    <div className="text-xs mt-0.5">
+                      {ride.driverName ? (
+                        <span className="text-violet-300">🧑‍✈️ {ride.driverName}</span>
+                      ) : (
+                        <span className="text-amber-400">⚠ Водитель не назначен</span>
+                      )}
                     </div>
                   </div>
 
@@ -481,6 +528,14 @@ function RidesTab({
 
                       <button
                         type="button"
+                        onClick={() => setAssignDriverRideId(assignDriverRideId === ride.id ? null : ride.id)}
+                        className="px-3 py-2 rounded-xl bg-[#1c1c2b] hover:bg-white/10 transition font-medium"
+                      >
+                        {ride.driverName ? "Сменить водителя" : "Назначить водителя"}
+                      </button>
+
+                      <button
+                        type="button"
                         onClick={() => setSwapRideId(swapRideId === ride.id ? null : ride.id)}
                         className="px-3 py-2 rounded-xl bg-[#1c1c2b] hover:bg-white/10 transition font-medium"
                       >
@@ -497,6 +552,29 @@ function RidesTab({
                     </>
                   )}
                 </div>
+
+                {assignDriverRideId === ride.id && (
+                  <div className="flex gap-2 flex-wrap mt-3">
+                    {drivers
+                      .filter((d) => d.userId !== ride.driverUserId)
+                      .map((d) => (
+                        <button
+                          key={d.userId}
+                          type="button"
+                          onClick={() => onAssignDriver(ride.id, d.userId)}
+                          disabled={busyRideId === ride.id}
+                          className="px-3 py-2 rounded-xl bg-violet-600/15 text-violet-300 hover:bg-violet-600/25 transition text-xs font-medium disabled:opacity-50"
+                        >
+                          {d.name}
+                        </button>
+                      ))}
+                    {drivers.length === 0 && (
+                      <span className="text-gray-500 text-xs">
+                        Нет сотрудников с ролью «Водитель» — добавьте во вкладке «Сотрудники»
+                      </span>
+                    )}
+                  </div>
+                )}
 
                 {swapRideId === ride.id && (
                   <div className="flex gap-2 flex-wrap mt-3">

@@ -728,6 +728,74 @@ export async function confirmTripComplete(
   return { ok: true, status: await getTripLifecycle(tripId) };
 }
 
+/**
+ * Для carrier-поездок (ИП Лаптевы и т.п.) нет отдельного пассажирского
+ * подтверждения — одно действие водителя в его кабинете двигает статус
+ * поездки сразу для всех, а не ждёт, пока каждый пассажир нажмёт свою
+ * кнопку (в отличие от confirmTripStart/confirmTripComplete выше,
+ * рассчитанных на обычную поездку водитель+пассажиры). Переиспользует
+ * ровно те же поля trips/trip_participants, что и обычный флоу.
+ */
+export async function carrierStartTrip(tripId: number): Promise<void> {
+  await sql.begin(async (tx) => {
+    await tx`
+      UPDATE trips SET
+        driver_arrived_at = COALESCE(driver_arrived_at, ${tx.unsafe(NOW)}),
+        driver_confirmed_at = COALESCE(driver_confirmed_at, ${tx.unsafe(NOW)}),
+        passenger_confirmed_at = COALESCE(passenger_confirmed_at, ${tx.unsafe(NOW)})
+      WHERE id = ${tripId}
+    `;
+
+    await tx`
+      UPDATE trip_participants SET start_confirmed_at = COALESCE(start_confirmed_at, ${tx.unsafe(NOW)})
+      WHERE trip_id = ${tripId}
+    `;
+  });
+}
+
+export async function carrierCompleteTrip(tripId: number): Promise<void> {
+  await sql.begin(async (tx) => {
+    await tx`
+      UPDATE trips SET
+        driver_completed_at = COALESCE(driver_completed_at, ${tx.unsafe(NOW)}),
+        passenger_completed_at = COALESCE(passenger_completed_at, ${tx.unsafe(NOW)})
+      WHERE id = ${tripId}
+    `;
+
+    await tx`
+      UPDATE trip_participants SET complete_confirmed_at = COALESCE(complete_confirmed_at, ${tx.unsafe(NOW)})
+      WHERE trip_id = ${tripId}
+    `;
+  });
+}
+
+/** Отменяет поездку без владельческих проверок — вызывается изнутри carrier-логики, когда менеджер отменяет весь рейс. */
+export async function forceCancelTrip(tripId: number, executor: postgres.ISql = sql): Promise<void> {
+  await executor`UPDATE trips SET cancelled_at = COALESCE(cancelled_at, ${executor.unsafe(NOW)}) WHERE id = ${tripId}`;
+}
+
+/** Обновляет отображаемые данные о машине на уже созданной поездке (например после замены сломавшегося микроавтобуса). */
+export async function updateTripVehicleInfo(
+  tripId: number,
+  input: { carModel?: string; licensePlate?: string; totalSeats: number },
+  executor: postgres.ISql = sql
+): Promise<void> {
+  await executor`
+    UPDATE trips
+    SET car_model = ${input.carModel ?? null}, license_plate = ${input.licensePlate ?? null}, total_seats = ${input.totalSeats}
+    WHERE id = ${tripId}
+  `;
+}
+
+/** Переназначает водителя (владельца) уже созданной поездки — например когда менеджер меняет водителя на рейсе. */
+export async function reassignTripOwner(
+  tripId: number,
+  driver: { id: number; name: string },
+  executor: postgres.ISql = sql
+): Promise<void> {
+  await executor`UPDATE trips SET owner_id = ${driver.id}, driver_name = ${driver.name} WHERE id = ${tripId}`;
+}
+
 // Distinguishes "trip not found" (undefined) from "trip found but owner_id is NULL" (null).
 async function getTripOwnerIdOrNull(
   tripId: number

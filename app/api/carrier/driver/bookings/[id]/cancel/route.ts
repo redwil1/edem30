@@ -15,7 +15,7 @@ export async function POST(req: NextRequest, { params }: Props) {
   }
 
   const operator = await requireCarrierOperator();
-  if (!operator || operator.role !== "driver" || !operator.vehicleId) {
+  if (!operator || operator.role !== "driver") {
     return NextResponse.json({ error: "Доступ запрещён" }, { status: 403 });
   }
 
@@ -31,9 +31,9 @@ export async function POST(req: NextRequest, { params }: Props) {
     return NextResponse.json({ error: "Бронь не найдена" }, { status: 404 });
   }
 
-  // Водитель может отменять брони только на рейсах своей машины.
+  // Водитель может отменять брони только на своих рейсах.
   const ride = await getCarrierRide(booking.carrierRideId);
-  if (!ride || ride.carrierId !== operator.carrier.id || ride.vehicleId !== operator.vehicleId) {
+  if (!ride || ride.carrierId !== operator.carrier.id || ride.driverUserId !== operator.userId) {
     return NextResponse.json({ error: "Доступ запрещён" }, { status: 403 });
   }
 

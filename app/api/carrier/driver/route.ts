@@ -16,10 +16,6 @@ export async function GET() {
     return NextResponse.json({ error: "Доступ запрещён" }, { status: 403 });
   }
 
-  if (!operator.vehicleId) {
-    return NextResponse.json({ rides: [], noVehicle: true }, { headers: { "Cache-Control": "no-store" } });
-  }
-
   await ensureRidesForDateRange(operator.carrier.id, 2);
 
   const today = new Date().toISOString().slice(0, 10);
@@ -29,7 +25,7 @@ export async function GET() {
   const rides = await listRidesForCarrier(operator.carrier.id, {
     fromDate: today,
     toDate: end.toISOString().slice(0, 10),
-    vehicleId: operator.vehicleId,
+    driverUserId: operator.userId,
   });
 
   const withPassengers = await Promise.all(
@@ -63,8 +59,5 @@ export async function GET() {
       }))
   );
 
-  return NextResponse.json(
-    { rides: withPassengers, noVehicle: false },
-    { headers: { "Cache-Control": "no-store" } }
-  );
+  return NextResponse.json({ rides: withPassengers }, { headers: { "Cache-Control": "no-store" } });
 }

@@ -6,6 +6,7 @@ import {
   freeSeats,
   getCarrierForAdminView,
   getCarrierTodayStats,
+  listEmployees,
   listRidesForCarrier,
   listSchedules,
   listVehicles,
@@ -46,7 +47,7 @@ export async function GET(req: NextRequest) {
   const end = new Date();
   end.setDate(end.getDate() + DAYS_AHEAD);
 
-  const [rides, vehicles, schedules, stats, matches] = await Promise.all([
+  const [rides, vehicles, schedules, stats, matches, employees] = await Promise.all([
     listRidesForCarrier(operatorCarrierId, {
       fromDate: today,
       toDate: end.toISOString().slice(0, 10),
@@ -55,7 +56,10 @@ export async function GET(req: NextRequest) {
     listSchedules(operatorCarrierId),
     getCarrierTodayStats(operatorCarrierId),
     readOnly ? [] : findMatchingRideRequestClusters(operatorCarrierId),
+    listEmployees(operatorCarrierId),
   ]);
+
+  const drivers = employees.filter((e) => e.role === "driver").map((e) => ({ userId: e.userId, name: e.name }));
 
   return NextResponse.json(
     {
@@ -75,9 +79,12 @@ export async function GET(req: NextRequest) {
         occupiedSeats: r.occupiedSeats,
         freeSeats: freeSeats(r),
         status: r.status,
+        driverUserId: r.driverUserId,
+        driverName: r.driverName,
       })),
       vehicles,
       schedules,
+      drivers,
       stats,
       matches: matches.map((m) => ({
         carrierRideId: m.carrierRide.id,

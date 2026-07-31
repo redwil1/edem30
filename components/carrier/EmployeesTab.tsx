@@ -3,16 +3,12 @@
 import { useEffect, useState } from "react";
 import { Loader2, Search, UserCog, X } from "lucide-react";
 
-type Vehicle = { id: number; label: string; active: boolean };
-
 type Employee = {
   id: number;
   userId: number;
   name: string;
   phone: string | null;
   role: "manager" | "operator" | "driver";
-  vehicleId: number | null;
-  vehicleLabel: string | null;
   lastSeenAt: string | null;
 };
 
@@ -31,22 +27,13 @@ function phoneLabel(phone: string | null) {
   return phone ? `+${phone}` : "без телефона";
 }
 
-export default function EmployeesTab({
-  carrierId,
-  vehicles,
-  readOnly,
-}: {
-  carrierId?: number;
-  vehicles: Vehicle[];
-  readOnly: boolean;
-}) {
+export default function EmployeesTab({ carrierId, readOnly }: { carrierId?: number; readOnly: boolean }) {
   const [employees, setEmployees] = useState<Employee[] | null>(null);
   const [showForm, setShowForm] = useState(false);
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<{ id: number; name: string; phone: string | null }[]>([]);
   const [selectedUser, setSelectedUser] = useState<{ id: number; name: string } | null>(null);
   const [role, setRole] = useState<Employee["role"]>("operator");
-  const [vehicleId, setVehicleId] = useState<number | "">("");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const [removingId, setRemovingId] = useState<number | null>(null);
@@ -87,11 +74,7 @@ export default function EmployeesTab({
       const res = await fetch(withCarrierId("/api/carrier/dashboard/employees", carrierId), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          userId: selectedUser.id,
-          role,
-          vehicleId: role === "driver" && vehicleId ? vehicleId : null,
-        }),
+        body: JSON.stringify({ userId: selectedUser.id, role }),
       });
 
       const data = await res.json().catch(() => null);
@@ -104,7 +87,6 @@ export default function EmployeesTab({
       setSelectedUser(null);
       setQuery("");
       setRole("operator");
-      setVehicleId("");
       setShowForm(false);
       load();
     } finally {
@@ -199,34 +181,21 @@ export default function EmployeesTab({
             </div>
           )}
 
-          <div className="flex gap-2 flex-wrap">
-            <select
-              value={role}
-              onChange={(e) => setRole(e.target.value as Employee["role"])}
-              className="bg-[#1c1c2b] rounded-xl px-3 py-2.5 text-sm outline-none"
-            >
-              <option value="manager">Менеджер</option>
-              <option value="operator">Оператор</option>
-              <option value="driver">Водитель</option>
-            </select>
+          <select
+            value={role}
+            onChange={(e) => setRole(e.target.value as Employee["role"])}
+            className="bg-[#1c1c2b] rounded-xl px-3 py-2.5 text-sm outline-none"
+          >
+            <option value="manager">Менеджер</option>
+            <option value="operator">Оператор</option>
+            <option value="driver">Водитель</option>
+          </select>
 
-            {role === "driver" && (
-              <select
-                value={vehicleId}
-                onChange={(e) => setVehicleId(Number(e.target.value))}
-                className="flex-1 min-w-[160px] bg-[#1c1c2b] rounded-xl px-3 py-2.5 text-sm outline-none"
-              >
-                <option value="">Без машины (назначить позже)</option>
-                {vehicles
-                  .filter((v) => v.active)
-                  .map((v) => (
-                    <option key={v.id} value={v.id}>
-                      {v.label}
-                    </option>
-                  ))}
-              </select>
-            )}
-          </div>
+          {role === "driver" && (
+            <p className="text-gray-500 text-xs">
+              Машина не назначается здесь — водитель привязывается к конкретному рейсу во вкладке «Рейсы».
+            </p>
+          )}
 
           {error && <p className="text-red-400 text-sm">{error}</p>}
 
@@ -249,8 +218,7 @@ export default function EmployeesTab({
             <div>
               <div className="font-medium text-sm">{emp.name}</div>
               <div className="text-gray-500 text-xs mt-0.5">
-                {ROLE_LABELS[emp.role]}
-                {emp.vehicleLabel && ` · ${emp.vehicleLabel}`} · {phoneLabel(emp.phone)}
+                {ROLE_LABELS[emp.role]} · {phoneLabel(emp.phone)}
               </div>
             </div>
 

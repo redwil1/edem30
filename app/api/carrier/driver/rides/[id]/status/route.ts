@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 
 import { isTrustedOrigin } from "@/lib/security";
-import { getCarrierRide, requireCarrierOperator, setRideDepartedOrCompleted } from "@/lib/carriers";
+import { getCarrierRide, markRideArrived, requireCarrierOperator, setRideDepartedOrCompleted } from "@/lib/carriers";
 
 export const runtime = "nodejs";
 
@@ -15,7 +15,7 @@ export async function POST(req: NextRequest, { params }: Props) {
   }
 
   const operator = await requireCarrierOperator();
-  if (!operator || operator.role !== "driver" || !operator.vehicleId) {
+  if (!operator || operator.role !== "driver") {
     return NextResponse.json({ error: "Доступ запрещён" }, { status: 403 });
   }
 
@@ -27,15 +27,23 @@ export async function POST(req: NextRequest, { params }: Props) {
   }
 
   const ride = await getCarrierRide(rideId);
-  if (!ride || ride.carrierId !== operator.carrier.id || ride.vehicleId !== operator.vehicleId) {
+  if (!ride || ride.carrierId !== operator.carrier.id || ride.driverUserId !== operator.userId) {
     return NextResponse.json({ error: "Рейс не найден" }, { status: 404 });
   }
 
   const body = await req.json().catch(() => null);
   const status = body?.status;
 
-  if (status !== "departed" && status !== "completed") {
+  if (status !== "departed" && status !== "arrived" && status !== "completed") {
     return NextResponse.json({ error: "Некорректный статус" }, { status: 400 });
+  }
+
+  if (status === "arrived") {
+    const result = await markRideArrived(operator.carrier.id, rideId);
+    if (!result.ok) {
+      return NextResponse.json({ error: "Недопустимое действие" }, { status: 409 });
+    }
+    return NextResponse.json({ ok: true });
   }
 
   const result = await setRideDepartedOrCompleted(operator.carrier.id, rideId, status);
