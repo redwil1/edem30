@@ -5,7 +5,7 @@ import { rateLimit } from "@/lib/rateLimit";
 import { isTrustedOrigin } from "@/lib/security";
 import { cancelTrip } from "@/lib/trips";
 import { restoreRideRequestsForTrip } from "@/lib/rideRequests";
-import { sendPushToUser } from "@/lib/push";
+import { notifyUserWithEmailFallback } from "@/lib/push";
 
 export const runtime = "nodejs";
 
@@ -61,7 +61,7 @@ export async function POST(req: NextRequest, { params }: Props) {
   const restoredPassengerIds = await restoreRideRequestsForTrip(tripId);
 
   for (const passengerId of restoredPassengerIds) {
-    sendPushToUser(passengerId, {
+    notifyUserWithEmailFallback(passengerId, {
       title: "Водитель отменил поездку",
       body: "Мы снова ищем нового водителя — заявка снова активна.",
       url: "/find-driver/mine",

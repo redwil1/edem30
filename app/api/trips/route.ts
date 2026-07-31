@@ -7,7 +7,7 @@ import { claimFormingTrip, countActiveTripsByOwner, createTrip, joinTrip } from 
 import { TripType } from "@/types/trips";
 import { isValidAddress } from "@/lib/addressValidation";
 import { containsProfanity } from "@/lib/profanity";
-import { sendPushToSegment, sendPushToUser } from "@/lib/push";
+import { notifyUserWithEmailFallback, sendPushToSegment } from "@/lib/push";
 import { fulfillRideRequests, getRideRequestsByIds } from "@/lib/rideRequests";
 
 export const runtime = "nodejs";
@@ -227,7 +227,7 @@ export async function POST(req: NextRequest) {
 
       const passengerIds = await fulfillRideRequests(fulfillRequestIds, id);
       for (const passengerId of passengerIds) {
-        sendPushToUser(passengerId, {
+        notifyUserWithEmailFallback(passengerId, {
           title: "Отличная новость!",
           body: "Водитель найден. Поездка сформирована.",
           url: `/trip/${id}`,
@@ -247,7 +247,7 @@ export async function POST(req: NextRequest) {
         // (например водитель указал мест меньше, чем ждало пассажиров).
         if (!joinResult.ok) continue;
 
-        sendPushToUser(passengerId, {
+        notifyUserWithEmailFallback(passengerId, {
           title: "Отличная новость!",
           body: "Водитель найден. Поездка сформирована.",
           url: `/trip/${id}`,

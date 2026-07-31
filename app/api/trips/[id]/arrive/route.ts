@@ -3,7 +3,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import { rateLimit } from "@/lib/rateLimit";
 import { isTrustedOrigin } from "@/lib/security";
-import { confirmDriverArrival, getTripStartDetail } from "@/lib/trips";
+import { confirmDriverArrival, getTripNotifyInfo, getTripStartDetail } from "@/lib/trips";
+import { notifyUserWithEmailFallback } from "@/lib/push";
 
 export const runtime = "nodejs";
 
@@ -49,6 +50,18 @@ export async function POST(req: NextRequest, { params }: Props) {
       { error: "Только водитель может подтвердить прибытие" },
       { status: 403 }
     );
+  }
+
+  const info = await getTripNotifyInfo(tripId);
+  if (info) {
+    const route = `${info.from} → ${info.to}`;
+    for (const passengerId of info.participantIds) {
+      notifyUserWithEmailFallback(passengerId, {
+        title: "Водитель на месте",
+        body: route,
+        url: `/trip/${tripId}`,
+      });
+    }
   }
 
   return NextResponse.json(await getTripStartDetail(tripId, user.id));

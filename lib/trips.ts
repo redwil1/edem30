@@ -611,6 +611,32 @@ export async function getTripStartDetail(
   };
 }
 
+export type TripNotifyInfo = {
+  ownerId: number | null;
+  participantIds: number[];
+  from: string;
+  to: string;
+};
+
+/** Кому и о каком маршруте уведомлять при смене статуса поездки (start/arrive/complete). */
+export async function getTripNotifyInfo(tripId: number): Promise<TripNotifyInfo | null> {
+  const [trip] = await sql<{ ownerId: number | null; from: string; to: string }[]>`
+    SELECT owner_id as "ownerId", from_city as "from", to_city as "to" FROM trips WHERE id = ${tripId}
+  `;
+  if (!trip) return null;
+
+  const participants = await sql<{ userId: number }[]>`
+    SELECT user_id as "userId" FROM trip_participants WHERE trip_id = ${tripId}
+  `;
+
+  return {
+    ownerId: trip.ownerId,
+    participantIds: participants.map((p) => p.userId),
+    from: trip.from,
+    to: trip.to,
+  };
+}
+
 export async function confirmDriverArrival(
   tripId: number,
   userId: number

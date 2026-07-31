@@ -8,6 +8,7 @@ import VehicleSetup from "@/components/profile/VehicleSetup";
 import EarningsChart from "@/components/profile/EarningsChart";
 import PushSubscribeButton from "@/components/PushSubscribeButton";
 import EmailSettings from "@/components/profile/EmailSettings";
+import EmailNotifyToggle from "@/components/profile/EmailNotifyToggle";
 import FavoriteAddressesManager from "@/components/profile/FavoriteAddressesManager";
 import ProfileTabs from "@/components/profile/ProfileTabs";
 import ReviewsList from "@/components/profile/ReviewsList";
@@ -152,6 +153,8 @@ export default async function ProfilePage() {
                   </div>
 
                   <EmailSettings />
+
+                  <EmailNotifyToggle />
 
                   <FavoriteAddressesManager />
 
