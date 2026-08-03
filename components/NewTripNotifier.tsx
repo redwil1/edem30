@@ -5,6 +5,7 @@ import Link from "next/link";
 import { Bus, X } from "lucide-react";
 
 import { playNotificationDing } from "@/lib/notificationSound";
+import { useRuStoreBannerVisible } from "@/lib/ruStoreBanner";
 
 type ActivityItem = {
   id: string;
@@ -16,6 +17,7 @@ type ActivityItem = {
 };
 
 export default function NewTripNotifier() {
+  const ruStoreBannerVisible = useRuStoreBannerVisible();
   const seenIds = useRef<Set<string> | null>(null);
   const [toasts, setToasts] = useState<ActivityItem[]>([]);
 
@@ -70,7 +72,9 @@ export default function NewTripNotifier() {
   if (toasts.length === 0) return null;
 
   return (
-    <div className="fixed bottom-20 lg:bottom-4 left-4 z-50 flex flex-col gap-2 max-w-sm w-[calc(100%-2rem)]">
+    <div
+      className={`fixed ${ruStoreBannerVisible ? "bottom-36" : "bottom-20"} lg:bottom-4 left-4 z-50 flex flex-col gap-2 max-w-sm w-[calc(100%-2rem)] transition-[bottom]`}
+    >
       {toasts.map((t) => (
         <Link
           key={t.id}

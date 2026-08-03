@@ -3,6 +3,8 @@
 import { FormEvent, useEffect, useRef, useState } from "react";
 import { Bot, Loader2, MessageCircle, Send, X } from "lucide-react";
 
+import { useRuStoreBannerVisible } from "@/lib/ruStoreBanner";
+
 type ChatMessage = {
   role: "user" | "assistant";
   text: string;
@@ -14,6 +16,7 @@ const GREETING: ChatMessage = {
 };
 
 export default function SupportChatWidget() {
+  const ruStoreBannerVisible = useRuStoreBannerVisible();
   const [open, setOpen] = useState(false);
   const [messages, setMessages] = useState<ChatMessage[]>([GREETING]);
   const [input, setInput] = useState("");
@@ -58,7 +61,9 @@ export default function SupportChatWidget() {
   }
 
   return (
-    <div className="fixed bottom-20 lg:bottom-6 right-4 z-40">
+    <div
+      className={`fixed ${ruStoreBannerVisible ? "bottom-36" : "bottom-20"} lg:bottom-6 right-4 z-40 transition-[bottom]`}
+    >
       {open && (
         <div className="absolute bottom-[calc(100%+0.75rem)] right-0 w-[calc(100vw-2rem)] max-w-sm bg-[#171726] border border-white/10 rounded-3xl shadow-2xl flex flex-col overflow-hidden max-h-[70vh]">
           <div className="flex items-center justify-between gap-2 px-4 py-3.5 border-b border-white/5 shrink-0">

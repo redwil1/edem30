@@ -1,29 +1,11 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import Image from "next/image";
 import { X } from "lucide-react";
 
-import { isAndroid, isStandalone, isTwa } from "@/lib/pushSubscribeClient";
+import { dismissRuStoreBanner, useRuStoreBannerVisible } from "@/lib/ruStoreBanner";
 
-const DISMISS_KEY = "edem30_rustore_banner_dismissed";
 const RUSTORE_URL = "https://www.rustore.ru/catalog/app/ru.edem30.twa";
-
-function isDismissed() {
-  try {
-    return localStorage.getItem(DISMISS_KEY) === "1";
-  } catch {
-    return false;
-  }
-}
-
-function dismissForever() {
-  try {
-    localStorage.setItem(DISMISS_KEY, "1");
-  } catch {
-    // ignore
-  }
-}
 
 /**
  * Показываем только тем, кто открыл сайт в мобильном браузере на Android —
@@ -31,19 +13,9 @@ function dismissForever() {
  * android-app:// referrer) или уже standalone-режим, баннер не нужен.
  */
 export default function RuStoreInstallBanner() {
-  const [visible, setVisible] = useState(false);
-
-  useEffect(() => {
-    if (!isAndroid() || isTwa() || isStandalone() || isDismissed()) return;
-    setVisible(true);
-  }, []);
+  const visible = useRuStoreBannerVisible();
 
   if (!visible) return null;
-
-  function dismiss() {
-    dismissForever();
-    setVisible(false);
-  }
 
   return (
     <div className="fixed bottom-16 lg:bottom-0 inset-x-0 z-40 bg-[#12121c] border-t border-white/10 px-4 py-3 flex items-center gap-3 shadow-[0_-4px_20px_rgba(0,0,0,0.3)]">
@@ -71,7 +43,7 @@ export default function RuStoreInstallBanner() {
 
       <button
         type="button"
-        onClick={dismiss}
+        onClick={dismissRuStoreBanner}
         aria-label="Закрыть"
         className="text-gray-500 hover:text-gray-300 transition shrink-0 p-1"
       >

@@ -6,6 +6,7 @@ import { usePathname } from "next/navigation";
 import { Star, X } from "lucide-react";
 
 import { useAuth } from "@/components/auth/AuthProvider";
+import { useRuStoreBannerVisible } from "@/lib/ruStoreBanner";
 
 type Pending = {
   tripId: number;
@@ -15,6 +16,7 @@ type Pending = {
 export default function PendingReviewNotifier() {
   const { user } = useAuth();
   const pathname = usePathname();
+  const ruStoreBannerVisible = useRuStoreBannerVisible();
 
   const [pending, setPending] = useState<Pending | null>(null);
   const [dismissedTripId, setDismissedTripId] = useState<number | null>(null);
@@ -52,7 +54,9 @@ export default function PendingReviewNotifier() {
   if (pathname === `/trip/${pending.tripId}`) return null;
 
   return (
-    <div className="fixed bottom-20 lg:bottom-6 left-1/2 -translate-x-1/2 z-40 w-[calc(100%-2rem)] max-w-md">
+    <div
+      className={`fixed ${ruStoreBannerVisible ? "bottom-36" : "bottom-20"} lg:bottom-6 left-1/2 -translate-x-1/2 z-40 w-[calc(100%-2rem)] max-w-md transition-[bottom]`}
+    >
       <Link
         href={`/trip/${pending.tripId}`}
         onClick={() => setDismissedTripId(pending.tripId)}
