@@ -43,6 +43,11 @@ function LoginForm() {
   const [sendingCode, setSendingCode] = useState(false);
   const [codeError, setCodeError] = useState("");
 
+  const [phoneCode, setPhoneCode] = useState("");
+  const [phoneCodeRequested, setPhoneCodeRequested] = useState(false);
+  const [sendingPhoneCode, setSendingPhoneCode] = useState(false);
+  const [phoneCodeError, setPhoneCodeError] = useState("");
+
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
@@ -52,6 +57,46 @@ function LoginForm() {
     setEmail(value);
     setCodeRequested(false);
     setEmailCode("");
+  }
+
+  function onPhoneChange(value: string) {
+    setPhone(value);
+    setPhoneCodeRequested(false);
+    setPhoneCode("");
+    setPhoneCodeError("");
+  }
+
+  async function requestPhoneVerifyCode(): Promise<boolean> {
+    setPhoneCodeError("");
+
+    if (phone.replace(/\D/g, "").length !== 11) {
+      setPhoneCodeError("Номер телефона должен содержать 11 цифр");
+      return false;
+    }
+
+    setSendingPhoneCode(true);
+
+    try {
+      const res = await fetch("/api/auth/phone-verify/request", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ phone }),
+      });
+      const data = await res.json().catch(() => null);
+
+      if (!res.ok) {
+        setPhoneCodeError(data?.error || "Не удалось позвонить");
+        return false;
+      }
+
+      setPhoneCodeRequested(true);
+      return true;
+    } catch {
+      setPhoneCodeError("Не удалось подключиться к серверу");
+      return false;
+    } finally {
+      setSendingPhoneCode(false);
+    }
   }
 
   async function requestEmailCode(): Promise<boolean> {
@@ -115,19 +160,31 @@ function LoginForm() {
         return;
       }
 
-      if (!emailValid) {
-        setError("Укажите корректную почту");
+      if (!phoneCodeRequested) {
+        await requestPhoneVerifyCode();
         return;
       }
 
-      if (!codeRequested) {
-        await requestEmailCode();
+      if (!phoneCode) {
+        setPhoneCodeError("Введите код со звонка");
         return;
       }
 
-      if (!emailCode) {
-        setCodeError("Введите код из письма");
-        return;
+      if (email) {
+        if (!emailValid) {
+          setError("Укажите корректную почту");
+          return;
+        }
+
+        if (!codeRequested) {
+          await requestEmailCode();
+          return;
+        }
+
+        if (!emailCode) {
+          setCodeError("Введите код из письма");
+          return;
+        }
       }
     }
 
@@ -142,6 +199,7 @@ function LoginForm() {
             ? {
                 name,
                 phone,
+                phoneCode,
                 password,
                 email,
                 emailCode,
@@ -235,7 +293,49 @@ function LoginForm() {
             />
           )}
 
-          <PhoneInput value={phone} onChange={setPhone} />
+          <PhoneInput value={phone} onChange={mode === "register" ? onPhoneChange : setPhone} />
+
+          {mode === "register" && (
+            <div className="bg-[#171726] border border-white/5 rounded-2xl p-4 space-y-3">
+              {!phoneCodeRequested ? (
+                <p className="text-xs text-gray-500 leading-relaxed">
+                  Номер нужно подтвердить настоящим звонком — при нажатии
+                  «Зарегистрироваться» вам позвонят, и последние 4 цифры
+                  номера, с которого поступит звонок, будут кодом
+                  подтверждения.
+                </p>
+              ) : (
+                <>
+                  <div className="text-xs text-green-400">
+                    Вам звонят — введите последние 4 цифры номера, с которого
+                    поступил звонок
+                  </div>
+                  <input
+                    value={phoneCode}
+                    onChange={(e) => setPhoneCode(e.target.value.replace(/\D/g, "").slice(0, 4))}
+                    placeholder="Код со звонка"
+                    inputMode="numeric"
+                    autoFocus
+                    className="w-full bg-[#0f0f18] border border-white/10 focus:border-violet-500 rounded-xl p-3.5 outline-none transition"
+                  />
+
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      setPhoneCode("");
+                      await requestPhoneVerifyCode();
+                    }}
+                    disabled={sendingPhoneCode}
+                    className="text-xs text-violet-400 hover:text-violet-300 disabled:opacity-60 transition"
+                  >
+                    {sendingPhoneCode ? "Звоним..." : "Позвонить ещё раз"}
+                  </button>
+                </>
+              )}
+
+              {phoneCodeError && <p className="text-red-400 text-xs">{phoneCodeError}</p>}
+            </div>
+          )}
 
           <input
             value={password}
@@ -259,16 +359,16 @@ function LoginForm() {
                 value={email}
                 onChange={(e) => onEmailChange(e.target.value)}
                 type="email"
-                placeholder="Почта (обязательно)"
+                placeholder="Почта (необязательно)"
                 className="w-full bg-[#0f0f18] border border-white/10 focus:border-violet-500 rounded-xl p-3.5 outline-none transition"
               />
 
               {!codeRequested ? (
                 <p className="text-xs text-gray-500 leading-relaxed">
-                  Нужна, чтобы подтвердить, что аккаунт действительно ваш, и
-                  чтобы вы могли восстановить пароль, если забудете его —
-                  другого способа сбросить пароль на сайте нет. При нажатии
-                  «Зарегистрироваться» на неё придёт код подтверждения.
+                  Пригодится для восстановления пароля, если забудете его.
+                  Можно пропустить — номер телефона уже подтверждён звонком.
+                  Если укажете почту, при нажатии «Зарегистрироваться» на неё
+                  придёт код подтверждения.
                 </p>
               ) : (
                 <>
@@ -356,15 +456,19 @@ function LoginForm() {
 
           <button
             type="submit"
-            disabled={loading || sendingCode}
+            disabled={loading || sendingCode || sendingPhoneCode}
             className="w-full bg-violet-600 hover:bg-violet-700 disabled:opacity-60 transition rounded-2xl py-4 font-bold"
           >
-            {sendingCode
+            {sendingPhoneCode
+              ? "Звоним..."
+              : sendingCode
               ? "Отправляем код..."
               : loading
               ? "Секунду..."
               : mode === "register"
-              ? codeRequested
+              ? !phoneCodeRequested
+                ? "Позвонить для подтверждения"
+                : codeRequested
                 ? "Подтвердить и зарегистрироваться"
                 : "Зарегистрироваться"
               : "Войти"}

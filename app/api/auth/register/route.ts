@@ -9,6 +9,7 @@ import { getClientIp, isTrustedOrigin } from "@/lib/security";
 import { verifyCaptcha } from "@/lib/captcha";
 import { isPlaceholderName } from "@/lib/nameValidation";
 import { isValidEmail, verifyEmailCode } from "@/lib/emailVerification";
+import { verifyPhoneVerificationCode } from "@/lib/phoneVerification";
 import { parseSourceCookie, SOURCE_COOKIE_NAME } from "@/lib/traffic";
 
 export const runtime = "nodejs";
@@ -45,6 +46,8 @@ export async function POST(req: NextRequest) {
     typeof body?.email === "string" ? body.email.trim().slice(0, 200) : "";
   const emailCode =
     typeof body?.emailCode === "string" ? body.emailCode.trim() : "";
+  const phoneCode =
+    typeof body?.phoneCode === "string" ? body.phoneCode.trim() : "";
 
   const phone = normalizePhone(phoneRaw);
 
@@ -73,6 +76,13 @@ export async function POST(req: NextRequest) {
     );
   }
 
+  if (!phoneCode) {
+    return NextResponse.json(
+      { error: "Подтвердите номер телефона кодом со звонка" },
+      { status: 400 }
+    );
+  }
+
   if (password.length < 7) {
     return NextResponse.json(
       { error: "Пароль должен быть не короче 7 символов" },
@@ -87,11 +97,13 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  if (!isValidEmail(emailRaw)) {
+  // Почта теперь необязательна — телефон уже подтверждается настоящим
+  // звонком, но если её всё же указали, она должна быть подтверждена кодом.
+  if (emailRaw && !isValidEmail(emailRaw)) {
     return NextResponse.json({ error: "Укажите корректную почту" }, { status: 400 });
   }
 
-  if (!emailCode) {
+  if (emailRaw && !emailCode) {
     return NextResponse.json(
       { error: "Подтвердите почту кодом из письма" },
       { status: 400 }
@@ -107,10 +119,22 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  const codeCheck = await verifyEmailCode(emailRaw, emailCode);
+  const phoneCheck = await verifyPhoneVerificationCode(phone, phoneCode);
 
-  if (!codeCheck.ok) {
-    return NextResponse.json({ error: codeCheck.error }, { status: 400 });
+  if (!phoneCheck.ok) {
+    return NextResponse.json({ error: phoneCheck.error }, { status: 400 });
+  }
+
+  let verifiedEmail: string | null = null;
+
+  if (emailRaw) {
+    const codeCheck = await verifyEmailCode(emailRaw, emailCode);
+
+    if (!codeCheck.ok) {
+      return NextResponse.json({ error: codeCheck.error }, { status: 400 });
+    }
+
+    verifiedEmail = codeCheck.email;
   }
 
   const passwordHash = await hashPassword(password);
@@ -130,7 +154,7 @@ export async function POST(req: NextRequest) {
         signup_utm_content, signup_utm_term
       )
       VALUES (
-        ${name}, ${phone}, ${passwordHash}, ${codeCheck.email}, ${pushConsent ? now : null}, ${now},
+        ${name}, ${phone}, ${passwordHash}, ${verifiedEmail}, ${pushConsent ? now : null}, ${now},
         ${sourceInfo?.source ?? "direct"}, ${sourceInfo?.utmSource ?? null},
         ${sourceInfo?.utmMedium ?? null}, ${sourceInfo?.utmCampaign ?? null},
         ${sourceInfo?.utmContent ?? null}, ${sourceInfo?.utmTerm ?? null}
