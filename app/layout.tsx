@@ -11,6 +11,7 @@ import NewTripNotifier from "@/components/NewTripNotifier";
 import ChatMessageNotifier from "@/components/ChatMessageNotifier";
 import SupportChatNotifier from "@/components/SupportChatNotifier";
 import IosNotificationPrompt from "@/components/home/IosNotificationPrompt";
+import RuStoreInstallBanner from "@/components/home/RuStoreInstallBanner";
 import ComplaintNoticeNotifier from "@/components/ComplaintNoticeNotifier";
 import AdminComplaintAlert from "@/components/admin/AdminComplaintAlert";
 import RealNameNotifier from "@/components/RealNameNotifier";
@@ -136,6 +137,7 @@ export default function RootLayout({
             <ChatMessageNotifier />
             <SupportChatNotifier />
             <IosNotificationPrompt />
+            <RuStoreInstallBanner />
             <ComplaintNoticeNotifier />
             <AdminComplaintAlert />
             <RealNameNotifier />

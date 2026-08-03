@@ -18,6 +18,15 @@ export function isStandalone() {
   );
 }
 
+export function isAndroid() {
+  return /android/i.test(navigator.userAgent);
+}
+
+/** Открыт ли сайт внутри уже установленного TWA-приложения из RuStore (ru.edem30.twa). */
+export function isTwa() {
+  return document.referrer.startsWith("android-app://");
+}
+
 export type PushSubscribeResult =
   | { ok: true }
   | {
