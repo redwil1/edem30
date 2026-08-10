@@ -2,7 +2,7 @@ import "server-only";
 
 import { sql } from "@/lib/db";
 
-const BONUS_AMOUNT = 100;
+const BONUS_AMOUNT = 50;
 
 /**
  * Поездка достойна бонуса, если: у неё есть настоящий водитель (не
@@ -338,5 +338,36 @@ export async function getBonusStats(): Promise<BonusStats> {
     paidCount: Number(row.paidCount),
     pendingCount: Number(row.pendingCount),
     totalPayoutSum: Number(row.totalPayoutSum),
+  };
+}
+
+export type DriverBonusSummary = {
+  totalEarned: number; // заработано за вычетом отклонённых (pending + approved + paid)
+  paid: number; // уже выплачено
+  pending: number; // ещё не выплачено (pending + approved)
+  passengersCount: number; // сколько разных пассажиров принесли бонус
+};
+
+/** Сводка для карточки "Ваш бонус" в профиле самого водителя — не для админки. */
+export async function getDriverBonusSummary(driverId: number): Promise<DriverBonusSummary> {
+  await syncDriverBonuses();
+
+  const [row] = await sql<
+    { totalEarned: string; paid: string; pending: string; passengersCount: string }[]
+  >`
+    SELECT
+      COALESCE(SUM(amount) FILTER (WHERE status != 'rejected'), 0) as "totalEarned",
+      COALESCE(SUM(amount) FILTER (WHERE status = 'paid'), 0) as "paid",
+      COALESCE(SUM(amount) FILTER (WHERE status IN ('pending', 'approved')), 0) as "pending",
+      COUNT(DISTINCT passenger_id) FILTER (WHERE status != 'rejected') as "passengersCount"
+    FROM driver_bonuses
+    WHERE driver_id = ${driverId}
+  `;
+
+  return {
+    totalEarned: Number(row.totalEarned),
+    paid: Number(row.paid),
+    pending: Number(row.pending),
+    passengersCount: Number(row.passengersCount),
   };
 }

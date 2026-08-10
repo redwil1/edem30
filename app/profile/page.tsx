@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Users, Wallet } from "lucide-react";
+import { Gift, Users, Wallet } from "lucide-react";
 
 import Navbar from "@/components/layout/Navbar";
 import Footer from "@/components/layout/Footer";
@@ -22,6 +22,7 @@ import {
   getDriverEarningsHistory,
   getUserTripHistory,
 } from "@/lib/trips";
+import { getDriverBonusSummary } from "@/lib/driverBonuses";
 import { getUserRatingStats, listUserReviews } from "@/lib/reviews";
 import { getVerificationStatus } from "@/lib/verification";
 import { formatPrice, formatRating } from "@/lib/utils";
@@ -63,7 +64,7 @@ export default async function ProfilePage() {
     );
   }
 
-  const [asDriver, asPassenger, ratingStats, earnings, earningsHistory, userRow, reviews, history, verificationStatus] =
+  const [asDriver, asPassenger, ratingStats, earnings, earningsHistory, userRow, reviews, history, verificationStatus, bonusSummary] =
     await Promise.all([
       countTripsAsDriver(user.id),
       countTripsAsPassenger(user.id),
@@ -74,6 +75,7 @@ export default async function ProfilePage() {
       listUserReviews(user.id),
       getUserTripHistory(user.id),
       getVerificationStatus(user.id),
+      getDriverBonusSummary(user.id),
     ]);
 
   const memberSince = new Date(userRow[0].created_at).toLocaleDateString("ru-RU", {
@@ -138,7 +140,7 @@ export default async function ProfilePage() {
                       </div>
                     </div>
 
-                    <div className="bg-[#12121c] border border-white/5 rounded-2xl p-4 col-span-2">
+                    <div className={`bg-[#12121c] border border-white/5 rounded-2xl p-4 ${user.role === "driver" ? "" : "col-span-2"}`}>
                       <div className="flex items-center gap-2 text-gray-500 text-xs mb-2">
                         <Wallet size={14} />
                         Заработано как водитель
@@ -146,6 +148,24 @@ export default async function ProfilePage() {
 
                       <div className="text-2xl font-bold">{formatPrice(earnings)}</div>
                     </div>
+
+                    {user.role === "driver" && (
+                      <div className="bg-[#12121c] border border-amber-500/20 rounded-2xl p-4">
+                        <div className="flex items-center gap-2 text-gray-500 text-xs mb-2">
+                          <Gift size={14} />
+                          Ваш бонус
+                        </div>
+
+                        <div className="text-2xl font-bold text-amber-400">{formatPrice(bonusSummary.totalEarned)}</div>
+
+                        {bonusSummary.totalEarned > 0 && (
+                          <div className="text-xs text-gray-500 mt-1">
+                            выплачено {formatPrice(bonusSummary.paid)}
+                            {bonusSummary.pending > 0 && ` · ожидает ${formatPrice(bonusSummary.pending)}`}
+                          </div>
+                        )}
+                      </div>
+                    )}
                   </div>
 
                   <div className="bg-[#12121c] border border-white/5 rounded-3xl p-4 sm:p-6 mt-6">
