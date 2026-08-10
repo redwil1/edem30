@@ -140,14 +140,16 @@ export default async function ProfilePage() {
                       </div>
                     </div>
 
-                    <div className={`bg-[#12121c] border border-white/5 rounded-2xl p-4 ${user.role === "driver" ? "" : "col-span-2"}`}>
-                      <div className="flex items-center gap-2 text-gray-500 text-xs mb-2">
-                        <Wallet size={14} />
-                        Заработано как водитель
-                      </div>
+                    {user.role === "driver" && (
+                      <div className="bg-[#12121c] border border-white/5 rounded-2xl p-4">
+                        <div className="flex items-center gap-2 text-gray-500 text-xs mb-2">
+                          <Wallet size={14} />
+                          Заработано как водитель
+                        </div>
 
-                      <div className="text-2xl font-bold">{formatPrice(earnings)}</div>
-                    </div>
+                        <div className="text-2xl font-bold">{formatPrice(earnings)}</div>
+                      </div>
+                    )}
 
                     {user.role === "driver" && (
                       <div className="bg-[#12121c] border border-amber-500/20 rounded-2xl p-4">
