@@ -1,11 +1,18 @@
 import type { MetadataRoute } from "next";
 
+import { popularDirections } from "@/data/popularDirections";
+
 const BASE_URL = "https://edem30.ru";
 
 export default function sitemap(): MetadataRoute.Sitemap {
   const pages: { path: string; priority: number; changeFrequency: MetadataRoute.Sitemap[number]["changeFrequency"] }[] = [
     { path: "/", priority: 1, changeFrequency: "hourly" },
     { path: "/search", priority: 0.9, changeFrequency: "hourly" },
+    ...popularDirections.map((route) => ({
+      path: `/napravlenie/${route.slug}`,
+      priority: 0.85,
+      changeFrequency: "hourly" as const,
+    })),
     { path: "/about", priority: 0.6, changeFrequency: "monthly" },
     { path: "/faq", priority: 0.6, changeFrequency: "monthly" },
     { path: "/contacts", priority: 0.4, changeFrequency: "yearly" },

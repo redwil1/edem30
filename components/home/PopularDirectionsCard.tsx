@@ -11,9 +11,10 @@ export default function PopularDirectionsCard() {
 
       <div className="space-y-1">
         {popularDirections.map((route) => (
-          <div
-            key={`${route.from}-${route.to}`}
-            className="flex items-center justify-between py-2.5 border-b border-white/5 last:border-0"
+          <Link
+            key={route.slug}
+            href={`/napravlenie/${route.slug}`}
+            className="flex items-center justify-between py-2.5 border-b border-white/5 last:border-0 hover:text-violet-300 transition"
           >
             <div className="text-sm text-gray-300">
               {route.from} → {route.to}
@@ -22,7 +23,7 @@ export default function PopularDirectionsCard() {
             <div className="text-sm text-violet-400 font-medium whitespace-nowrap">
               от {formatPrice(route.price)}
             </div>
-          </div>
+          </Link>
         ))}
       </div>
 
