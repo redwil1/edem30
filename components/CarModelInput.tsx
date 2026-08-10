@@ -1,7 +1,18 @@
 "use client";
 
 import { useState } from "react";
-import { carModels } from "@/lib/carModels";
+import { carBrandAliases, carModels } from "@/lib/carModels";
+
+function brandOf(model: string): string {
+  return model.split(" ")[0];
+}
+
+function matchesQuery(model: string, query: string): boolean {
+  if (model.toLowerCase().includes(query)) return true;
+
+  const aliases = carBrandAliases[brandOf(model)];
+  return aliases?.some((alias) => alias.includes(query)) ?? false;
+}
 
 type Props = {
   value: string;
@@ -16,7 +27,7 @@ export default function CarModelInput({ value, onChange, placeholder }: Props) {
 
   const matches =
     query.length > 0
-      ? carModels.filter((m) => m.toLowerCase().includes(query)).slice(0, 8)
+      ? carModels.filter((m) => matchesQuery(m, query)).slice(0, 8)
       : [];
 
   return (
