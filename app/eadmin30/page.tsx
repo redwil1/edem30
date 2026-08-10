@@ -22,6 +22,7 @@ import {
   TrendingUp,
   Image as ImageIcon,
   Crown,
+  Gift,
 } from "lucide-react";
 
 import { useAuth } from "@/components/auth/AuthProvider";
@@ -42,6 +43,7 @@ import AdminSettingsPanel from "@/components/admin/AdminSettingsPanel";
 import AdminMarketing from "@/components/admin/AdminMarketing";
 import AdminAdBannersTable from "@/components/admin/AdminAdBannersTable";
 import AdminCarriersPanel from "@/components/admin/AdminCarriersPanel";
+import AdminDriverBonusesPanel from "@/components/admin/AdminDriverBonusesPanel";
 
 type Tab =
   | "dashboard"
@@ -55,6 +57,7 @@ type Tab =
   | "reviews"
   | "verifications"
   | "carriers"
+  | "driverBonuses"
   | "marketing"
   | "subscriptions"
   | "promoCodes"
@@ -62,7 +65,15 @@ type Tab =
   | "newsletter"
   | "settings";
 
-const ADMIN_ONLY_TABS: Tab[] = ["marketing", "subscriptions", "promoCodes", "ads", "newsletter", "settings"];
+const ADMIN_ONLY_TABS: Tab[] = [
+  "driverBonuses",
+  "marketing",
+  "subscriptions",
+  "promoCodes",
+  "ads",
+  "newsletter",
+  "settings",
+];
 
 const TABS: { id: Tab; label: string; icon: typeof LayoutDashboard }[] = [
   { id: "dashboard", label: "📊 Дашборд", icon: LayoutDashboard },
@@ -76,6 +87,7 @@ const TABS: { id: Tab; label: string; icon: typeof LayoutDashboard }[] = [
   { id: "reports", label: "🚩 Жалобы", icon: Flag },
   { id: "reviews", label: "⭐ Отзывы", icon: Star },
   { id: "carriers", label: "👑 VIP / Перевозчики", icon: Crown },
+  { id: "driverBonuses", label: "🎁 Бонусы за поездки", icon: Gift },
   { id: "marketing", label: "📈 Маркетинг", icon: TrendingUp },
   { id: "subscriptions", label: "💰 Подписки", icon: CreditCard },
   { id: "promoCodes", label: "🎁 Промокоды", icon: Tag },
@@ -165,6 +177,7 @@ export default function AdminPage() {
         {tab === "reports" && <AdminReportsTable />}
         {tab === "reviews" && <AdminReviewsTable />}
         {tab === "carriers" && <AdminCarriersPanel />}
+        {isAdmin && tab === "driverBonuses" && <AdminDriverBonusesPanel />}
         {isAdmin && tab === "marketing" && <AdminMarketing />}
         {isAdmin && tab === "subscriptions" && <AdminSubscriptionPlansTable />}
         {isAdmin && tab === "promoCodes" && <AdminPromoCodesTable />}
