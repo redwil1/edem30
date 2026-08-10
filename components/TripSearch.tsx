@@ -8,6 +8,7 @@ import CityModal from "./CityModal";
 import TripsList from "./TripsList";
 import FindDriverCard from "./home/FindDriverCard";
 import CarrierHighlightCard from "./carrier/CarrierHighlightCard";
+import DriverBonusPromo from "./DriverBonusPromo";
 import { useTripSearch } from "@/hooks/useTripSearch";
 import { Trip } from "@/types/trips";
 import { intercityDestinations } from "@/lib/cities";
@@ -98,6 +99,8 @@ export default function TripSearch({ trips, emptyText }: Props) {
         <Plus size={16} />
         Добавить поездку
       </Link>
+
+      <DriverBonusPromo />
 
       {from && to && (
         <div className="mt-8">
