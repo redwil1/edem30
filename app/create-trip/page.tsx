@@ -69,7 +69,9 @@ function CreateTripForm() {
   );
   const [carModel, setCarModel] = useState(searchParams.get("carModel") ?? "");
   const [licensePlate, setLicensePlate] = useState(searchParams.get("licensePlate") ?? "");
-  const [pickupLocation, setPickupLocation] = useState("");
+  const [pickupLocation, setPickupLocation] = useState(
+    searchParams.get("pickupLocation") ?? ""
+  );
 
   const [error, setError] = useState("");
   const [submitting, setSubmitting] = useState(false);

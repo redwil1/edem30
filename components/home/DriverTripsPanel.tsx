@@ -20,9 +20,16 @@ type OwnedTrip = {
   transportCategory: string | null;
   carModel: string | null;
   licensePlate: string | null;
+  pickupLocation: string | null;
   cancelled: boolean;
   completed: boolean;
 };
+
+function tomorrow() {
+  const d = new Date();
+  d.setDate(d.getDate() + 1);
+  return d.toISOString().slice(0, 10);
+}
 
 function repeatHref(trip: OwnedTrip) {
   const params = new URLSearchParams({
@@ -31,11 +38,14 @@ function repeatHref(trip: OwnedTrip) {
     to: trip.to,
     price: String(trip.price),
     totalSeats: String(trip.totalSeats),
+    date: tomorrow(),
+    time: trip.time,
   });
 
   if (trip.transportCategory) params.set("transportCategory", trip.transportCategory);
   if (trip.carModel) params.set("carModel", trip.carModel);
   if (trip.licensePlate) params.set("licensePlate", trip.licensePlate);
+  if (trip.pickupLocation) params.set("pickupLocation", trip.pickupLocation);
 
   return `/create-trip?${params.toString()}`;
 }
