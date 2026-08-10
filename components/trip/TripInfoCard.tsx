@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Star } from "lucide-react";
+import { MapPin, Star } from "lucide-react";
 
 import { Trip } from "@/types/trips";
 import { formatDate, formatPrice, formatRating, formatSeats } from "@/lib/utils";
@@ -34,6 +34,13 @@ export default function TripInfoCard({ trip, joined, hideJoin }: Props) {
       <div className="font-bold text-2xl mt-2 leading-snug">
         {trip.from} → {trip.to}
       </div>
+
+      {trip.pickupLocation && (
+        <div className="flex items-center gap-1.5 text-sm text-gray-400 mt-1.5">
+          <MapPin size={14} className="text-violet-400 shrink-0" />
+          Место посадки: {trip.pickupLocation}
+        </div>
+      )}
 
       {isForming ? (
         <div className="text-gray-500 text-sm mt-1 leading-none">

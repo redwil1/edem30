@@ -69,6 +69,7 @@ function CreateTripForm() {
   );
   const [carModel, setCarModel] = useState(searchParams.get("carModel") ?? "");
   const [licensePlate, setLicensePlate] = useState(searchParams.get("licensePlate") ?? "");
+  const [pickupLocation, setPickupLocation] = useState("");
 
   const [error, setError] = useState("");
   const [submitting, setSubmitting] = useState(false);
@@ -141,6 +142,7 @@ function CreateTripForm() {
           transportCategory,
           carModel: carModel.trim(),
           licensePlate: licensePlate.trim(),
+          pickupLocation: pickupLocation.trim(),
           fulfillRequestIds,
         }),
       });
@@ -247,6 +249,13 @@ function CreateTripForm() {
                   if (cityModalField === "to") setTo(city);
                 }}
                 title={cityModalField === "from" ? "Откуда вы едете?" : "Куда вы едете?"}
+              />
+
+              <AddressInput
+                value={pickupLocation}
+                onChange={setPickupLocation}
+                placeholder="📍 Место посадки (необязательно)"
+                city={from}
               />
             </>
           ) : (

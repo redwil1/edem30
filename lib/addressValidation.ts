@@ -17,7 +17,7 @@ function isKnownStreet(street: string, city: string): boolean {
   return streets.some((s) => normalize(s) === target);
 }
 
-function isSaneFreeText(text: string): boolean {
+export function isSaneFreeText(text: string): boolean {
   const trimmed = text.trim();
 
   if (trimmed.length < 2 || trimmed.length > 120) return false;

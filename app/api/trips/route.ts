@@ -5,8 +5,9 @@ import { rateLimit } from "@/lib/rateLimit";
 import { isTrustedOrigin } from "@/lib/security";
 import { claimFormingTrip, countActiveTripsByOwner, createTrip, joinTrip } from "@/lib/trips";
 import { TripType } from "@/types/trips";
-import { isValidAddress } from "@/lib/addressValidation";
+import { isSaneFreeText, isValidAddress } from "@/lib/addressValidation";
 import { containsProfanity } from "@/lib/profanity";
+import { cities } from "@/lib/cities";
 import { notifyUserWithEmailFallback, sendPushToSegment } from "@/lib/push";
 import { fulfillRideRequests, getRideRequestsByIds } from "@/lib/rideRequests";
 
@@ -101,6 +102,8 @@ export async function POST(req: NextRequest) {
     typeof body?.licensePlate === "string"
       ? body.licensePlate.trim().slice(0, 20)
       : "";
+  const pickupLocation =
+    typeof body?.pickupLocation === "string" ? body.pickupLocation.trim().slice(0, 200) : "";
 
   const price = Number(body?.price);
   const totalSeats = Number(body?.totalSeats);
@@ -126,11 +129,30 @@ export async function POST(req: NextRequest) {
         { status: 400 }
       );
     }
-  } else if (containsProfanity(from) || containsProfanity(to)) {
-    return NextResponse.json(
-      { error: "Недопустимый текст в маршруте" },
-      { status: 400 }
-    );
+  } else {
+    if (containsProfanity(from) || containsProfanity(to)) {
+      return NextResponse.json(
+        { error: "Недопустимый текст в маршруте" },
+        { status: 400 }
+      );
+    }
+
+    // Место посадки необязательно, но если указано — проверяем как обычный
+    // адрес в городе отправления (та же проверка, что и для city-поездок).
+    // from межгорода может быть не только городом-миллионником со справочником
+    // улиц (cities), но и Москвой/СПб (intercityDestinations = cities + они) —
+    // isValidAddress требует город из cities, поэтому для остальных используем
+    // тот же общий текстовый sanity-чек, что и для названий городов выше.
+    if (pickupLocation) {
+      const pickupValid = cities.includes(from) ? isValidAddress(pickupLocation, from) : isSaneFreeText(pickupLocation);
+
+      if (!pickupValid) {
+        return NextResponse.json(
+          { error: "Укажите настоящий адрес места посадки или оставьте поле пустым" },
+          { status: 400 }
+        );
+      }
+    }
   }
 
   if (!isValidFutureDate(date)) {
@@ -212,7 +234,7 @@ export async function POST(req: NextRequest) {
       const claim = await claimFormingTrip(
         sharedTripId,
         { id: user.id, name: user.name },
-        { price, totalSeats, transport, transportCategory, carModel, licensePlate }
+        { price, totalSeats, transport, transportCategory, carModel, licensePlate, pickupLocation: pickupLocation || undefined }
       );
 
       if (!claim.ok) {
@@ -235,7 +257,20 @@ export async function POST(req: NextRequest) {
       }
     } else {
       id = await createTrip(
-        { type, from, to, date, time, price, totalSeats, transport, transportCategory, carModel, licensePlate },
+        {
+          type,
+          from,
+          to,
+          date,
+          time,
+          price,
+          totalSeats,
+          transport,
+          transportCategory,
+          carModel,
+          licensePlate,
+          pickupLocation: pickupLocation || undefined,
+        },
         { id: user.id, name: user.name }
       );
 
@@ -256,7 +291,20 @@ export async function POST(req: NextRequest) {
     }
   } else {
     id = await createTrip(
-      { type, from, to, date, time, price, totalSeats, transport, transportCategory, carModel, licensePlate },
+      {
+        type,
+        from,
+        to,
+        date,
+        time,
+        price,
+        totalSeats,
+        transport,
+        transportCategory,
+        carModel,
+        licensePlate,
+        pickupLocation: pickupLocation || undefined,
+      },
       { id: user.id, name: user.name }
     );
   }

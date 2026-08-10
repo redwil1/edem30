@@ -30,6 +30,7 @@ type TripRow = {
   owner_avatar_url: string | null;
   owner_avatar_preset: string | null;
   owner_verified: boolean | null;
+  pickup_location: string | null;
 };
 
 function toTrip(row: TripRow): Trip {
@@ -56,6 +57,7 @@ function toTrip(row: TripRow): Trip {
     licensePlate: row.license_plate,
     driverAvatarUrl: row.owner_avatar_url,
     driverAvatarPreset: row.owner_avatar_preset,
+    pickupLocation: row.pickup_location,
   };
 }
 
@@ -1052,6 +1054,7 @@ export type CreateTripInput = {
   transportCategory?: string;
   carModel?: string;
   licensePlate?: string;
+  pickupLocation?: string;
 };
 
 export async function createTrip(
@@ -1061,12 +1064,12 @@ export async function createTrip(
 ): Promise<number> {
   const rows = await executor<{ id: number }[]>`
     INSERT INTO trips
-      (type, from_city, to_city, trip_date, trip_time, price, total_seats, transport, transport_category, car_model, license_plate, driver_name, owner_id, verified)
+      (type, from_city, to_city, trip_date, trip_time, price, total_seats, transport, transport_category, car_model, license_plate, driver_name, owner_id, verified, pickup_location)
     VALUES (
       ${input.type}, ${input.from}, ${input.to}, ${input.date}, ${input.time},
       ${input.price}, ${input.totalSeats}, ${input.transport}, ${input.transportCategory ?? null},
       ${input.carModel ?? null}, ${input.licensePlate ?? null},
-      ${owner.name}, ${owner.id}, 0
+      ${owner.name}, ${owner.id}, 0, ${input.pickupLocation ?? null}
     )
     RETURNING id
   `;
@@ -1176,6 +1179,7 @@ export type ClaimFormingTripInput = {
   transportCategory?: string;
   carModel: string;
   licensePlate: string;
+  pickupLocation?: string;
 };
 
 export type ClaimFormingTripResult =
@@ -1199,7 +1203,8 @@ export async function claimFormingTrip(
     SET owner_id = ${driver.id}, driver_name = ${driver.name}, price = ${input.price},
         total_seats = ${input.totalSeats}, transport = ${input.transport},
         transport_category = ${input.transportCategory ?? null},
-        car_model = ${input.carModel}, license_plate = ${input.licensePlate}
+        car_model = ${input.carModel}, license_plate = ${input.licensePlate},
+        pickup_location = COALESCE(${input.pickupLocation ?? null}, pickup_location)
     WHERE id = ${tripId} AND owner_id IS NULL
       AND (SELECT COUNT(*) FROM trip_participants WHERE trip_id = ${tripId}) <= ${input.totalSeats}
     RETURNING id

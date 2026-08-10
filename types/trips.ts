@@ -40,4 +40,6 @@ export interface Trip {
   driverAvatarUrl: string | null;
 
   driverAvatarPreset: string | null;
+
+  pickupLocation: string | null;
 }
