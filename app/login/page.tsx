@@ -6,13 +6,12 @@ import Link from "next/link";
 
 import { useAuth } from "@/components/auth/AuthProvider";
 import PhoneInput from "@/components/PhoneInput";
+import VkLoginButton from "@/components/auth/VkLoginButton";
 import { subscribeToPush } from "@/lib/pushSubscribeClient";
 
 function isSafeRedirect(path: string) {
   return /^\/(?!\/|\\)/.test(path);
 }
-
-const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 function LoginForm() {
   const router = useRouter();
@@ -30,18 +29,12 @@ function LoginForm() {
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
   const [password, setPassword] = useState("");
-  const [email, setEmail] = useState("");
 
   const [captchaQuestion, setCaptchaQuestion] = useState("");
   const [captchaToken, setCaptchaToken] = useState("");
   const [captchaAnswer, setCaptchaAnswer] = useState("");
   const [pushConsent, setPushConsent] = useState(false);
   const [dataConsent, setDataConsent] = useState(false);
-
-  const [emailCode, setEmailCode] = useState("");
-  const [codeRequested, setCodeRequested] = useState(false);
-  const [sendingCode, setSendingCode] = useState(false);
-  const [codeError, setCodeError] = useState("");
 
   const [phoneCode, setPhoneCode] = useState("");
   const [phoneCodeRequested, setPhoneCodeRequested] = useState(false);
@@ -50,14 +43,6 @@ function LoginForm() {
 
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
-
-  const emailValid = EMAIL_RE.test(email);
-
-  function onEmailChange(value: string) {
-    setEmail(value);
-    setCodeRequested(false);
-    setEmailCode("");
-  }
 
   function onPhoneChange(value: string) {
     setPhone(value);
@@ -96,33 +81,6 @@ function LoginForm() {
       return false;
     } finally {
       setSendingPhoneCode(false);
-    }
-  }
-
-  async function requestEmailCode(): Promise<boolean> {
-    setCodeError("");
-    setSendingCode(true);
-
-    try {
-      const res = await fetch("/api/auth/email-code/request", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email }),
-      });
-      const data = await res.json().catch(() => null);
-
-      if (!res.ok) {
-        setCodeError(data?.error || "Не удалось отправить код");
-        return false;
-      }
-
-      setCodeRequested(true);
-      return true;
-    } catch {
-      setCodeError("Не удалось подключиться к серверу");
-      return false;
-    } finally {
-      setSendingCode(false);
     }
   }
 
@@ -169,23 +127,6 @@ function LoginForm() {
         setPhoneCodeError("Введите код со звонка");
         return;
       }
-
-      if (email) {
-        if (!emailValid) {
-          setError("Укажите корректную почту");
-          return;
-        }
-
-        if (!codeRequested) {
-          await requestEmailCode();
-          return;
-        }
-
-        if (!emailCode) {
-          setCodeError("Введите код из письма");
-          return;
-        }
-      }
     }
 
     setLoading(true);
@@ -201,8 +142,6 @@ function LoginForm() {
                 phone,
                 phoneCode,
                 password,
-                email,
-                emailCode,
                 captchaToken,
                 captchaAnswer: Number(captchaAnswer),
                 pushConsent,
@@ -283,6 +222,14 @@ function LoginForm() {
             : "Войдите по номеру телефона и паролю"}
         </p>
 
+        <VkLoginButton redirect={redirectTo} />
+
+        <div className="flex items-center gap-3 my-6">
+          <div className="h-px bg-white/10 flex-1" />
+          <span className="text-xs text-gray-500">или по номеру телефона</span>
+          <div className="h-px bg-white/10 flex-1" />
+        </div>
+
         <form onSubmit={submit} className="space-y-4">
           {mode === "register" && (
             <input
@@ -354,55 +301,6 @@ function LoginForm() {
           )}
 
           {mode === "register" && (
-            <div className="bg-[#171726] border border-white/5 rounded-2xl p-4 space-y-3">
-              <input
-                value={email}
-                onChange={(e) => onEmailChange(e.target.value)}
-                type="email"
-                placeholder="Почта (необязательно)"
-                className="w-full bg-[#0f0f18] border border-white/10 focus:border-violet-500 rounded-xl p-3.5 outline-none transition"
-              />
-
-              {!codeRequested ? (
-                <p className="text-xs text-gray-500 leading-relaxed">
-                  Пригодится для восстановления пароля, если забудете его.
-                  Можно пропустить — номер телефона уже подтверждён звонком.
-                  Если укажете почту, при нажатии «Зарегистрироваться» на неё
-                  придёт код подтверждения.
-                </p>
-              ) : (
-                <>
-                  <div className="text-xs text-green-400">
-                    Код отправлен на почту — введите его ниже
-                  </div>
-                  <input
-                    value={emailCode}
-                    onChange={(e) => setEmailCode(e.target.value.replace(/\D/g, "").slice(0, 6))}
-                    placeholder="Код из письма"
-                    inputMode="numeric"
-                    autoFocus
-                    className="w-full bg-[#0f0f18] border border-white/10 focus:border-violet-500 rounded-xl p-3.5 outline-none transition"
-                  />
-
-                  <button
-                    type="button"
-                    onClick={async () => {
-                      setEmailCode("");
-                      await requestEmailCode();
-                    }}
-                    disabled={sendingCode}
-                    className="text-xs text-violet-400 hover:text-violet-300 disabled:opacity-60 transition"
-                  >
-                    {sendingCode ? "Отправляем..." : "Запросить новый код"}
-                  </button>
-                </>
-              )}
-
-              {codeError && <p className="text-red-400 text-xs">{codeError}</p>}
-            </div>
-          )}
-
-          {mode === "register" && (
             <div className="flex items-center gap-3">
               <div className="bg-[#171726] border border-white/5 rounded-2xl px-4 py-4 text-sm text-gray-400 whitespace-nowrap">
                 {captchaQuestion || "…"} =
@@ -456,20 +354,16 @@ function LoginForm() {
 
           <button
             type="submit"
-            disabled={loading || sendingCode || sendingPhoneCode}
+            disabled={loading || sendingPhoneCode}
             className="w-full bg-violet-600 hover:bg-violet-700 disabled:opacity-60 transition rounded-2xl py-4 font-bold"
           >
             {sendingPhoneCode
               ? "Звоним..."
-              : sendingCode
-              ? "Отправляем код..."
               : loading
               ? "Секунду..."
               : mode === "register"
               ? !phoneCodeRequested
                 ? "Позвонить для подтверждения"
-                : codeRequested
-                ? "Подтвердить и зарегистрироваться"
                 : "Зарегистрироваться"
               : "Войти"}
           </button>
