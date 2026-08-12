@@ -27,6 +27,8 @@ export default function EmptyTripNotifier() {
     let cancelled = false;
 
     async function poll() {
+      if (document.hidden) return;
+
       const res = await fetch("/api/notifications/empty-trips", {
         cache: "no-store",
       });
@@ -39,7 +41,7 @@ export default function EmptyTripNotifier() {
 
     poll();
 
-    const interval = setInterval(poll, 30_000);
+    const interval = setInterval(poll, 60_000);
 
     return () => {
       cancelled = true;

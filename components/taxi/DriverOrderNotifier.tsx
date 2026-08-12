@@ -55,6 +55,8 @@ export default function DriverOrderNotifier() {
     let cancelled = false;
 
     async function poll() {
+      if (document.hidden) return;
+
       const res = await fetch("/api/taxi-orders", { cache: "no-store" });
       if (!res.ok || cancelled) return;
 
@@ -84,7 +86,7 @@ export default function DriverOrderNotifier() {
 
     poll();
 
-    const interval = setInterval(poll, 5000);
+    const interval = setInterval(poll, 20_000);
 
     return () => {
       cancelled = true;

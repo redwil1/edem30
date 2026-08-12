@@ -32,6 +32,8 @@ export default function TripReminderNotifier() {
     let cancelled = false;
 
     async function poll() {
+      if (document.hidden) return;
+
       const res = await fetch("/api/notifications/upcoming-trip", {
         cache: "no-store",
       });
@@ -44,7 +46,7 @@ export default function TripReminderNotifier() {
 
     poll();
 
-    const interval = setInterval(poll, 30_000);
+    const interval = setInterval(poll, 60_000);
 
     return () => {
       cancelled = true;

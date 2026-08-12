@@ -33,6 +33,8 @@ export default function SupportChatNotifier() {
     let cancelled = false;
 
     async function poll() {
+      if (document.hidden) return;
+
       const res = await fetch("/api/notifications/new-support-messages", {
         cache: "no-store",
       });
@@ -67,7 +69,7 @@ export default function SupportChatNotifier() {
 
     poll();
 
-    const interval = setInterval(poll, 10_000);
+    const interval = setInterval(poll, 20_000);
 
     return () => {
       cancelled = true;

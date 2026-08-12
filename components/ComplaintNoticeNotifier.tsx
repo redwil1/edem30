@@ -26,6 +26,8 @@ export default function ComplaintNoticeNotifier() {
     let cancelled = false;
 
     async function poll() {
+      if (document.hidden) return;
+
       const res = await fetch("/api/notifications/my-reports", {
         cache: "no-store",
       });
@@ -38,7 +40,7 @@ export default function ComplaintNoticeNotifier() {
 
     poll();
 
-    const interval = setInterval(poll, 30_000);
+    const interval = setInterval(poll, 60_000);
 
     return () => {
       cancelled = true;

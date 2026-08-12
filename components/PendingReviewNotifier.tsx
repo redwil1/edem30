@@ -30,6 +30,8 @@ export default function PendingReviewNotifier() {
     let cancelled = false;
 
     async function poll() {
+      if (document.hidden) return;
+
       const res = await fetch("/api/notifications/pending-review", {
         cache: "no-store",
       });

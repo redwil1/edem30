@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { Bus, X } from "lucide-react";
 
+import { useAuth } from "@/components/auth/AuthProvider";
 import { playNotificationDing } from "@/lib/notificationSound";
 import { useRuStoreBannerVisible } from "@/lib/ruStoreBanner";
 
@@ -17,14 +18,22 @@ type ActivityItem = {
 };
 
 export default function NewTripNotifier() {
+  const { user } = useAuth();
   const ruStoreBannerVisible = useRuStoreBannerVisible();
   const seenIds = useRef<Set<string> | null>(null);
   const [toasts, setToasts] = useState<ActivityItem[]>([]);
 
   useEffect(() => {
+    if (!user) {
+      seenIds.current = null;
+      return;
+    }
+
     let cancelled = false;
 
     async function poll() {
+      if (document.hidden) return;
+
       const res = await fetch("/api/activity", { cache: "no-store" });
 
       if (!res.ok || cancelled) return;
@@ -57,13 +66,13 @@ export default function NewTripNotifier() {
 
     poll();
 
-    const interval = setInterval(poll, 20_000);
+    const interval = setInterval(poll, 30_000);
 
     return () => {
       cancelled = true;
       clearInterval(interval);
     };
-  }, []);
+  }, [user]);
 
   function dismiss(id: string) {
     setToasts((prev) => prev.filter((t) => t.id !== id));

@@ -66,6 +66,8 @@ export default function NotificationBell() {
     let cancelled = false;
 
     async function poll() {
+      if (document.hidden) return;
+
       const res = await fetch("/api/notifications/feed", { cache: "no-store" });
       if (!res.ok || cancelled) return;
 
@@ -83,7 +85,7 @@ export default function NotificationBell() {
 
     poll();
 
-    const interval = setInterval(poll, 15_000);
+    const interval = setInterval(poll, 25_000);
 
     return () => {
       cancelled = true;
