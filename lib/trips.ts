@@ -278,7 +278,7 @@ async function leaveCount(tripId: number, userId: number): Promise<number> {
 }
 
 export type JoinResult =
-  | { ok: true }
+  | { ok: true; alreadyJoined: boolean }
   | {
       ok: false;
       reason:
@@ -318,7 +318,7 @@ export async function joinTrip(tripId: number, userId: number): Promise<JoinResu
 
   if (trip.owner_id === userId) return { ok: false, reason: "self" };
 
-  if (await isTripParticipant(tripId, userId)) return { ok: true };
+  if (await isTripParticipant(tripId, userId)) return { ok: true, alreadyJoined: true };
 
   if (Number(trip.taken_seats) >= trip.total_seats) {
     return { ok: false, reason: "full" };
@@ -333,7 +333,7 @@ export async function joinTrip(tripId: number, userId: number): Promise<JoinResu
     ON CONFLICT (trip_id, user_id) DO NOTHING
   `;
 
-  return { ok: true };
+  return { ok: true, alreadyJoined: false };
 }
 
 type LifecycleRow = {

@@ -3,7 +3,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import { rateLimit } from "@/lib/rateLimit";
 import { isTrustedOrigin } from "@/lib/security";
-import { joinTrip } from "@/lib/trips";
+import { getTripById, joinTrip } from "@/lib/trips";
+import { notifyUserWithEmailFallback } from "@/lib/push";
 
 export const runtime = "nodejs";
 
@@ -57,6 +58,18 @@ export async function POST(req: NextRequest, { params }: Props) {
     const status = result.reason === "not_found" ? 404 : 409;
 
     return NextResponse.json({ error: messages[result.reason] }, { status });
+  }
+
+  if (!result.alreadyJoined) {
+    const trip = await getTripById(tripId);
+
+    if (trip?.driverId) {
+      notifyUserWithEmailFallback(trip.driverId, {
+        title: "Новый пассажир",
+        body: `${user.name} присоединился к поездке ${trip.from} → ${trip.to}`,
+        url: `/trip/${tripId}`,
+      });
+    }
   }
 
   return NextResponse.json({ ok: true });
