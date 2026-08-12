@@ -20,10 +20,14 @@ import ParticipantsList from "@/components/trip/ParticipantsList";
 import SafetyCard from "@/components/trip/SafetyCard";
 import ChatPanel from "@/components/trip/ChatPanel";
 import OwnerRoleHint from "@/components/trip/OwnerRoleHint";
+import PushSubscribePrompt from "@/components/trip/PushSubscribePrompt";
 
 type Props = {
   params: Promise<{
     id: string;
+  }>;
+  searchParams: Promise<{
+    justCreated?: string;
   }>;
 };
 
@@ -31,8 +35,9 @@ export const metadata: Metadata = {
   robots: { index: false, follow: false },
 };
 
-export default async function TripPage({ params }: Props) {
+export default async function TripPage({ params, searchParams }: Props) {
   const { id } = await params;
+  const { justCreated } = await searchParams;
 
   const trip = await getTripById(Number(id));
 
@@ -156,6 +161,10 @@ export default async function TripPage({ params }: Props) {
               joined={joined}
               hideJoin={isDriver || instantTaxi || isForming}
             />
+
+            {isDriver && justCreated === "1" && (
+              <PushSubscribePrompt reason="Узнавайте сразу, когда пассажир забронирует место" />
+            )}
 
             {isForming && !joined && user?.role === "driver" && (
               <Link

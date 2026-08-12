@@ -157,7 +157,7 @@ function CreateTripForm() {
         return;
       }
 
-      router.push(`/trip/${data.id}`);
+      router.push(`/trip/${data.id}?justCreated=1`);
       router.refresh();
     } catch {
       setError("Не удалось подключиться к серверу");

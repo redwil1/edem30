@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { Check, LogOut } from "lucide-react";
 
 import { useAuth } from "@/components/auth/AuthProvider";
+import PushSubscribePrompt from "./PushSubscribePrompt";
 
 type Props = {
   tripId: number;
@@ -16,6 +17,7 @@ export default function JoinButton({ tripId, joined }: Props) {
   const { user } = useAuth();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [justJoined, setJustJoined] = useState(false);
 
   async function leave() {
     setLoading(true);
@@ -33,6 +35,10 @@ export default function JoinButton({ tripId, joined }: Props) {
           <Check size={16} />
           Вы участник поездки
         </div>
+
+        {justJoined && (
+          <PushSubscribePrompt reason="Узнавайте сразу, когда водитель напишет в чат" />
+        )}
 
         <button
           onClick={leave}
@@ -64,6 +70,7 @@ export default function JoinButton({ tripId, joined }: Props) {
         return;
       }
 
+      setJustJoined(true);
       router.refresh();
 
       document
