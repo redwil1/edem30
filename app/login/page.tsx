@@ -325,14 +325,16 @@ function LoginForm() {
                 onChange={(e) => setDataConsent(e.target.checked)}
                 className="mt-0.5 w-4 h-4 shrink-0 accent-violet-600"
               />
-              Даю согласие на{" "}
-              <Link href="/privacy" target="_blank" className="text-violet-400 hover:text-violet-300 underline">
-                обработку персональных данных
-              </Link>{" "}
-              и принимаю{" "}
-              <Link href="/terms" target="_blank" className="text-violet-400 hover:text-violet-300 underline">
-                пользовательское соглашение
-              </Link>
+              <span>
+                Даю согласие на{" "}
+                <Link href="/privacy" target="_blank" className="text-violet-400 hover:text-violet-300 underline">
+                  обработку персональных данных
+                </Link>{" "}
+                и принимаю{" "}
+                <Link href="/terms" target="_blank" className="text-violet-400 hover:text-violet-300 underline">
+                  пользовательское соглашение
+                </Link>
+              </span>
             </label>
           )}
 
@@ -344,9 +346,11 @@ function LoginForm() {
                 onChange={(e) => setPushConsent(e.target.checked)}
                 className="mt-0.5 w-4 h-4 shrink-0 accent-violet-600"
               />
-              Согласен(на) получать push-уведомления о новых сообщениях,
-              заказах и статусе поездок{" "}
-              <span className="text-gray-600">(необязательно)</span>
+              <span>
+                Согласен(на) получать push-уведомления о новых сообщениях,
+                заказах и статусе поездок{" "}
+                <span className="text-gray-600">(необязательно)</span>
+              </span>
             </label>
           )}
 
