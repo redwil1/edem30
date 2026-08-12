@@ -39,6 +39,7 @@ import AdminTelegramMessagesTable from "@/components/admin/AdminTelegramMessages
 import AdminSubscriptionPlansTable from "@/components/admin/AdminSubscriptionPlansTable";
 import AdminPromoCodesTable from "@/components/admin/AdminPromoCodesTable";
 import AdminNewsletterPanel from "@/components/admin/AdminNewsletterPanel";
+import AdminOkPostsPanel from "@/components/admin/AdminOkPostsPanel";
 import AdminSettingsPanel from "@/components/admin/AdminSettingsPanel";
 import AdminMarketing from "@/components/admin/AdminMarketing";
 import AdminAdBannersTable from "@/components/admin/AdminAdBannersTable";
@@ -63,6 +64,7 @@ type Tab =
   | "promoCodes"
   | "ads"
   | "newsletter"
+  | "okPosts"
   | "settings";
 
 const ADMIN_ONLY_TABS: Tab[] = [
@@ -72,6 +74,7 @@ const ADMIN_ONLY_TABS: Tab[] = [
   "promoCodes",
   "ads",
   "newsletter",
+  "okPosts",
   "settings",
 ];
 
@@ -93,6 +96,7 @@ const TABS: { id: Tab; label: string; icon: typeof LayoutDashboard }[] = [
   { id: "promoCodes", label: "🎁 Промокоды", icon: Tag },
   { id: "ads", label: "🖼 Реклама", icon: ImageIcon },
   { id: "newsletter", label: "📢 Рассылка", icon: Megaphone },
+  { id: "okPosts", label: "📰 Посты в ОК", icon: Send },
   { id: "settings", label: "⚙ Настройки", icon: Settings },
 ];
 
@@ -183,6 +187,7 @@ export default function AdminPage() {
         {isAdmin && tab === "promoCodes" && <AdminPromoCodesTable />}
         {isAdmin && tab === "ads" && <AdminAdBannersTable />}
         {isAdmin && tab === "newsletter" && <AdminNewsletterPanel />}
+        {isAdmin && tab === "okPosts" && <AdminOkPostsPanel />}
         {isAdmin && tab === "settings" && <AdminSettingsPanel />}
       </div>
     </div>
