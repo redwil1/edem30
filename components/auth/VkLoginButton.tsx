@@ -49,62 +49,85 @@ export default function VkLoginButton({ redirect = "/" }: Props) {
   const router = useRouter();
   const containerRef = useRef<HTMLDivElement>(null);
   const [sdkReady, setSdkReady] = useState(false);
+  const [scriptFailed, setScriptFailed] = useState(false);
   const [error, setError] = useState("");
+
+  useEffect(() => {
+    if (sdkReady) return;
+
+    const timeout = setTimeout(() => {
+      if (!window.VKIDSDK) setScriptFailed(true);
+    }, 6000);
+
+    return () => clearTimeout(timeout);
+  }, [sdkReady]);
 
   useEffect(() => {
     if (!sdkReady || !containerRef.current) return;
 
     const VKID = window.VKIDSDK;
-    if (!VKID) return;
 
-    VKID.Config.init({
-      app: VK_APP_ID,
-      redirectUrl: window.location.origin + "/",
-      responseMode: VKID.ConfigResponseMode.Callback,
-      source: VKID.ConfigSource.LOWCODE,
-      scope: "",
-    });
+    if (!VKID) {
+      setError("Скрипт VK ID загрузился, но window.VKIDSDK не определён");
+      return;
+    }
 
-    const oAuth = new VKID.OAuthList();
-
-    oAuth
-      .render({
-        container: containerRef.current,
-        oauthList: ["vkid", "ok"],
-      })
-      .on(VKID.WidgetEvents.ERROR, () => {
-        setError("Не удалось загрузить вход через VK/ОК");
-      })
-      .on(VKID.OAuthListInternalEvents.LOGIN_SUCCESS, (rawPayload: unknown) => {
-        const payload = rawPayload as { code?: string; device_id?: string };
-        const { code, device_id } = payload;
-
-        if (!code || !device_id) return;
-
-        VKID.Auth.exchangeCode(code, device_id)
-          .then(async (authData) => {
-            if (!authData?.access_token) {
-              setError("Не удалось войти. Попробуйте ещё раз.");
-              return;
-            }
-
-            const res = await fetch("/api/auth/vk", {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ accessToken: authData.access_token }),
-            });
-
-            if (!res.ok) {
-              const data = await res.json().catch(() => null);
-              setError(data?.error || "Не удалось войти");
-              return;
-            }
-
-            router.push(redirect);
-            router.refresh();
-          })
-          .catch(() => setError("Не удалось войти. Попробуйте ещё раз."));
+    try {
+      VKID.Config.init({
+        app: VK_APP_ID,
+        redirectUrl: window.location.origin + "/",
+        responseMode: VKID.ConfigResponseMode.Callback,
+        source: VKID.ConfigSource.LOWCODE,
+        scope: "",
       });
+
+      const oAuth = new VKID.OAuthList();
+
+      oAuth
+        .render({
+          container: containerRef.current,
+          oauthList: ["vkid", "ok"],
+        })
+        .on(VKID.WidgetEvents.ERROR, (payload: unknown) => {
+          console.error("[VK ID] widget error", payload);
+          setError("Не удалось загрузить вход через VK/ОК");
+        })
+        .on(VKID.OAuthListInternalEvents.LOGIN_SUCCESS, (rawPayload: unknown) => {
+          const payload = rawPayload as { code?: string; device_id?: string };
+          const { code, device_id } = payload;
+
+          if (!code || !device_id) return;
+
+          VKID.Auth.exchangeCode(code, device_id)
+            .then(async (authData) => {
+              if (!authData?.access_token) {
+                setError("Не удалось войти. Попробуйте ещё раз.");
+                return;
+              }
+
+              const res = await fetch("/api/auth/vk", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ accessToken: authData.access_token }),
+              });
+
+              if (!res.ok) {
+                const data = await res.json().catch(() => null);
+                setError(data?.error || "Не удалось войти");
+                return;
+              }
+
+              router.push(redirect);
+              router.refresh();
+            })
+            .catch(() => setError("Не удалось войти. Попробуйте ещё раз."));
+        });
+    } catch (err) {
+      console.error("[VK ID] init error", err);
+      setError(
+        `Ошибка инициализации VK ID: ${err instanceof Error ? err.message : String(err)}`
+      );
+    }
   }, [sdkReady, redirect, router]);
 
   return (
@@ -113,9 +136,20 @@ export default function VkLoginButton({ redirect = "/" }: Props) {
         src="https://unpkg.com/@vkid/sdk@<3.0.0/dist-sdk/umd/index.js"
         strategy="afterInteractive"
         onLoad={() => setSdkReady(true)}
+        onError={() => setScriptFailed(true)}
       />
 
       <div ref={containerRef} />
+
+      {!sdkReady && !scriptFailed && !error && (
+        <div className="text-xs text-gray-500">Загружаем вход через VK...</div>
+      )}
+
+      {scriptFailed && !error && (
+        <p className="text-red-400 text-xs mt-2">
+          Не удалось загрузить скрипт VK ID (заблокирован сетью/расширением браузера?)
+        </p>
+      )}
 
       {error && <p className="text-red-400 text-xs mt-2">{error}</p>}
     </div>
