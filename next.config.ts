@@ -4,12 +4,13 @@ const isDev = process.env.NODE_ENV === "development";
 
 const cspHeader = `
     default-src 'self';
-    script-src 'self' 'unsafe-inline' https://unpkg.com${isDev ? " 'unsafe-eval'" : ""};
+    script-src 'self' 'unsafe-inline'${isDev ? " 'unsafe-eval'" : ""};
     style-src 'self' 'unsafe-inline';
-    img-src 'self' blob: data: https://*.supabase.co https://id.vk.com;
+    img-src 'self' blob: data: https://*.supabase.co https://id.vk.ru https://id.vk.com;
     media-src 'self' blob: https://*.supabase.co;
     font-src 'self' data:;
-    connect-src 'self' https://*.supabase.co https://id.vk.com;
+    connect-src 'self' https://*.supabase.co https://id.vk.ru https://id.vk.com;
+    frame-src https://id.vk.ru https://id.vk.com;
     object-src 'none';
     base-uri 'self';
     form-action 'self';

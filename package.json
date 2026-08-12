@@ -9,6 +9,7 @@
     "lint": "eslint"
   },
   "dependencies": {
+    "@vkid/sdk": "^2.6.7",
     "bcryptjs": "^3.0.3",
     "framer-motion": "^12.42.2",
     "jose": "^6.2.3",
