@@ -3,8 +3,8 @@ import crypto from "crypto";
 
 import { sql } from "@/lib/db";
 
-// Группа "Харабалинский интернет базарчик" — https://ok.ru/kharabal
-const OK_GROUP_ID = "51101890183242";
+// Группа "Харабали базарчик" — https://ok.ru/kharabalibazar, админ — владелец Едем30
+const OK_GROUP_ID = "60182043689190";
 
 export type OkPost = {
   id: number;

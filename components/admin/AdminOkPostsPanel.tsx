@@ -105,12 +105,12 @@ export default function AdminOkPostsPanel() {
       <p className="text-sm text-gray-500 mb-4">
         Публикация идёт в группу{" "}
         <a
-          href="https://ok.ru/kharabal"
+          href="https://ok.ru/kharabalibazar"
           target="_blank"
           rel="noreferrer"
           className="text-violet-400 hover:text-violet-300"
         >
-          «Харабалинский интернет базарчик»
+          «Харабали базарчик»
         </a>
         . Пока не настроен OK_ACCESS_TOKEN — публикация будет падать с ошибкой, но текст
         всегда можно скопировать и выложить вручную.
