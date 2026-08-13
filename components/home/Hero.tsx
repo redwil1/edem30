@@ -39,13 +39,15 @@ export default function Hero({ city, onCityChange }: Props) {
             <div className="grid grid-cols-2 gap-3 sm:gap-4 max-w-lg">
               <Link
                 href="#schedule"
-                className="group bg-[#14141f] border border-violet-500/20 rounded-2xl p-3.5 sm:p-5 flex items-center gap-3 sm:gap-4 hover:border-violet-500 transition"
+                className="group relative bg-[#14141f] border border-violet-500/20 rounded-2xl p-3.5 sm:p-5 flex items-center gap-3 sm:gap-4 overflow-hidden transition-all hover:border-violet-500/70 hover:-translate-y-0.5 hover:shadow-[0_10px_28px_-8px_rgba(124,58,237,0.45)]"
               >
-                <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-violet-600/20 flex items-center justify-center shrink-0">
+                <div className="absolute inset-0 bg-gradient-to-br from-violet-600/0 to-violet-600/0 group-hover:from-violet-600/10 group-hover:to-transparent transition-all" />
+
+                <div className="relative w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-violet-600/20 flex items-center justify-center shrink-0 transition-transform group-hover:scale-105 group-hover:bg-violet-600/30">
                   <Bus size={20} className="text-violet-400" />
                 </div>
 
-                <div className="flex-1 text-left min-w-0">
+                <div className="relative flex-1 text-left min-w-0">
                   <div className="font-display font-bold text-sm sm:text-base leading-snug">
                     Межгород
                   </div>
@@ -59,19 +61,21 @@ export default function Hero({ city, onCityChange }: Props) {
 
                 <ChevronRight
                   size={18}
-                  className="hidden sm:block text-gray-600 group-hover:text-violet-400 transition shrink-0"
+                  className="relative hidden sm:block text-gray-600 group-hover:text-violet-400 group-hover:translate-x-0.5 transition-all shrink-0"
                 />
               </Link>
 
               <Link
                 href="/taxi"
-                className="group bg-[#14141f] border border-violet-500/20 rounded-2xl p-3.5 sm:p-5 flex items-center gap-3 sm:gap-4 hover:border-violet-500 transition"
+                className="group relative bg-[#14141f] border border-violet-500/20 rounded-2xl p-3.5 sm:p-5 flex items-center gap-3 sm:gap-4 overflow-hidden transition-all hover:border-violet-500/70 hover:-translate-y-0.5 hover:shadow-[0_10px_28px_-8px_rgba(124,58,237,0.45)]"
               >
-                <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-violet-600/20 flex items-center justify-center shrink-0">
+                <div className="absolute inset-0 bg-gradient-to-br from-violet-600/0 to-violet-600/0 group-hover:from-violet-600/10 group-hover:to-transparent transition-all" />
+
+                <div className="relative w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-violet-600/20 flex items-center justify-center shrink-0 transition-transform group-hover:scale-105 group-hover:bg-violet-600/30">
                   <Car size={20} className="text-violet-400" />
                 </div>
 
-                <div className="flex-1 text-left min-w-0">
+                <div className="relative flex-1 text-left min-w-0">
                   <div className="font-display font-bold text-sm sm:text-base leading-snug">
                     Такси по городу
                   </div>
@@ -85,7 +89,7 @@ export default function Hero({ city, onCityChange }: Props) {
 
                 <ChevronRight
                   size={18}
-                  className="hidden sm:block text-gray-600 group-hover:text-violet-400 transition shrink-0"
+                  className="relative hidden sm:block text-gray-600 group-hover:text-violet-400 group-hover:translate-x-0.5 transition-all shrink-0"
                 />
               </Link>
             </div>
