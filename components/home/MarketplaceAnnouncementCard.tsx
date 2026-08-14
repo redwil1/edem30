@@ -36,7 +36,7 @@ export default function MarketplaceAnnouncementCard() {
       onClick={dismiss}
     >
       <div
-        className="relative w-full max-w-xs rounded-3xl overflow-hidden border border-violet-500/20 shadow-2xl shadow-black/50"
+        className="relative w-full max-w-sm rounded-3xl overflow-hidden border border-violet-500/20 shadow-2xl shadow-black/50"
         onClick={(e) => e.stopPropagation()}
       >
         <button
@@ -52,8 +52,8 @@ export default function MarketplaceAnnouncementCard() {
           <Image
             src="/marketplace-announcement.jpg"
             alt="Барахолка теперь в Едем30 — продавай, покупай или отдавай вещи рядом"
-            width={1024}
-            height={1024}
+            width={1376}
+            height={768}
             className="w-full h-auto"
             priority
           />
@@ -64,7 +64,7 @@ export default function MarketplaceAnnouncementCard() {
           onClick={dismiss}
           aria-label="Разместить объявление"
           className="absolute z-10 rounded-full hover:bg-white/10 active:bg-white/15 transition"
-          style={{ left: "17%", right: "17%", top: "86%", bottom: "5.5%" }}
+          style={{ left: "35%", right: "35%", top: "84.5%", bottom: "5.5%" }}
         />
       </div>
     </div>
