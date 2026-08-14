@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { ChevronRight } from "lucide-react";
+import { ChevronRight, ImageOff, ShoppingBag } from "lucide-react";
 
 import ListingPrice from "@/components/marketplace/ListingPrice";
 import type { ListingSummary } from "@/lib/marketplace";
@@ -22,8 +22,11 @@ export default function MarketplacePreviewCard() {
 
   return (
     <div className="bg-[#12121c] border border-white/5 rounded-3xl p-4 sm:p-6">
-      <div className="font-display font-bold text-lg mb-1">🛍️ Барахолка</div>
-      <div className="text-sm text-gray-500 mb-4">Купи, продай или отдай рядом</div>
+      <div className="flex items-center gap-2 font-display font-bold text-lg">
+        <ShoppingBag size={18} className="text-violet-400" />
+        Барахолка
+      </div>
+      <div className="text-sm text-gray-500 mt-1 mb-4">Купи, продай или отдай рядом</div>
 
       <div className="flex gap-3 overflow-x-auto pb-1">
         {listings.map((l) => (
@@ -32,12 +35,12 @@ export default function MarketplacePreviewCard() {
             href={`/marketplace/${l.id}`}
             className="w-[118px] shrink-0 bg-[#171726] border border-white/5 hover:border-violet-500/40 rounded-2xl overflow-hidden transition"
           >
-            <div className="h-[72px] bg-[#1c1c2b] flex items-center justify-center text-2xl">
+            <div className="h-[72px] bg-[#1c1c2b] flex items-center justify-center">
               {l.photoUrl ? (
                 // eslint-disable-next-line @next/next/no-img-element
                 <img src={l.photoUrl} alt="" className="w-full h-full object-cover" />
               ) : (
-                "📦"
+                <ImageOff size={16} className="text-gray-700" />
               )}
             </div>
             <div className="p-2.5">

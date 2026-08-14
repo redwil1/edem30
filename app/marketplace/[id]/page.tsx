@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ArrowLeft, ShieldCheck, Star } from "lucide-react";
+import { ArrowLeft, ImageOff, ShieldCheck, Star } from "lucide-react";
 
 import Navbar from "@/components/layout/Navbar";
 import Footer from "@/components/layout/Footer";
@@ -80,8 +80,8 @@ export default async function ListingPage({ params }: Props) {
             />
           </div>
         ) : (
-          <div className="rounded-3xl bg-[#12121c] border border-white/5 mb-5 aspect-[4/3] flex items-center justify-center text-5xl">
-            📦
+          <div className="rounded-3xl bg-[#12121c] border border-white/5 mb-5 aspect-[4/3] flex items-center justify-center">
+            <ImageOff size={32} className="text-gray-700" />
           </div>
         )}
 

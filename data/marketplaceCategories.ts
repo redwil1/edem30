@@ -1,14 +1,26 @@
+import {
+  Briefcase,
+  Car,
+  type LucideIcon,
+  PawPrint,
+  Package,
+  Shirt,
+  Smartphone,
+  Sofa,
+  Wrench,
+} from "lucide-react";
+
 import type { ListingCategory, ListingType, Condition } from "@/lib/marketplace";
 
-export const LISTING_CATEGORIES: { value: ListingCategory; label: string; emoji: string }[] = [
-  { value: "auto", label: "Авто и запчасти", emoji: "🚗" },
-  { value: "electronics", label: "Телефоны и электроника", emoji: "📱" },
-  { value: "home", label: "Дом и дача", emoji: "🏠" },
-  { value: "clothes", label: "Одежда и обувь", emoji: "👕" },
-  { value: "services", label: "Услуги", emoji: "🛠" },
-  { value: "jobs", label: "Работа", emoji: "💼" },
-  { value: "animals", label: "Животные", emoji: "🐕" },
-  { value: "other", label: "Другое", emoji: "📦" },
+export const LISTING_CATEGORIES: { value: ListingCategory; label: string; icon: LucideIcon }[] = [
+  { value: "auto", label: "Авто и запчасти", icon: Car },
+  { value: "electronics", label: "Телефоны и электроника", icon: Smartphone },
+  { value: "home", label: "Дом и дача", icon: Sofa },
+  { value: "clothes", label: "Одежда и обувь", icon: Shirt },
+  { value: "services", label: "Услуги", icon: Wrench },
+  { value: "jobs", label: "Работа", icon: Briefcase },
+  { value: "animals", label: "Животные", icon: PawPrint },
+  { value: "other", label: "Другое", icon: Package },
 ];
 
 export const LISTING_TYPES: { value: ListingType; label: string }[] = [

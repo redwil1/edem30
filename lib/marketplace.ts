@@ -30,23 +30,35 @@ export type ListingSummary = {
   urgent: boolean;
   photoUrl: string | null;
   createdAt: string;
+  favorited: boolean;
 };
 
-const LISTING_COLUMNS = sql`
-  marketplace_listings.id as id,
-  marketplace_listings.owner_id as "ownerId",
-  marketplace_listings.type as type,
-  marketplace_listings.category as category,
-  marketplace_listings.title as title,
-  marketplace_listings.price as price,
-  marketplace_listings.price_type as "priceType",
-  marketplace_listings.city as city,
-  marketplace_listings.status as status,
-  marketplace_listings.urgent as urgent,
-  (CASE WHEN array_length(marketplace_listings.photo_urls, 1) > 0
-    THEN marketplace_listings.photo_urls[1] ELSE NULL END) as "photoUrl",
-  marketplace_listings.created_at as "createdAt"
-`;
+function listingColumns(viewerId?: number) {
+  return sql`
+    marketplace_listings.id as id,
+    marketplace_listings.owner_id as "ownerId",
+    marketplace_listings.type as type,
+    marketplace_listings.category as category,
+    marketplace_listings.title as title,
+    marketplace_listings.price as price,
+    marketplace_listings.price_type as "priceType",
+    marketplace_listings.city as city,
+    marketplace_listings.status as status,
+    marketplace_listings.urgent as urgent,
+    (CASE WHEN array_length(marketplace_listings.photo_urls, 1) > 0
+      THEN marketplace_listings.photo_urls[1] ELSE NULL END) as "photoUrl",
+    marketplace_listings.created_at as "createdAt",
+    ${
+      viewerId
+        ? sql`EXISTS (
+            SELECT 1 FROM marketplace_favorites
+            WHERE marketplace_favorites.listing_id = marketplace_listings.id
+              AND marketplace_favorites.user_id = ${viewerId}
+          )`
+        : sql`false`
+    } as favorited
+  `;
+}
 
 export type ListingFilters = {
   query?: string;
@@ -59,6 +71,7 @@ export type ListingFilters = {
   photoOnly?: boolean;
   sort?: "newest" | "cheap" | "expensive";
   limit?: number;
+  viewerId?: number;
 };
 
 export async function listListings(filters: ListingFilters = {}): Promise<ListingSummary[]> {
@@ -73,6 +86,7 @@ export async function listListings(filters: ListingFilters = {}): Promise<Listin
     photoOnly,
     sort = "newest",
     limit = 60,
+    viewerId,
   } = filters;
 
   const q = query?.trim() ? `%${query.trim()}%` : null;
@@ -85,7 +99,7 @@ export async function listListings(filters: ListingFilters = {}): Promise<Listin
       : sql`marketplace_listings.bumped_at DESC`;
 
   return sql<ListingSummary[]>`
-    SELECT ${LISTING_COLUMNS}
+    SELECT ${listingColumns(viewerId)}
     FROM marketplace_listings
     WHERE marketplace_listings.status = 'active'
       ${q ? sql`AND (marketplace_listings.title ILIKE ${q} OR marketplace_listings.description ILIKE ${q})` : sql``}
@@ -103,7 +117,7 @@ export async function listListings(filters: ListingFilters = {}): Promise<Listin
 
 export async function getRecentListings(limit: number, city?: string): Promise<ListingSummary[]> {
   return sql<ListingSummary[]>`
-    SELECT ${LISTING_COLUMNS}
+    SELECT ${listingColumns()}
     FROM marketplace_listings
     WHERE marketplace_listings.status = 'active'
       ${city ? sql`AND marketplace_listings.city = ${city}` : sql``}
@@ -114,7 +128,7 @@ export async function getRecentListings(limit: number, city?: string): Promise<L
 
 export async function listListingsByOwner(ownerId: number): Promise<ListingSummary[]> {
   return sql<ListingSummary[]>`
-    SELECT ${LISTING_COLUMNS}
+    SELECT ${listingColumns(ownerId)}
     FROM marketplace_listings
     WHERE marketplace_listings.owner_id = ${ownerId}
     ORDER BY marketplace_listings.id DESC
@@ -407,7 +421,7 @@ export async function isFavorited(userId: number, listingId: number): Promise<bo
 
 export async function listFavoriteListings(userId: number): Promise<ListingSummary[]> {
   return sql<ListingSummary[]>`
-    SELECT ${LISTING_COLUMNS}
+    SELECT ${listingColumns(userId)}
     FROM marketplace_listings
     JOIN marketplace_favorites ON marketplace_favorites.listing_id = marketplace_listings.id
     WHERE marketplace_favorites.user_id = ${userId}
@@ -610,7 +624,7 @@ export type AdminListingRow = ListingSummary & {
 
 export async function listAllListingsForAdmin(status?: ListingStatus): Promise<AdminListingRow[]> {
   return sql<AdminListingRow[]>`
-    SELECT ${LISTING_COLUMNS}, users.name as "ownerName"
+    SELECT ${listingColumns()}, users.name as "ownerName"
     FROM marketplace_listings
     JOIN users ON users.id = marketplace_listings.owner_id
     ${status ? sql`WHERE marketplace_listings.status = ${status}` : sql``}

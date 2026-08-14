@@ -48,7 +48,7 @@ export default function MyListingsPage() {
     <main className="min-h-screen bg-[#0b0b13] text-white flex flex-col">
       <Navbar />
 
-      <div className="max-w-2xl w-full mx-auto px-5 py-8 flex-1">
+      <div className="max-w-5xl w-full mx-auto px-5 py-8 flex-1">
         <Link
           href="/marketplace"
           className="inline-flex items-center gap-2 text-sm text-gray-300 hover:text-white transition border border-white/10 rounded-xl px-4 py-2.5 mb-6"
@@ -77,7 +77,7 @@ export default function MyListingsPage() {
             У вас пока нет объявлений.
           </div>
         ) : (
-          <div className="space-y-3">
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
             {listings.map((l) => (
               <ListingCard key={l.id} listing={l} />
             ))}

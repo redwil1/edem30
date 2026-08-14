@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { Loader2, Plus, Search, SlidersHorizontal, X } from "lucide-react";
+import { Loader2, MapPin, Plus, Search, SlidersHorizontal, X } from "lucide-react";
 
 import { useAuth } from "@/components/auth/AuthProvider";
 import type { ListingCategory, ListingSummary, ListingType } from "@/lib/marketplace";
@@ -109,7 +109,8 @@ export default function MarketplaceFeed() {
       </div>
 
       <div className="flex items-center gap-2 mb-4 text-sm text-gray-500">
-        📍 Рядом
+        <MapPin size={14} className="text-violet-400 shrink-0" />
+        Рядом
         {myCity && (
           <button
             type="button"
@@ -141,22 +142,33 @@ export default function MarketplaceFeed() {
         </button>
       </div>
 
-      <div className="grid grid-cols-4 gap-2 mb-5">
-        {LISTING_CATEGORIES.map((c) => (
-          <button
-            key={c.value}
-            type="button"
-            onClick={() => setCategory(category === c.value ? null : c.value)}
-            className={`rounded-2xl p-2.5 text-center border transition ${
-              category === c.value
-                ? "bg-violet-600/15 border-violet-500 text-violet-300"
-                : "bg-[#12121c] border-white/5 text-gray-400 hover:border-violet-500/30"
-            }`}
-          >
-            <div className="text-lg">{c.emoji}</div>
-            <div className="text-[10px] font-medium mt-1 leading-tight">{c.label}</div>
-          </button>
-        ))}
+      <div className="flex items-center gap-2 overflow-x-auto pb-1 mb-5">
+        {LISTING_CATEGORIES.map((c) => {
+          const Icon = c.icon;
+          const active = category === c.value;
+
+          return (
+            <button
+              key={c.value}
+              type="button"
+              onClick={() => setCategory(active ? null : c.value)}
+              className={`flex items-center gap-1.5 rounded-full pl-2 pr-3.5 py-1.5 border whitespace-nowrap transition ${
+                active
+                  ? "bg-violet-600/15 border-violet-500 text-violet-300"
+                  : "bg-[#12121c] border-white/5 text-gray-400 hover:border-violet-500/30"
+              }`}
+            >
+              <span
+                className={`w-6 h-6 rounded-full flex items-center justify-center shrink-0 ${
+                  active ? "bg-violet-500/25" : "bg-white/5"
+                }`}
+              >
+                <Icon size={13} />
+              </span>
+              <span className="text-xs font-medium">{c.label}</span>
+            </button>
+          );
+        })}
       </div>
 
       {showFilters && (
@@ -246,7 +258,7 @@ export default function MarketplaceFeed() {
           </Link>
         </div>
       ) : (
-        <div className="space-y-3">
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
           {listings.map((l) => (
             <ListingCard key={l.id} listing={l} />
           ))}

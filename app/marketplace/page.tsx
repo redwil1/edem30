@@ -18,7 +18,7 @@ export default function MarketplacePage() {
     <main className="min-h-screen bg-[#0b0b13] text-white flex flex-col">
       <Navbar />
 
-      <div className="max-w-2xl w-full mx-auto px-5 py-8 flex-1">
+      <div className="max-w-5xl w-full mx-auto px-5 py-8 flex-1">
         <MarketplaceFeed />
       </div>
 

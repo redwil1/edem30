@@ -22,6 +22,7 @@ const MAX_ACTIVE_LISTINGS = 20;
 
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
+  const viewer = await getCurrentUser();
 
   const query = searchParams.get("q") ?? undefined;
   const categoryParam = searchParams.get("category");
@@ -46,6 +47,7 @@ export async function GET(req: NextRequest) {
     photoOnly,
     sort: sortParam === "cheap" || sortParam === "expensive" ? sortParam : "newest",
     limit: limit && Number.isFinite(limit) && limit > 0 ? limit : undefined,
+    viewerId: viewer?.id,
   });
 
   return NextResponse.json(

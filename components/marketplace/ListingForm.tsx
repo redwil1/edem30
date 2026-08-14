@@ -2,7 +2,7 @@
 
 import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Loader2, Plus, X } from "lucide-react";
+import { Flame, Loader2, Plus, Repeat, X } from "lucide-react";
 
 import CityModal from "@/components/CityModal";
 import { compressImage, ImageCompressError } from "@/lib/imageCompress";
@@ -276,22 +276,33 @@ export default function ListingForm({ mode, listingId, initial }: Props) {
 
       <div>
         <label className="text-xs text-gray-500 mb-2 block">Категория</label>
-        <div className="grid grid-cols-4 gap-2">
-          {LISTING_CATEGORIES.map((c) => (
-            <button
-              key={c.value}
-              type="button"
-              onClick={() => set("category", c.value)}
-              className={`rounded-xl p-2.5 text-center border transition ${
-                values.category === c.value
-                  ? "bg-violet-600/15 border-violet-500 text-violet-300"
-                  : "bg-[#171726] border-white/10 text-gray-400"
-              }`}
-            >
-              <div className="text-base">{c.emoji}</div>
-              <div className="text-[10px] font-medium mt-1 leading-tight">{c.label}</div>
-            </button>
-          ))}
+        <div className="flex flex-wrap gap-2">
+          {LISTING_CATEGORIES.map((c) => {
+            const Icon = c.icon;
+            const active = values.category === c.value;
+
+            return (
+              <button
+                key={c.value}
+                type="button"
+                onClick={() => set("category", c.value)}
+                className={`flex items-center gap-1.5 rounded-full pl-2 pr-3 py-1.5 border transition ${
+                  active
+                    ? "bg-violet-600/15 border-violet-500 text-violet-300"
+                    : "bg-[#171726] border-white/10 text-gray-400"
+                }`}
+              >
+                <span
+                  className={`w-6 h-6 rounded-full flex items-center justify-center shrink-0 ${
+                    active ? "bg-violet-500/25" : "bg-white/5"
+                  }`}
+                >
+                  <Icon size={13} />
+                </span>
+                <span className="text-xs font-medium">{c.label}</span>
+              </button>
+            );
+          })}
         </div>
       </div>
 
@@ -365,7 +376,10 @@ export default function ListingForm({ mode, listingId, initial }: Props) {
 
       <div className="bg-[#12121c] border border-white/5 rounded-2xl overflow-hidden">
         <label className="flex items-center justify-between px-4 py-3.5 border-b border-white/5 cursor-pointer">
-          <span className="text-sm text-gray-300">🔥 Срочно</span>
+          <span className="flex items-center gap-2 text-sm text-gray-300">
+            <Flame size={15} className="text-amber-400" />
+            Срочно
+          </span>
           <input
             type="checkbox"
             checked={values.urgent}
@@ -375,7 +389,10 @@ export default function ListingForm({ mode, listingId, initial }: Props) {
         </label>
 
         <label className="flex items-center justify-between px-4 py-3.5 cursor-pointer">
-          <span className="text-sm text-gray-300">🔄 Возможен обмен</span>
+          <span className="flex items-center gap-2 text-sm text-gray-300">
+            <Repeat size={15} className="text-violet-400" />
+            Возможен обмен
+          </span>
           <input
             type="checkbox"
             checked={values.exchangePossible}

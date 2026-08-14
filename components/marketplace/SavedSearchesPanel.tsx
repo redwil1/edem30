@@ -91,7 +91,7 @@ export default function SavedSearchesPanel() {
                 category === c.value ? "bg-violet-600 text-white" : "bg-[#171726] text-gray-400"
               }`}
             >
-              {c.emoji} {c.label}
+              {c.label}
             </button>
           ))}
         </div>
