@@ -18,6 +18,7 @@ import FindDriverCard from "./FindDriverCard";
 import FormingTripsLiveFeed from "./FormingTripsLiveFeed";
 import CarrierHighlightCard from "@/components/carrier/CarrierHighlightCard";
 import MarketplacePreviewCard from "./MarketplacePreviewCard";
+import MarketplaceAnnouncementCard from "./MarketplaceAnnouncementCard";
 
 type Props = {
   trips: Trip[];
@@ -74,6 +75,10 @@ export default function HomeContent({ trips }: Props) {
 
   return (
     <>
+      <div className="max-w-[1400px] mx-auto px-5 sm:px-6 lg:px-10 pt-6">
+        <MarketplaceAnnouncementCard />
+      </div>
+
       <Hero city={city} onCityChange={setCity} />
 
       <div className="max-w-[1400px] mx-auto px-5 sm:px-6 lg:px-10">

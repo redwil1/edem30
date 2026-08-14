@@ -9,6 +9,7 @@ import TripBadges from "@/components/TripBadges";
 import { formatDate, formatPrice, formatRating, formatSeats } from "@/lib/utils";
 import { Trip } from "@/types/trips";
 import CitySwitch from "./CitySwitch";
+import MarketplaceAnnouncementCard from "./MarketplaceAnnouncementCard";
 
 type Mode = "intercity" | "city";
 
@@ -165,6 +166,10 @@ export default function WelcomeGate({ trips, city, onCityChange }: Props) {
             </p>
           </div>
         )}
+      </div>
+
+      <div className="mt-6">
+        <MarketplaceAnnouncementCard />
       </div>
     </section>
   );

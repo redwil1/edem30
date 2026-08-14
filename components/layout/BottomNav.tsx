@@ -2,12 +2,12 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { House, Bus, Car, MessageCircle, User } from "lucide-react";
+import { House, Bus, ShoppingBag, MessageCircle, User } from "lucide-react";
 
 const items = [
   { href: "/", icon: House, text: "Главная" },
   { href: "/search", icon: Bus, text: "Межгород" },
-  { href: "/taxi", icon: Car, text: "Такси" },
+  { href: "/marketplace", icon: ShoppingBag, text: "Барахолка" },
   { href: "/chat", icon: MessageCircle, text: "Чат" },
   { href: "/profile", icon: User, text: "Профиль" },
 ];
