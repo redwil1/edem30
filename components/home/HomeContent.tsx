@@ -75,9 +75,7 @@ export default function HomeContent({ trips }: Props) {
 
   return (
     <>
-      <div className="max-w-[1400px] mx-auto px-5 sm:px-6 lg:px-10 pt-6">
-        <MarketplaceAnnouncementCard />
-      </div>
+      <MarketplaceAnnouncementCard />
 
       <Hero city={city} onCityChange={setCity} />
 

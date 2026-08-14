@@ -168,9 +168,7 @@ export default function WelcomeGate({ trips, city, onCityChange }: Props) {
         )}
       </div>
 
-      <div className="mt-6">
-        <MarketplaceAnnouncementCard />
-      </div>
+      <MarketplaceAnnouncementCard />
     </section>
   );
 }
