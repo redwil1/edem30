@@ -15,6 +15,7 @@ const links = [
   { href: "/", text: "Главная" },
   { href: "/search", text: "Межгород" },
   { href: "/taxi", text: "Такси" },
+  { href: "/marketplace", text: "Барахолка" },
   { href: "/about", text: "О сервисе" },
 ];
 

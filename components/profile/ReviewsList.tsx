@@ -54,7 +54,7 @@ export default function ReviewsList({ reviews }: Props) {
                 ))}
               </div>
 
-              <div className="text-xs text-gray-500 mt-1.5">{r.tripRoute}</div>
+              <div className="text-xs text-gray-500 mt-1.5">{r.contextLabel}</div>
 
               {r.comment && (
                 <p className="text-sm text-gray-300 mt-2 leading-relaxed">

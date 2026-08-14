@@ -14,6 +14,7 @@ import { isTrustedOrigin } from "@/lib/security";
 import { publicStorageUrl } from "@/lib/storage";
 import { sendPushToUser } from "@/lib/push";
 import { sql } from "@/lib/db";
+import { getListingForConversation } from "@/lib/marketplace";
 
 export const runtime = "nodejs";
 
@@ -38,10 +39,11 @@ export async function GET(_req: Request, { params }: Props) {
     return NextResponse.json({ error: "Доступ запрещён" }, { status: 403 });
   }
 
-  const [rows, otherLastReadAt, otherUserId] = await Promise.all([
+  const [rows, otherLastReadAt, otherUserId, listing] = await Promise.all([
     getConversationMessages(conversationId),
     getOtherParticipantLastRead(conversationId, user.id),
     getOtherParticipantId(conversationId, user.id),
+    getListingForConversation(conversationId),
   ]);
 
   const otherRows = otherUserId
@@ -79,6 +81,7 @@ export async function GET(_req: Request, { params }: Props) {
           !!otherLastReadAt &&
           new Date(otherLastReadAt).getTime() >= new Date(m.createdAt).getTime(),
       })),
+      listing,
     },
     { headers: { "Cache-Control": "no-store" } }
   );

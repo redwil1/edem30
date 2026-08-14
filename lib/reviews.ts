@@ -33,13 +33,23 @@ export async function hasReviewed(
   return rows.length > 0;
 }
 
+export async function hasReviewedListing(
+  listingId: number,
+  reviewerId: number
+): Promise<boolean> {
+  const rows = await sql`
+    SELECT 1 FROM reviews WHERE listing_id = ${listingId} AND reviewer_id = ${reviewerId}
+  `;
+
+  return rows.length > 0;
+}
+
 export type UserReview = {
   id: number;
   rating: number;
   comment: string | null;
   createdAt: string;
-  tripId: number;
-  tripRoute: string;
+  contextLabel: string;
   authorId: number;
   authorName: string;
   authorAvatarUrl: string | null;
@@ -51,9 +61,9 @@ type UserReviewRow = {
   rating: number;
   comment: string | null;
   created_at: string;
-  trip_id: number;
-  from_city: string;
-  to_city: string;
+  from_city: string | null;
+  to_city: string | null;
+  listing_title: string | null;
   author_id: number;
   author_name: string;
   author_avatar_url: string | null;
@@ -63,13 +73,15 @@ type UserReviewRow = {
 export async function listUserReviews(userId: number): Promise<UserReview[]> {
   const rows = await sql<UserReviewRow[]>`
     SELECT reviews.id as id, reviews.rating as rating, reviews.comment as comment,
-           reviews.created_at as created_at, reviews.trip_id as trip_id,
+           reviews.created_at as created_at,
            trips.from_city as from_city, trips.to_city as to_city,
+           marketplace_listings.title as listing_title,
            users.id as author_id, users.name as author_name,
            users.avatar_url as author_avatar_url, users.avatar_preset as author_avatar_preset
     FROM reviews
     JOIN users ON users.id = reviews.reviewer_id
-    JOIN trips ON trips.id = reviews.trip_id
+    LEFT JOIN trips ON trips.id = reviews.trip_id
+    LEFT JOIN marketplace_listings ON marketplace_listings.id = reviews.listing_id
     WHERE reviews.reviewee_id = ${userId}
     ORDER BY reviews.id DESC
   `;
@@ -79,8 +91,7 @@ export async function listUserReviews(userId: number): Promise<UserReview[]> {
     rating: r.rating,
     comment: r.comment,
     createdAt: r.created_at,
-    tripId: r.trip_id,
-    tripRoute: `${r.from_city} → ${r.to_city}`,
+    contextLabel: r.listing_title ?? `${r.from_city} → ${r.to_city}`,
     authorId: r.author_id,
     authorName: r.author_name,
     authorAvatarUrl: r.author_avatar_url,
@@ -88,13 +99,23 @@ export async function listUserReviews(userId: number): Promise<UserReview[]> {
   }));
 }
 
-export type CreateReviewInput = {
-  tripId: number;
-  reviewerId: number;
-  revieweeId: number;
-  rating: number;
-  comment?: string;
-};
+export type CreateReviewInput =
+  | {
+      tripId: number;
+      listingId?: undefined;
+      reviewerId: number;
+      revieweeId: number;
+      rating: number;
+      comment?: string;
+    }
+  | {
+      tripId?: undefined;
+      listingId: number;
+      reviewerId: number;
+      revieweeId: number;
+      rating: number;
+      comment?: string;
+    };
 
 export type CreateReviewResult =
   | { ok: true }
@@ -105,8 +126,11 @@ export async function createReview(
 ): Promise<CreateReviewResult> {
   try {
     await sql`
-      INSERT INTO reviews (trip_id, reviewer_id, reviewee_id, rating, comment)
-      VALUES (${input.tripId}, ${input.reviewerId}, ${input.revieweeId}, ${input.rating}, ${input.comment ?? null})
+      INSERT INTO reviews (trip_id, listing_id, reviewer_id, reviewee_id, rating, comment)
+      VALUES (
+        ${input.tripId ?? null}, ${input.listingId ?? null}, ${input.reviewerId},
+        ${input.revieweeId}, ${input.rating}, ${input.comment ?? null}
+      )
     `;
 
     return { ok: true };

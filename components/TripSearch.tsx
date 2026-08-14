@@ -18,11 +18,13 @@ type CityField = "from" | "to" | null;
 type Props = {
   trips: Trip[];
   emptyText?: string;
+  initialFrom?: string;
+  initialTo?: string;
 };
 
-export default function TripSearch({ trips, emptyText }: Props) {
-  const [from, setFrom] = useState("");
-  const [to, setTo] = useState("");
+export default function TripSearch({ trips, emptyText, initialFrom, initialTo }: Props) {
+  const [from, setFrom] = useState(initialFrom ?? "");
+  const [to, setTo] = useState(initialTo ?? "");
   const [cityModalField, setCityModalField] = useState<CityField>(null);
 
   const filteredTrips = useTripSearch(trips, from, to);

@@ -1,11 +1,12 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import Link from "next/link";
 import { Check, CheckCheck, Loader2, Paperclip, Send } from "lucide-react";
 
 import Avatar from "@/components/trip/Avatar";
 import { compressImage, ImageCompressError } from "@/lib/imageCompress";
-import { formatChatDateSeparator, isOnline } from "@/lib/utils";
+import { formatChatDateSeparator, formatPrice, isOnline } from "@/lib/utils";
 
 type Message = {
   id: number;
@@ -24,6 +25,22 @@ type OtherParticipant = {
   avatarUrl: string | null;
   avatarPreset: string | null;
   lastSeenAt: string | null;
+};
+
+type ListingContext = {
+  id: number;
+  title: string;
+  price: number | null;
+  priceType: "fixed" | "negotiable" | "free";
+  status: "active" | "reserved" | "sold" | "archived";
+  photoUrl: string | null;
+};
+
+const LISTING_STATUS_LABELS: Record<ListingContext["status"], string> = {
+  active: "Активно",
+  reserved: "Забронировано",
+  sold: "Продано",
+  archived: "Снято с публикации",
 };
 
 const MAX_IMAGE_SIZE = 5 * 1024 * 1024;
@@ -70,6 +87,7 @@ function groupMessages(messages: Message[]): Group[] {
 export default function DirectChatCard({ conversationId }: { conversationId: number }) {
   const [messages, setMessages] = useState<Message[]>([]);
   const [other, setOther] = useState<OtherParticipant | null>(null);
+  const [listing, setListing] = useState<ListingContext | null>(null);
   const [loaded, setLoaded] = useState(false);
   const [value, setValue] = useState("");
   const [error, setError] = useState("");
@@ -85,6 +103,7 @@ export default function DirectChatCard({ conversationId }: { conversationId: num
     if (data) {
       setMessages(data.messages ?? []);
       setOther(data.otherParticipant ?? null);
+      setListing(data.listing ?? null);
     }
     setLoaded(true);
   }
@@ -226,6 +245,36 @@ export default function DirectChatCard({ conversationId }: { conversationId: num
           <div className="font-display font-bold">Чат</div>
         )}
       </div>
+
+      {listing && (
+        <Link
+          href={`/marketplace/${listing.id}`}
+          className="flex items-center gap-3 p-3 sm:p-4 border-b border-white/5 shrink-0 hover:bg-white/5 transition"
+        >
+          <div className="w-11 h-11 rounded-xl bg-[#1c1c2b] shrink-0 overflow-hidden flex items-center justify-center">
+            {listing.photoUrl ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={listing.photoUrl} alt="" className="w-full h-full object-cover" />
+            ) : (
+              <span className="text-lg">📦</span>
+            )}
+          </div>
+
+          <div className="flex-1 min-w-0">
+            <div className="text-sm font-medium truncate">{listing.title}</div>
+            <div className="text-xs text-gray-500 mt-0.5">
+              {listing.priceType === "free" ? (
+                <span className="text-green-400 font-medium">Бесплатно</span>
+              ) : (
+                <span className="text-violet-400 font-medium">{formatPrice(listing.price ?? 0)}</span>
+              )}
+              {listing.status !== "active" && ` · ${LISTING_STATUS_LABELS[listing.status]}`}
+            </div>
+          </div>
+
+          <span className="text-xs text-violet-400 shrink-0">Открыть →</span>
+        </Link>
+      )}
 
       <div ref={scrollRef} className="flex-1 overflow-y-auto p-4 sm:p-5 space-y-1">
         {!loaded ? (

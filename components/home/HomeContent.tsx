@@ -17,6 +17,7 @@ import NotificationsCard from "./NotificationsCard";
 import FindDriverCard from "./FindDriverCard";
 import FormingTripsLiveFeed from "./FormingTripsLiveFeed";
 import CarrierHighlightCard from "@/components/carrier/CarrierHighlightCard";
+import MarketplacePreviewCard from "./MarketplacePreviewCard";
 
 type Props = {
   trips: Trip[];
@@ -94,6 +95,7 @@ export default function HomeContent({ trips }: Props) {
           <FindDriverCard />
           <CarrierHighlightCard />
           <PopularDirectionsCard />
+          <MarketplacePreviewCard />
         </div>
       </div>
 

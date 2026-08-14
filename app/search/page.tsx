@@ -16,8 +16,12 @@ export const metadata: Metadata = {
   },
 };
 
-export default async function SearchPage() {
-  const trips = await listTrips("intercity");
+type Props = {
+  searchParams: Promise<{ from?: string; to?: string }>;
+};
+
+export default async function SearchPage({ searchParams }: Props) {
+  const [trips, { from, to }] = await Promise.all([listTrips("intercity"), searchParams]);
 
   return (
     <main className="min-h-screen bg-[#0b0b13] text-white flex flex-col">
@@ -26,7 +30,12 @@ export default async function SearchPage() {
       <div className="max-w-md mx-auto px-5 py-8 flex-1 w-full">
         <h1 className="text-3xl font-bold mb-6">Поиск поездок</h1>
 
-        <TripSearch trips={trips} emptyText="Межгородних поездок пока нет" />
+        <TripSearch
+          trips={trips}
+          emptyText="Межгородних поездок пока нет"
+          initialFrom={from}
+          initialTo={to}
+        />
       </div>
 
       <Footer />
