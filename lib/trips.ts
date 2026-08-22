@@ -76,6 +76,23 @@ const ACTIVE_CLAUSE = sql`
   AND NOT (trips.driver_completed_at IS NOT NULL AND trips.passenger_completed_at IS NOT NULL)
 `;
 
+// Публичный поиск/лента (в отличие от ACTIVE_CLAUSE, который также питает
+// countActiveTripsByOwner — там просроченная неподтверждённая поездка обязана
+// продолжать считаться "активной", чтобы владелец не мог создать вторую
+// вместо того чтобы закрыть старую). Здесь же цель другая: не показывать
+// в поиске поездку, которая должна была уехать несколько дней назад и никто
+// её не подтвердил (driver_confirmed_at/passenger_confirmed_at) — такая
+// запись просто зависла. Уже подтверждённую (едет прямо сейчас) не прячем,
+// даже если формальное время отправления уже прошло.
+const NOT_STALE_CLAUSE = sql`
+  (
+    (trips.driver_confirmed_at IS NOT NULL AND trips.passenger_confirmed_at IS NOT NULL)
+    OR trips.trip_date !~ '^\\d{4}-\\d{2}-\\d{2}$'
+    OR trips.trip_time !~ '^\\d{2}:\\d{2}$'
+    OR (to_timestamp(trips.trip_date || ' ' || trips.trip_time, 'YYYY-MM-DD HH24:MI') - interval '4 hours') >= now()
+  )
+`;
+
 export async function listTrips(type?: TripType): Promise<Trip[]> {
   await autoCancelEmptyIntercityTrips();
 
@@ -84,6 +101,7 @@ export async function listTrips(type?: TripType): Promise<Trip[]> {
     FROM trips
     WHERE ${ACTIVE_CLAUSE}
       AND trips.owner_id IS NOT NULL
+      AND ${NOT_STALE_CLAUSE}
     ${type ? sql`AND trips.type = ${type}` : sql``}
     ORDER BY trips.id DESC
   `;

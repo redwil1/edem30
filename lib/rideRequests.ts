@@ -103,11 +103,23 @@ export async function createRideRequestForming(
   return { requestId, tripId, existingCluster };
 }
 
+// Едем30 работает только в Астраханской области (UTC+4, без перехода на
+// летнее время) — та же трактовка naive trip_date/trip_time, что и в
+// lib/trips.ts (см. ASTRAKHAN_OFFSET_MS там же).
+const NOT_STALE_CLAUSE = sql`
+  (
+    r.trip_date !~ '^\\d{4}-\\d{2}-\\d{2}$'
+    OR r.trip_time !~ '^\\d{2}:\\d{2}$'
+    OR (to_timestamp(r.trip_date || ' ' || r.trip_time, 'YYYY-MM-DD HH24:MI') - interval '4 hours') >= now()
+  )
+`;
+
 /** Открытые заявки — сырой список, для группировки в кластеры на JS-стороне. */
 export async function listOpenRideRequests(): Promise<RideRequest[]> {
   return sql<RideRequest[]>`
     ${REQUEST_SELECT}
     WHERE r.status = 'open'
+      AND ${NOT_STALE_CLAUSE}
     ORDER BY r.created_at ASC
   `;
 }
